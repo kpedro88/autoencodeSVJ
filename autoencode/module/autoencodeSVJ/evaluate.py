@@ -1091,7 +1091,8 @@ class auc_getter(object):
             err[i].name = err[i].name.rstrip('error').strip()
         
         if 'rng' in self.norm_args:
-            recon[i] = recon[i].inorm(out_name=recon[i].name, **self.norm_args)
+            for i in range(len(recon)):
+                recon[i] = recon[i].inorm(out_name=recon[i].name, **self.norm_args)
         else:
             for i in range(len(recon)):
                 recon[i] = test.inorm(recon[i], out_name=recon[i].name, **self.norm_args)
