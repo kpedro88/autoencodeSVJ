@@ -1068,7 +1068,8 @@ class auc_getter(object):
     def get_errs_recon(
         self,
         data,
-        test_key='qcd'
+        test_key='qcd',
+        **kwargs
     ):
 
         test = self.get_test_dataset(data, test_key)
@@ -1086,7 +1087,7 @@ class auc_getter(object):
             normed[key].name = key
         ae = self.instance.load_model()
         normed = normed.values()
-        err, recon = utils.get_recon_errors(normed, ae)
+        err, recon = utils.get_recon_errors(normed, ae, **kwargs)
         for i in range(len(err)):
             err[i].name = err[i].name.rstrip('error').strip()
         
