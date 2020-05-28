@@ -498,6 +498,9 @@ def ae_train(
     verbose=1, 
     hlf_to_drop=['Energy', 'Flavor'],
     norm_percentile=1,
+    es_patience=10,
+    lr_patience=9,
+    lr_factor=0.5
 ):
 
     """Training function for basic autoencoder (inputs == outputs). 
@@ -625,6 +628,9 @@ def ae_train(
         'optimizer': optimizer,
         'epochs': epochs,
         'learning_rate': learning_rate,
+        'es_patience': es_patience,
+        'lr_patience': lr_patience,
+        'lr_factor': lr_factor
     }
 
     if verbose:
@@ -652,15 +658,18 @@ def ae_train(
 
     [data_err, signal_err], [data_recon, signal_recon] = utils.get_recon_errors([test_norm, signal_norm], ae)
     roc_dict = utils.roc_auc_dict(data_err, signal_err, metrics=['mae', 'mse']).values()[0]
-    result_args = dict([(r + '_auc', roc_dict[r]['auc']) for r in roc_dict])
 
+    total_loss = data_err[loss].mean()
+
+    result_args = dict([(r + '_auc', roc_dict[r]['auc']) for r in roc_dict])
+    
     vid = utils.summary_vid()
     
-    time_args = {'start_time': start_time, 'end_time': end_time, 'VID': vid}
+    time_args = {'start_time': start_time, 'end_time': end_time, 'VID': vid, 'total_loss': total_loss}
     utils.dump_summary_json(result_args, train_args, data_args, norm_args, time_args)
 
     # roc as figure of merit
-    return max(result_args.values())
+    return total_loss
 
     # def vae_train(
     #     signal_path,
@@ -1148,52 +1157,61 @@ class auc_getter(object):
 
         return fmt
 
-def update_all_signal_evals(path='autoencode/data/aucs'):
+def update_all_signal_evals(path='autoencode/data/aucs', update_date=None, dummy=False):
     """update signal auc evaluations, with path `path`. 
     """
     top = utils.summary().cfilter(['*auc*', 'target_dim', 'filename', 'signal_path', 'batch*', 'learning_rate']).sort_values('mae_auc')[::-1]
     eflow_base = 3
     
     to_add = ['{}/{}'.format(path, f) for f in top.filename.values if not os.path.exists('{}/{}'.format(path, f))]
-    to_update = [f for f in glob.glob('{}/*'.format(path)) if f.split('/')[-1] not in top.filename.values]
-    
+    to_update = []
+    for f in glob.glob('{}/*'.format(path)):
+        if update_date is None:
+            pass
+        elif datetime.datetime.fromtimestamp(os.path.getmtime(f)) < update_date:
+            to_update.append(f)
+
     total = len(to_add) + len(to_update)
     print('found {} trainings total'.format(total))
     if total > 0:
         
-        d = evaluate.data_holder(
+        if dummy:
+            d = None
+        else:
+            d = evaluate.data_holder(
                 qcd='data/background/base_3/*.h5',
                 **{os.path.basename(p): '{}/base_{}/*.h5'.format(p, eflow_base) for p in glob.glob('data/all_signals/*')}
             )
-        d.load()
+            d.load()
         
         if len(to_add) > 0:
             print('found {} trainings to add'.format(len(to_add)))
             print('filelist to add: {}'.format('\n'.join(to_add)))
-
-        for path in to_add:
-            name = path.split('/')[-1]
-            tf.reset_default_graph()            
-            a = evaluate.auc_getter(name, times=True)
-            norm, err, recon = a.get_errs_recon(d)
-            aucs = a.get_aucs(err)
-            fmt = a.auc_metric(aucs)
-            fmt.to_csv(path)
+        
+        if not dummy:
+            for path in to_add:
+                name = path.split('/')[-1]
+                tf.reset_default_graph()            
+                a = evaluate.auc_getter(name, times=True)
+                norm, err, recon = a.get_errs_recon(d)
+                aucs = a.get_aucs(err)
+                fmt = a.auc_metric(aucs)
+                fmt.to_csv(path)
             
         if len(to_update) > 0:
             print('found {} trainings to update'.format(len(to_update)))
             print('filelist to update: {}'.format('\n'.join(to_update)))
             
-        for path in to_update:
-
-            name = path.split('/')[-1]
-            tf.reset_default_graph()            
-            a = evaluate.auc_getter(name, times=True)
-            a.update_event_range(d, percentile_n=1)
-            norm, err, recon = a.get_errs_recon(d)
-            aucs = a.get_aucs(err)
-            fmt = a.auc_metric(aucs)
-            fmt.to_csv(path)
+        if not dummy:
+            for path in to_update:
+                name = path.split('/')[-1]
+                tf.reset_default_graph()            
+                a = evaluate.auc_getter(name, times=True)
+                a.update_event_range(d, percentile_n=1)
+                norm, err, recon = a.get_errs_recon(d)
+                aucs = a.get_aucs(err)
+                fmt = a.auc_metric(aucs)
+                fmt.to_csv(path)
 
 def get_training_info_dict(filepath):
     default = os.path.join(utils.get_repo_info()['head'], 'autoencode/data/training_runs/')

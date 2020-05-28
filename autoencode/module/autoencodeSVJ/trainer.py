@@ -190,14 +190,17 @@ class trainer(logger):
         learning_rate=0.01,
         custom_objects={},
         compile_me=True,
+        es_patience=10,
+        lr_patience=9,
+        lr_factor=0.5,
     ):
         callbacks = None
 
         w_path = self.config_file.replace(".pkl", "_weights.h5")
         if use_callbacks:
             callbacks = [
-                EarlyStopping(monitor='val_loss', patience=10, verbose=0),
-                ReduceLROnPlateau(monitor='val_loss', factor=0.5, patience=9, verbose=0),
+                EarlyStopping(monitor='val_loss', patience=es_patience, verbose=0),
+                ReduceLROnPlateau(monitor='val_loss', factor=lr_factor, patience=lr_patience, verbose=0),
                 TerminateOnNaN(),
                 ModelCheckpoint(w_path, monitor='val_loss', verbose=self.VERBOSE, save_best_only=True, save_weights_only=True, mode='min')
             ]
