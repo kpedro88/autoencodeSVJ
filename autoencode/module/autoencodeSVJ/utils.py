@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 import glob
 import pandas as pd
 import prettytable
-from StringIO import StringIO
+#from StringIO import StringIO
 from enum import Enum
 import subprocess
 import json
@@ -89,9 +89,9 @@ class logger:
     ):
         if isinstance(s, basestring):
             for line in s.split('\n'):
-                print prefix + str(line)
+                print(prefix + str(line))
         else:
-            print prefix + str(s)
+            print(prefix + str(s))
 
     def _log_str(
         self,
@@ -265,7 +265,7 @@ class data_table(logger):
         if hasattr(self.df, attr):
             return self.df.__getattr__(attr)
         else:
-            raise AttributeError, "no dataframe or data_table attribute matching '{}'".format(attr)
+            raise(AttributeError, "no dataframe or data_table attribute matching '{}'".format(attr))
 
     def __str__(
         self,
@@ -509,7 +509,7 @@ class data_loader(logger):
                     self.sample_keys = keys
                 else:
                     if keys != self.sample_keys:
-                        raise AttributeError("Cannot add current sample with keys {} to established sample with keys {}!".format(keys, self.sample_keys))
+                        raise(AttributeError("Cannot add current sample with keys {} to established sample with keys {}!".format(keys, self.sample_keys)))
 
                 self._update_data(f, keys)
 
@@ -569,7 +569,7 @@ class data_loader(logger):
                 )
                 # combine behavior
         else:
-            raise AttributeError("cannot process table for data with dimension {}".format(data.shape))
+            raise(AttributeError("cannot process table for data with dimension {}".format(data.shape)))
 
     def make_tables(
         self,
@@ -614,7 +614,7 @@ class data_loader(logger):
         keys=None,
     ):
         if keys is None:
-            raise AttributeError("please choose data keys to add to sample dataset! \noptions: {0}".format(list(self.sample_keys)))
+            raise(AttributeError("please choose data keys to add to sample dataset! \noptions: {0}".format(list(self.sample_keys))))
 
         assert hasattr(keys, "__iter__") or isinstance(keys, basestring), "keys must be iterable of strings!"
 
@@ -638,7 +638,7 @@ class data_loader(logger):
         if any(is_string):
             if all(is_string):
                 return np.concatenate(data_dict.values()), data_dict
-            raise AttributeError, "Cannot ask for mixed type datasets! types: {0}".format(types)
+            raise(AttributeError, "Cannot ask for mixed type datasets! types: {0}".format(types))
 
         self.log("Grabbing dataset with keys {0}".format(list(data_dict.keys())))
 
@@ -916,7 +916,7 @@ def split_by_tag(data, tag_column="jetFlavor", printout=True):
     if printout:
         sizes = map(lambda x: x.shape[0], tagged)
         for t,s in zip(tagged, sizes):
-            print  "{} jet: {}, {}%".format(t.name, s, round(100.*s/sum(sizes), 1))
+            print("{} jet: {}, {}%".format(t.name, s, round(100.*s/sum(sizes), 1)))
         
     return tagged, tag_index
     
@@ -926,12 +926,12 @@ def compare_tags(datasets):
     tag_ids = set().union(*[set([tn for tn in tlist]) for tlist in tags])
     
     for tag_id in tag_ids:
-        print "{}:".format(tag_id)
+        print("{}:".format(tag_id))
         for t,d in zip(tags, datasets):
             
             if tag_id in t:
                 tag = t[tag_id]
-                print "\t{:.1f}% ({}) {}".format(100.*tag.shape[0]/d.shape[0], tag.shape[0], d.name)
+                print("\t{:.1f}% ({}) {}".format(100.*tag.shape[0]/d.shape[0], tag.shape[0], d.name))
             
 def get_recon_errors(data_list, autoencoder, **kwargs):
 
@@ -1052,14 +1052,14 @@ def OLD_load_all_data(data_path, name, cols_to_drop = ["jetM", "*MET*", "*Delta*
     data.cdrop(cols_to_drop, inplace=True)
     # signal.cdrop(cols_to_drop, inplace=True)
     
-    print "{} tags:".format(name)
-    print "" 
+    print("{} tags:".format(name))
+    print("")
     tagged_data, tag_index_data = split_by_tag(data)
-    print ""
-    # print "signal tags:"
-    # print ""
+    print("")
+    # print("signal tags:")
+    # print("")
     # tagged_signal, tag_index_signal = split_by_tag(signal)
-    # print ""
+    # print("")
 
     return data, tagged_data, data_jets
 
@@ -1092,14 +1092,14 @@ def evaluate_model(data_path, signal_path, model_path):
     data.cdrop(cols_to_drop, inplace=True)
     signal.cdrop(cols_to_drop, inplace=True)
     
-    print "data tags:"
-    print "" 
+    print("data tags:")
+    print("")
     tagged_data, tag_index_data = split_by_tag(data)
-    print ""
-    print "signal tags:"
-    print ""
+    print("")
+    print("signal tags:")
+    print("")
     tagged_signal, tag_index_signal = split_by_tag(signal)
-    print ""
+    print("")
     
     data_raw = data.cdrop("*Flavor")
     signal_raw = signal.cdrop("*Flavor")
@@ -1194,7 +1194,7 @@ def get_plot_params(
     if colors is None:
         colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
     if len(colors) < n_plots:
-        print "too many plots for specified colors. overriding with RAINbow"
+        print("too many plots for specified colors. overriding with RAINbow")
         import matplotlib.cm as cm
         colors = cm.rainbow(np.linspace(0, 1, n_plots)) 
     return fig, on_axis_begin, on_axis_end, on_plot_end, colors
@@ -1296,14 +1296,14 @@ def eflow_modify(tables):
 
 def jet_flavor_check(flavors):
     d = split_table_by_column("Flavor", flavors, tag_names=delphes_jet_tags_dict)[1]
-    print flavors.name.center(30)
-    print "-"*30
+    print(flavors.name.center(30))
+    print("-"*30)
     for name,index in d.items():
         tp = "{}:".format(name).rjust(10)
         tp = tp + "{}".format(len(index)).rjust(10)
         tp = tp + "({} %)".format(round(100.*len(index)/len(flavors), 1)).rjust(10)
-        print tp
-    print 
+        print(tp)
+    print()
 
 def jet_flavor_split(to_split, ref=None):
     if ref is None:
@@ -1322,7 +1322,7 @@ def load_all_data(globstring, name, include_hlf=True, include_eflow=True, hlf_to
     files = glob_in_repo(globstring)
     
     if len(files) == 0:
-        raise AttributeError("No files found matching spec '{}'".format(globstring))
+        raise(AttributeError("No files found matching spec '{}'".format(globstring)))
 
     to_include = []
     if include_hlf:
@@ -1333,7 +1333,7 @@ def load_all_data(globstring, name, include_hlf=True, include_eflow=True, hlf_to
         
         
     if not (include_hlf or include_eflow):
-        raise AttributeError("both HLF and EFLOW are not included! Please include one or both, at least.")
+        raise(AttributeError("both HLF and EFLOW are not included! Please include one or both, at least."))
         
     d = data_loader(name, verbose=False)
     for f in files:
@@ -1414,7 +1414,7 @@ def dump_summary_json(*dicts):
     fpath = os.path.join(head, summary['filename'] + '.summary')
 
     if os.path.exists(fpath):
-        # print "warning.. filepath '{}' exists!".format(fpath)
+        # print("warning.. filepath '{}' exists!".format(fpath))
 
         newpath = fpath
 
@@ -1424,19 +1424,19 @@ def dump_summary_json(*dicts):
         # just a check
         assert not os.path.exists(newpath)
         fpath = newpath
-        # print "saving to path '{}' instead :-)".format(fpath)
+        # print("saving to path '{}' instead :-)".format(fpath))
 
     summary['summary_path'] = fpath
 
     # for k,v in summary.items():
-    #     print k, ":", v
+    #     print(k, ":", v)
     
     # print
 
     with open(fpath, "w+") as f:
         json.dump(summary, f)
 
-    # print "successfully dumped size-{} summary dict to file '{}'".format(len(summary), fpath)
+    # print("successfully dumped size-{} summary dict to file '{}'".format(len(summary), fpath))
     return summary
 
 def summary_vid():
@@ -1458,9 +1458,9 @@ def summary_by_name(name):
     matches = summary_match(name)
     
     if len(matches) == 0:
-        raise AttributeError("No summary found with name '{}'".format(name))
+        raise(AttributeError("No summary found with name '{}'".format(name)))
     elif len(matches) > 1:
-        raise AttributeError("Multiple summaries found with name '{}'".format(name))
+        raise(AttributeError("Multiple summaries found with name '{}'".format(name)))
     
     return matches[0]
 
@@ -1508,7 +1508,7 @@ def summary_match(globstr, verbose=1):
     
     ret = glob.glob(globstr)
     if verbose:
-        print "found {} matches with search '{}'".format(len(ret), globstr)
+        print("found {} matches with search '{}'".format(len(ret), globstr))
     return ret
 
 def summary_by_features(**kwargs):
@@ -1656,7 +1656,7 @@ def merge_rootfiles(glob_path, out_name, treename="Delphes"):
         chain.Merge(out_name)
         return 0
     except:
-        print tb.format_exc()
+        print(tb.format_exc())
         return 1
 
 def set_random_seed(seed_value):

@@ -176,3 +176,7 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# Xcode projects
+*.xcodeproj
+*.xcodeproj/*

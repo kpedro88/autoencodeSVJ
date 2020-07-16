@@ -1,10 +1,10 @@
-import utils
-import trainer
-import evaluate
+import autoencodeSVJ.utils
+import autoencodeSVJ.trainer
+import autoencodeSVJ.evaluate
 import numpy as np
 import tensorflow as tf
 import os
-import models
+import autoencodeSVJ.models
 import datetime
 from collections import OrderedDict as odict 
 import time
@@ -36,13 +36,13 @@ class ae_evaluation:
             if 'qcd_path' in self.d:
                 qcd_path = self.d['qcd_path']
             else:
-                raise AttributeError("No QCD path found; please specify!")
+                raise(AttributeError("No QCD path found; please specify!"))
 
         if SVJ_path is None:
             if 'signal_path' in self.d:
                 SVJ_path = self.d['signal_path']
             else:
-                raise AttributeError("No SVJ signal path found; please specify!")
+                raise(AttributeError("No SVJ signal path found; please specify!"))
         
         assert isinstance(aux_signals_dict, (dict, odict)), 'aux_signals_dict must be dict or odict with {name: path} format'
 
@@ -105,11 +105,11 @@ class ae_evaluation:
 
         # try to find training pkl file and load 'er up 
         if not os.path.exists(self.filepath + ".pkl"):
-            print self.filepath + ".pkl"
+            print(self.filepath + ".pkl")
             self.filepath = utils.path_in_repo(self.filepath + ".pkl")
-            print self.filepath
+            print(self.filepath)
             if self.filepath is None:
-                raise AttributeError("filepath does not exist with spec {}".format(self.d['filepath']))
+                raise(AttributeError("filepath does not exist with spec {}".format(self.d['filepath'])))
             else:
                 if self.filepath.endswith(".h5"):
                     self.filepath.rstrip(".h5")
@@ -204,7 +204,7 @@ class ae_evaluation:
         include_names=False,
     ):
         if split_by_flavor and split_by_leading_jet:
-            raise AttributeError("Cannot split by both Flavor and leading/subleading jets (too messy of a plot)")
+            raise(AttributeError("Cannot split by both Flavor and leading/subleading jets (too messy of a plot)"))
 
         SVJ_out = SVJ_vec
         qcd_out = [test_vec]
@@ -424,14 +424,14 @@ class ae_evaluation:
     ):
         for k in cuts:
             s = 0
-            print k +":"
+            print(k +":")
             for subk in cuts[k]:
-                print " -", str(subk) + ":", cuts[k][subk].shape
+                print(" -", str(subk) + ":", cuts[k][subk].shape)
                 s += len(cuts[k][subk])
-            print " - size:", s
+            print(" - size:", s)
 
-        print " - og SVJ size:", len(self.SVJ)/2 
-        print " - og test size:", len(self.test)/2
+        print(" - og SVJ size:", len(self.SVJ)/2)
+        print(" - og test size:", len(self.test)/2)
 
     def fill_cuts(
         self,
@@ -458,8 +458,8 @@ class ae_evaluation:
             out_name = os.path.join(output_dir, oname)
             
             if os.path.exists(out_name):
-                raise AttributeError("File at path " + out_name + " already exists!! Choose another.")
-            print "saving root file at " + out_name
+                raise(AttributeError("File at path " + out_name + " already exists!! Choose another."))
+            print("saving root file at " + out_name)
             f = rt.TFile(out_name, "RECREATE")
             histos = []
             all_data[out_name] = []
@@ -628,9 +628,9 @@ def ae_train(
     }
 
     if verbose:
-        print "TRAINING WITH PARAMS >>>"
+        print("TRAINING WITH PARAMS >>>")
         for arg in train_args:
-            print arg, ":", train_args[arg]
+            print(arg, ":", train_args[arg])
 
     if train_me:
         ae = instance.train(
@@ -802,9 +802,9 @@ def ae_train(
     #     }
 
     #     if verbose:
-    #         print "TRAINING WITH PARAMS >>>"
+    #         print("TRAINING WITH PARAMS >>>")
     #         for arg in train_args:
-    #             print arg, ":", train_args[arg]
+    #             print(arg, ":", train_args[arg])
     
     #     if train_me:
     #         ae = instance.train(
@@ -992,7 +992,7 @@ class auc_getter(object):
             if 'qcd_path' in self.d:
                 qcd_path = self.d['qcd_path']
             else:
-                raise AttributeError("No QCD path found; please specify!")
+                raise(AttributeError("No QCD path found; please specify!"))
 
         self.qcd_path = qcd_path
                 
@@ -1009,11 +1009,11 @@ class auc_getter(object):
             setattr(self, param, self.d[param])
 
         if not os.path.exists(self.filepath + ".pkl"):
-            print self.filepath + ".pkl"
+            print(self.filepath + ".pkl")
             self.filepath = utils.path_in_repo(self.filepath + ".pkl")
-            print self.filepath
+            print(self.filepath)
             if self.filepath is None:
-                raise AttributeError("filepath does not exist with spec {}".format(self.d['filepath']))
+                raise(AttributeError("filepath does not exist with spec {}".format(self.d['filepath'])))
             else:
                 if self.filepath.endswith(".h5"):
                     self.filepath.rstrip(".h5")
@@ -1201,7 +1201,7 @@ def get_training_info_dict(filepath):
     if not os.path.exists(fp):
         fp = os.path.join(default, filepath)
     if not os.path.exists(fp):
-        raise AttributeError('unrecognized filepath \'{}\''.format(fp))
+        raise(AttributeError('unrecognized filepath \'{}\''.format(fp)))
     return trainer.pkl_file(fp).store.copy()
     
 def check_training(filepath):

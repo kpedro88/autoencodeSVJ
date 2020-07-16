@@ -297,7 +297,7 @@ class LEGACY:
             self.train_params['optimizer'] = optimizer
             self.train_params['learning_rate'] = learning_rate
             self.train_params['n_samples'] = n_samples
-            print self.train_params
+            print(self.train_params)
             self.TRAINED = True
 
         def plot_training_history(
@@ -342,7 +342,7 @@ class LEGACY:
                 self.autoencoder.load_weights(base_filename)
                 self.reps = self.encoder.predict(self.normalized)
                 return True
-            print "no weights found with filename " + base_filename
+            print("no weights found with filename " + base_filename)
             return False
 
         def save(
@@ -355,7 +355,7 @@ class LEGACY:
             if not os.path.exists(base_filename):
                 self.autoencoder.save_weights(base_filename)
                 return True
-            print "error: identically named file already exists at " + base_filename
+            print("error: identically named file already exists at " + base_filename)
             return False
             
         def base_fname(
@@ -375,9 +375,9 @@ class LEGACY:
             labels,true = self.labels[feature_key + "_names"], self.data[feature_key + "_data"].T
             pred = self.reconstruct_dataset(self.autoencoder.predict(self.normalized))[feature_key + "_data"].T
 
-            # print labels
-            # print true.shape
-            # print pred.shape
+            # print(labels)
+            # print(true.shape)
+            # print(pred.shape)
 
             n = min(len(true), max_features)
             rows = self.rows(cols, n)
@@ -428,7 +428,7 @@ class LEGACY:
         # b.compare_features()
         # b.plot_training_history()
         # b.plot_rep_distributions(hide_zeros=False)
-        # print ret.values()[1].shape
+        # print(ret.values()[1].shape)
 
     # class mldata(np.ndarray):
     #     def __new__(cls, input_array, input_dict): #, info=None

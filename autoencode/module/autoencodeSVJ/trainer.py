@@ -4,7 +4,7 @@ from collections import OrderedDict as odict
 import os
 import traceback
 from datetime import datetime
-from utils import logger, smartpath, get_plot_params
+from autoencodeSVJ.utils import logger, smartpath, get_plot_params
 import h5py
 import matplotlib.pyplot as plt
 import glob
@@ -118,7 +118,7 @@ class trainer(logger):
     ):
         self.close()
         self.error(msg)
-        raise exc, msg
+        raise(exc, msg)
 
     def close(
         self,

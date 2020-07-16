@@ -1,6 +1,6 @@
 import keras 
 import keras.backend as K
-from utils import logger
+from autoencodeSVJ.utils import logger
 import numpy as np
 
 def shallow(bn, n_features, central_activation='relu'):
@@ -52,7 +52,7 @@ class robust_deep(logger):
         elif hasattr(base_ae, "compile"):
             self.AE = base_ae
         else:
-            raise AttributeError, "'base_ae' parameter must be keras model or base_autoencoder instance!"
+            raise(AttributeError, "'base_ae' parameter must be keras model or base_autoencoder instance!")
         logger.__init__(self, VERBOSE=verbose, LOG_PREFIX="robust_deep_ae :: ")
         self.L, self.S = None, None
         self.lambda_ = lambda_
