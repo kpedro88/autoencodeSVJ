@@ -498,7 +498,7 @@ class data_loader(logger):
         assert os.path.exists(filepath)
 
         if filepath not in self.samples:
-            with h5py.File(filepath) as f:
+            with h5py.File(filepath, mode="r") as f:
 
                 self.log("Adding sample at path '{}'".format(filepath))
                 self.samples[filepath] = f
@@ -871,8 +871,8 @@ def get_selections_dict(list_of_selections):
 
 def get_repo_info():
     info = {}
-    info['head'] = subprocess.Popen("git rev-parse --show-toplevel".split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()[0].strip('\n')
-    info['name'] = subprocess.Popen("git config --get remote.origin.url".split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()[0].strip('\n')
+    info['head'] = subprocess.Popen("git rev-parse --show-toplevel".split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()[0].decode("utf-8").strip('\n')
+    info['name'] = subprocess.Popen("git config --get remote.origin.url".split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()[0].decode("utf-8").strip('\n')
     return info
 
 def split_to_jets(data):
