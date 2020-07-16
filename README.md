@@ -1,21 +1,7 @@
 # autoencodeSVJ
 
-autoencoders + semivisible jet analysis implementation
+This repository contains code for the Semi Visible Jets search. It contains modules for selection and conversion of the data, training of autoencoder and some plotting macros.
 
-# usage
+Documentation of the code can be found here: (Wiki)[https://github.com/jniedzie/autoencodeSVJ/wiki]
 
-### selection/conversion
-
-this analysis is implemented in sections, the first two of which are controlled by the `driver.py` file in the main repository. <br>
-to see general driver behavior, run `python driver.py -h` using any old python installation.
-
-your options are 
- 
- - `select`: select events from a delphes root file, use -h for more info
- - `convert`: convert selections into h5 files (trainable data)
-
-### training
-
-training is implemented entirely in the `autoencode` directory. Here there is a helper module, `autoencodeSVJ`, whose components can be used in python code analyses. A few current examples of such analyses (jupyter notebooks!) are given in the `autoencode/notebooks directory`. 
-
-The environment used for training is python `2.7.*`, with keras/tensorflow. On `lxplus` or any tier 3 server you might use the provided `setup.sh`. 
+Other documentation related to the analysis is here: (TWiki)[https://twiki.cern.ch/twiki/bin/viewauth/ETHZurichCMS/SemiVisibleJets]
