@@ -20,6 +20,10 @@ TEST/
 #
 # CUSTOM
 
+# Cached data
+autoencode/data/*
+autoencode/data/training_runs/*.*
+
 # Prerequisites
 *.d
 
