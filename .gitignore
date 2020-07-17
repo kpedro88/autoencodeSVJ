@@ -24,6 +24,9 @@ TEST/
 autoencode/data/*
 autoencode/data/training_runs/*.*
 
+# Executables
+conversion/h5parser
+
 # Prerequisites
 *.d
 
