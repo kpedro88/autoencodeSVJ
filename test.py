@@ -93,9 +93,9 @@ def kl_metric(y_true, y_pred):
 vae.compile(loss=[lambda x,y: K.mean(reco_loss) + 0.0001*K.mean(kl_loss)], optimizer='adam', metrics=[reco_metric, kl_metric])
 
 
-sdata,sjets,sevent,sflavor = utils.load_all_data("/afs/cern.ch/work/l/llepotti/public/training_data/1500GeV_0.15/base_3/*.h5", 'SVJ')
+sdata,sjets,sevent,sflavor = utils.load_all_data("/Users/Jeremi/Documents/Physics/ETH/data/1500GeV_0p75/*.h5", 'SVJ')
 
-data, jets, event, flavor = utils.load_all_data("/afs/cern.ch/work/l/llepotti/public/training_data/qcd/base_3/*.h5", 'background')
+data, jets, event, flavor = utils.load_all_data("/Users/Jeremi/Documents/Physics/ETH/data/qcd/base_3/*.h5", 'background')
 norm = data.norm(norm_type='MinMaxScaler')
 train_norm, val_norm = norm.train_test_split(0.2)
 snorm = data.norm(sdata, norm_type='MinMaxScaler')

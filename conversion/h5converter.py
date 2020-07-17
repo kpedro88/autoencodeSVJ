@@ -122,9 +122,9 @@ class Converter:
     ):
         if isinstance(msg, str):
             for line in msg.split('\n'):
-                print self.LOGMSG + line
+                print(self.LOGMSG + line)
         else:
-            print self.LOGMSG + str(msg)
+            print(self.LOGMSG + str(msg))
 
     def jet_axis2_pt2(
         self,
@@ -427,15 +427,15 @@ class Converter:
 if __name__ == "__main__":
     if len(sys.argv) == 10:
         (_, outputdir, pathspec, name, dr, nc, rmin, rmax, constituents, basis_n) = sys.argv
-        # print outputdir
-        # print pathspec
-        # print filespecls 
+        # print(outputdir)
+        # print(pathspec)
+        # print(filespecls)
         core = Converter(outputdir, pathspec, name, float(dr), int(nc), bool(int(constituents)), int(basis_n))
         ret = core.convert((int(rmin), int(rmax)))
         core.save()
     # elif len(sys.argv) == 0:
     else:
-        print "TEST MODE"
+        print("TEST MODE")
 
         core = Converter(".", '/afs/cern.ch/work/l/llepotti/private/CMS/CMSSW_8_0_20/src/autoencodeSVJ/data/background/process/data_0_selection.txt', "data", save_constituents=True, energyflow_basis_degree=-1, n_constituent_particles=100)
         ret = core.convert((0,100), return_debug_tree=False)

@@ -709,7 +709,10 @@ def parse_globlist(glob_list, match_list):
     assert all([isinstance(c, str) for c in glob_list])
 
     match = set()
+    match_list = [x.decode("utf-8") for x in match_list]
+    
     for g in glob_list:
+        
         match.update(glob.fnmatch.filter(match_list, g))
 
     return match
