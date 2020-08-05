@@ -17,6 +17,7 @@
 #include <iostream>
 
 #include <TH1D.h>
+#include <TH2D.h>
 #include <TApplication.h>
 #include <TCanvas.h>
 
