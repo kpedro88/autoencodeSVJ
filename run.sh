@@ -24,4 +24,4 @@ TERM=xterm-color
 
 cd ../../
 echo "Running test script"
-python test.py
+python $1
