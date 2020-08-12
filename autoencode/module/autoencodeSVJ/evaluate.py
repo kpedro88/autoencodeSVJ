@@ -1,4 +1,4 @@
-import autoencodeSVJ.utils
+import autoencodeSVJ.utils as utils
 import autoencodeSVJ.trainer
 import autoencodeSVJ.evaluate
 import numpy as np
@@ -36,13 +36,13 @@ class ae_evaluation:
             if 'qcd_path' in self.d:
                 qcd_path = self.d['qcd_path']
             else:
-                raise(AttributeError("No QCD path found; please specify!"))
+                raise AttributeError
 
         if SVJ_path is None:
             if 'signal_path' in self.d:
                 SVJ_path = self.d['signal_path']
             else:
-                raise(AttributeError("No SVJ signal path found; please specify!"))
+                raise AttributeError
         
         assert isinstance(aux_signals_dict, (dict, odict)), 'aux_signals_dict must be dict or odict with {name: path} format'
 
@@ -62,7 +62,7 @@ class ae_evaluation:
         self.hlf = self.d['hlf']
         self.eflow = self.d['eflow']
         self.eflow_base = self.d['eflow_base']
-        self.hlf_to_drop = map(str, self.d['hlf_to_drop'])
+        self.hlf_to_drop = list(map(str, self.d['hlf_to_drop']))
 
         #     SVJ_path = "data/SVJ/base_{}/*.h5".format(eflow_base)
         #     qcd_path = "data/background/base_{}/*.h5".format(eflow_base)
@@ -105,11 +105,11 @@ class ae_evaluation:
 
         # try to find training pkl file and load 'er up 
         if not os.path.exists(self.filepath + ".pkl"):
-            print(self.filepath + ".pkl")
+            print((self.filepath + ".pkl"))
             self.filepath = utils.path_in_repo(self.filepath + ".pkl")
-            print(self.filepath)
+            print((self.filepath))
             if self.filepath is None:
-                raise(AttributeError("filepath does not exist with spec {}".format(self.d['filepath'])))
+                raise AttributeError
             else:
                 if self.filepath.endswith(".h5"):
                     self.filepath.rstrip(".h5")
@@ -204,7 +204,7 @@ class ae_evaluation:
         include_names=False,
     ):
         if split_by_flavor and split_by_leading_jet:
-            raise(AttributeError("Cannot split by both Flavor and leading/subleading jets (too messy of a plot)"))
+            raise AttributeError
 
         SVJ_out = SVJ_vec
         qcd_out = [test_vec]
@@ -217,7 +217,7 @@ class ae_evaluation:
                     qcd_out[i].name = qcd_out[i].name + ", " + test_vec.name 
 
         if split_by_leading_jet:
-            j1s, j2s = map(utils.data_table, [SVJ_vec.iloc[0::2], SVJ_vec.iloc[1::2]])
+            j1s, j2s = list(map(utils.data_table, [SVJ_vec.iloc[0::2], SVJ_vec.iloc[1::2]]))
             j1s.name = 'leading SVJ jet'
             j2s.name = 'subleading SVJ jet'
             if include_names:
@@ -424,14 +424,14 @@ class ae_evaluation:
     ):
         for k in cuts:
             s = 0
-            print(k +":")
+            print((k +":"))
             for subk in cuts[k]:
-                print(" -", str(subk) + ":", cuts[k][subk].shape)
+                print((" -", str(subk) + ":", cuts[k][subk].shape))
                 s += len(cuts[k][subk])
-            print(" - size:", s)
+            print((" - size:", s))
 
-        print(" - og SVJ size:", len(self.SVJ)/2)
-        print(" - og test size:", len(self.test)/2)
+        print((" - og SVJ size:", len(self.SVJ)/2))
+        print((" - og test size:", len(self.test)/2))
 
     def fill_cuts(
         self,
@@ -449,7 +449,7 @@ class ae_evaluation:
 
         all_data = {}
 
-        for name,cut in cuts.items():
+        for name,cut in list(cuts.items()):
             if  'qcd' in name.lower():
                 oname = "QCD.root"
             elif 'SVJ' in name.lower():
@@ -458,12 +458,12 @@ class ae_evaluation:
             out_name = os.path.join(output_dir, oname)
             
             if os.path.exists(out_name):
-                raise(AttributeError("File at path " + out_name + " already exists!! Choose another."))
-            print("saving root file at " + out_name)
+                raise AttributeError
+            print(("saving root file at " + out_name))
             f = rt.TFile(out_name, "RECREATE")
             histos = []
             all_data[out_name] = []
-            for jet_n, idx  in cut.items():
+            for jet_n, idx  in list(cut.items()):
                 hname = "{}_SVJ{}".format(var, jet_n)
                 hist = rt.TH1F(hname, hname, bins, *rng)
                 
@@ -539,8 +539,8 @@ def ae_train(
     )
 
     if eflow:
-        qcd_eflow = len(filter(lambda x: "eflow" in x, qcd.columns))
-        signal_eflow = len(filter(lambda x: "eflow" in x, signal.columns))
+        qcd_eflow = len([x for x in qcd.columns if "eflow" in x])
+        signal_eflow = len([x for x in signal.columns if "eflow" in x])
 
         assert qcd_eflow == signal_eflow, 'signal and qcd eflow basis must be the same!!'
         eflow_base = eflow_base_lookup[qcd_eflow]
@@ -550,7 +550,7 @@ def ae_train(
     filename = "{}{}{}_".format('hlf_' if hlf else '', 'eflow{}_'.format(eflow_base) if eflow else '', target_dim)
     
     if version is None:
-        existing_ids = map(lambda x: int(os.path.basename(x).rstrip('.summary').split('_')[-1].lstrip('v')), utils.summary_match(filename + "v*", 0))
+        existing_ids = [int(os.path.basename(x).rstrip('.summary').split('_')[-1].lstrip('v')) for x in utils.summary_match(filename + "v*", 0)]
         assert len(existing_ids) == len(set(existing_ids)), "no duplicate ids"
         id_set = set(existing_ids)
         this_num = 0
@@ -560,7 +560,7 @@ def ae_train(
         version = this_num
 
     filename += "v{}".format(version)
-    print("training under filename '{}'".format(filename))
+    print(("training under filename '{}'".format(filename)))
 
     assert len(utils.summary_match(filename, 0)) == 0, "filename '{}' exists already! Change version id, or leave blank.".format(filename)
 
@@ -636,7 +636,7 @@ def ae_train(
     if verbose:
         print("TRAINING WITH PARAMS >>>")
         for arg in train_args:
-            print(arg, ":", train_args[arg])
+            print((arg, ":", train_args[arg]))
 
     if train_me:
         ae = instance.train(
@@ -657,7 +657,7 @@ def ae_train(
     end_time = str(datetime.datetime.now())
 
     [data_err, signal_err], [data_recon, signal_recon] = utils.get_recon_errors([test_norm, signal_norm], ae)
-    roc_dict = utils.roc_auc_dict(data_err, signal_err, metrics=['mae', 'mse']).values()[0]
+    roc_dict = list(utils.roc_auc_dict(data_err, signal_err, metrics=['mae', 'mse']).values())[0]
 
     total_loss = data_err[loss].mean()
 
@@ -940,7 +940,7 @@ class data_holder(object):
             setattr(self, name, signal_element(path, name))
             self.KEYS[name] = getattr(self, name)
 
-        print('found {} datasets'.format(len(names)))
+        print(('found {} datasets'.format(len(names))))
 
     def load(
         self,
@@ -948,7 +948,7 @@ class data_holder(object):
         eflow=True,
         hlf_to_drop=['Energy', 'Flavor']
     ):
-        for k,v in self.KEYS.items():
+        for k,v in list(self.KEYS.items()):
             v._load(hlf, eflow, hlf_to_drop)
 
     def add_attribute(
@@ -956,21 +956,21 @@ class data_holder(object):
         name,
         function,
     ):
-        for k,v in self.KEYS.items():
+        for k,v in list(self.KEYS.items()):
             v._add_attribute(name, function)
     
     def rm_attribute(
         self,
         name
     ):
-        for k,v in self.KEYS.items():
+        for k,v in list(self.KEYS.items()):
             v._rm_attribute(name)
 
     def get(
         self,
         name
     ):
-        return [getattr(v, name) for v in self.KEYS.values()]
+        return [getattr(v, name) for v in list(self.KEYS.values())]
 
 class auc_getter(object):
     '''This object basically needs to be able to load a training run into memory, including all 
@@ -1001,14 +1001,14 @@ class auc_getter(object):
             if 'qcd_path' in self.d:
                 qcd_path = self.d['qcd_path']
             else:
-                raise(AttributeError("No QCD path found; please specify!"))
+                raise AttributeError
 
         self.qcd_path = qcd_path
                 
         self.hlf = self.d['hlf']
         self.eflow = self.d['eflow']
         self.eflow_base = self.d['eflow_base']
-        self.hlf_to_drop = map(str, self.d['hlf_to_drop'])
+        self.hlf_to_drop = list(map(str, self.d['hlf_to_drop']))
 
         # get and set random seed for reproductions
         self.seed = self.d['seed']
@@ -1018,11 +1018,11 @@ class auc_getter(object):
             setattr(self, param, self.d[param])
 
         if not os.path.exists(self.filepath + ".pkl"):
-            print(self.filepath + ".pkl")
+            print((self.filepath + ".pkl"))
             self.filepath = utils.path_in_repo(self.filepath + ".pkl")
-            print(self.filepath)
+            print((self.filepath))
             if self.filepath is None:
-                raise(AttributeError("filepath does not exist with spec {}".format(self.d['filepath'])))
+                raise AttributeError
             else:
                 if self.filepath.endswith(".h5"):
                     self.filepath.rstrip(".h5")
@@ -1041,7 +1041,7 @@ class auc_getter(object):
     ):
         end = time.time() - self.__TIME
         if self.times:
-            print(':: TIME: ' + '{}executed in {:.2f} s'.format('' if info is None else info + ' ', end))
+            print((':: TIME: ' + '{}executed in {:.2f} s'.format('' if info is None else info + ' ', end)))
         return end
     
     def update_event_range(
@@ -1089,13 +1089,13 @@ class auc_getter(object):
             normed = {d: getattr(data, d).data.norm(**self.norm_args) for d in data.KEYS if d != test_key}
             normed[test_key] = test.norm(**self.norm_args)
         else:
-            normed = {d: test.norm(elt.data, **self.norm_args) for d,elt in data.KEYS.items() if d != test_key}
+            normed = {d: test.norm(elt.data, **self.norm_args) for d,elt in list(data.KEYS.items()) if d != test_key}
             normed[test_key] = test.norm(test, **self.norm_args)
 
         for key in normed:
             normed[key].name = key
         ae = self.instance.load_model()
-        normed = normed.values()
+        normed = list(normed.values())
         err, recon = utils.get_recon_errors(normed, ae, **kwargs)
         for i in range(len(err)):
             err[i].name = err[i].name.rstrip('error').strip()
@@ -1108,7 +1108,7 @@ class auc_getter(object):
                 recon[i] = test.inorm(recon[i], out_name=recon[i].name, **self.norm_args)
         del ae
         self.time('recon gen')
-        return map(lambda x: {y.name: y for y in x}, [normed, err, recon])
+        return [{y.name: y for y in x} for x in [normed, err, recon]]
     
     def get_aucs(
         self,
@@ -1117,8 +1117,8 @@ class auc_getter(object):
         metrics=None,
     ):
         self.start()
-        derr = [v for elt,v in err.items() if elt == qcd_key]
-        serr = [v for elt,v in err.items() if elt != qcd_key]
+        derr = [v for elt,v in list(err.items()) if elt == qcd_key]
+        serr = [v for elt,v in list(err.items()) if elt != qcd_key]
         
         if metrics is None:
             metrics = ['mae']
@@ -1134,8 +1134,8 @@ class auc_getter(object):
         metrics=None
     ):
         self.start()
-        derr = [v for elt,v in err.items() if elt == qcd_key]
-        serr = [v for elt,v in err.items() if elt != qcd_key]
+        derr = [v for elt,v in list(err.items()) if elt == qcd_key]
+        serr = [v for elt,v in list(err.items()) if elt != qcd_key]
         
         if metrics is None:
             metrics = ['mae']
@@ -1147,9 +1147,9 @@ class auc_getter(object):
         self,
         aucs
     ):
-        fmt = pd.DataFrame([(k,v['mae']['auc']) for k,v in aucs.items()], columns=['name', 'auc'])
+        fmt = pd.DataFrame([(k,v['mae']['auc']) for k,v in list(aucs.items())], columns=['name', 'auc'])
 
-        mass, nu = np.asarray(map(lambda x: list(map(lambda y: float(y.rstrip('GeV')), x.split('_')[1:])), fmt.name)).T
+        mass, nu = np.asarray([list([float(y.rstrip('GeV')) for y in x.split('_')[1:]]) for x in fmt.name]).T
         nu /= 100
 
         fmt['mass'] = mass
@@ -1163,7 +1163,11 @@ def update_all_signal_evals(path='autoencode/data/aucs', update_date=None, dummy
     top = utils.summary().cfilter(['*auc*', 'target_dim', 'filename', 'signal_path', 'batch*', 'learning_rate']).sort_values('mae_auc')[::-1]
     eflow_base = 3
     
+    print("top: ", top)
+    
     to_add = ['{}/{}'.format(path, f) for f in top.filename.values if not os.path.exists('{}/{}'.format(path, f))]
+    print("to add: ", to_add)
+    
     to_update = []
     for f in glob.glob('{}/*'.format(path)):
         if update_date is None:
@@ -1172,7 +1176,7 @@ def update_all_signal_evals(path='autoencode/data/aucs', update_date=None, dummy
             to_update.append(f)
 
     total = len(to_add) + len(to_update)
-    print('found {} trainings total'.format(total))
+    print(('found {} trainings total'.format(total)))
     if total > 0:
         
         if dummy:
@@ -1185,8 +1189,8 @@ def update_all_signal_evals(path='autoencode/data/aucs', update_date=None, dummy
             d.load()
         
         if len(to_add) > 0:
-            print('found {} trainings to add'.format(len(to_add)))
-            print('filelist to add: {}'.format('\n'.join(to_add)))
+            print(('found {} trainings to add'.format(len(to_add))))
+            print(('filelist to add: {}'.format('\n'.join(to_add))))
         
         if not dummy:
             for path in to_add:
@@ -1199,8 +1203,8 @@ def update_all_signal_evals(path='autoencode/data/aucs', update_date=None, dummy
                 fmt.to_csv(path)
             
         if len(to_update) > 0:
-            print('found {} trainings to update'.format(len(to_update)))
-            print('filelist to update: {}'.format('\n'.join(to_update)))
+            print(('found {} trainings to update'.format(len(to_update))))
+            print(('filelist to update: {}'.format('\n'.join(to_update))))
             
         if not dummy:
             for path in to_update:
@@ -1221,19 +1225,19 @@ def get_training_info_dict(filepath):
     if not os.path.exists(fp):
         fp = os.path.join(default, filepath)
     if not os.path.exists(fp):
-        raise(AttributeError('unrecognized filepath \'{}\''.format(fp)))
+        raise AttributeError
     return trainer.pkl_file(fp).store.copy()
     
 def check_training(filepath):
     info_dict = get_training_info_dict(filepath)
-    idxs = set([tuple(v[:,0].tolist()) for v in info_dict['metrics'].values()])
+    idxs = set([tuple(v[:,0].tolist()) for v in list(info_dict['metrics'].values())])
     assert len(idxs) == 1, 'datafile corrupt!!'
     idx = np.asarray(idxs.pop())
-    vals = {k:v[:,1] for k,v in info_dict['metrics'].items()}
+    vals = {k:v[:,1] for k,v in list(info_dict['metrics'].items())}
     return pd.DataFrame(vals, index=idx)
 
 def update_aucs(filelist):
-    print('filelist: {}'.format(filelst))
+    print(('filelist: {}'.format(filelst)))
     eflow_base = 3
     d = evaluate.data_holder(
         qcd='data/background/base_3/*.h5',
@@ -1242,7 +1246,7 @@ def update_aucs(filelist):
     d.load()
     
     
-    for name, path in filelist.items():
+    for name, path in list(filelist.items()):
         tf.reset_default_graph()
         a = evaluate.auc_getter(name, times=True)
         norm, err, recon = a.get_errs_recon(d)
@@ -1254,12 +1258,12 @@ def load_auc_table(path='autoencode/data/aucs'):
     auc_dict = {}
     for f in glob.glob('{}/*'.format(path)):
         data_elt = pd.read_csv(f)
-        file_elt = str(f.split('/')[-1].decode('utf8'))
+        file_elt = str(f.split('/')[-1])
         data_elt['name'] = file_elt
         auc_dict[file_elt] = data_elt
     aucs = pd.concat(auc_dict)
 
-    aucs['mass_nu_ratio'] = zip(aucs.mass, aucs.nu)
+    aucs['mass_nu_ratio'] = list(zip(aucs.mass, aucs.nu))
 
     pivoted = aucs.pivot('mass_nu_ratio', 'name', 'auc')
 

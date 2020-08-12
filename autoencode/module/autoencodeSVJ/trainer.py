@@ -107,7 +107,7 @@ class trainer(logger):
             'metrics': {},
         }
 
-        for k,v in defaults.items():
+        for k,v in list(defaults.items()):
             if k not in self.config:
                 self.config[k] = v
 
@@ -118,7 +118,7 @@ class trainer(logger):
     ):
         self.close()
         self.error(msg)
-        raise(exc, msg)
+        raise exc
 
     def close(
         self,
@@ -296,10 +296,10 @@ class trainer(logger):
                 self.log("saving to path " + w_path)
                 model.save_weights(w_path)
 
-            if len(history.values()) == 0:
+            if len(list(history.values())) == 0:
                 n_epochs_finished = 0
             else:
-                n_epochs_finished = min(map(len, history.values()))
+                n_epochs_finished = min(list(map(len, list(history.values()))))
 
         else:
             nhistory = model.fit(
@@ -311,7 +311,7 @@ class trainer(logger):
                 epochs=master_epoch_n + epochs,
                 verbose=verbose,
                 callbacks=callbacks,
-	        	batch_size=batch_size,
+                        batch_size=batch_size,
             ).history
 
             for metric in nhistory:
@@ -319,7 +319,7 @@ class trainer(logger):
                 for i,value in enumerate(nhistory[metric]):
                     history[metric].append([master_epoch_n + i, value])
             master_epoch_n += epochs
-            n_epochs_finished = min(map(len, history.values()))
+            n_epochs_finished = min(list(map(len, list(history.values()))))
 
         # self.log("EPOCH N: {}, {}".format(master_epoch_n, epochs))
         self.log("")
@@ -334,8 +334,8 @@ class trainer(logger):
 
         # load the last model
         best = self.load_model()
-        hvalues = [hv[:n_epochs_finished] for hv in history.values()]
-        hkeys = history.keys()
+        hvalues = [hv[:n_epochs_finished] for hv in list(history.values())]
+        hkeys = list(history.keys())
 
         nmetrics = self.config['metrics'].copy()
         for key,value in zip(hkeys, hvalues):

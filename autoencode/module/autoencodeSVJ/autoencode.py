@@ -17,6 +17,7 @@ import json
 import traceback
 from datetime import datetime
 import dateutil
+from functools import reduce
 
 # b = rand_search(100)
 
@@ -106,11 +107,11 @@ class LEGACY:
             self,
             save_result=False,
         ):
-            for sample_path, sample_file in self.samples.items():
+            for sample_path, sample_file in list(self.samples.items()):
                 if os.path.abspath(sample_path) in self.processed:
                     continue
 
-                for key in sample_file.keys():
+                for key in list(sample_file.keys()):
                     self.add_key(key, "event_feature_data", sample_file, self.data)
                     self.add_key(key, "event_feature_names", sample_file, self.labels)
                     self.add_key(key, "jet_constituent_data", sample_file, self.data)
@@ -120,9 +121,9 @@ class LEGACY:
 
             if save_result:
                 f = h5py.File(os.path.join(self.path, "{0}_combined_data.h5".format(self.name)), "w")
-                for key,data in self.data.items():
+                for key,data in list(self.data.items()):
                     f.create_dataset(key, data=data)
-                for key,data in self.labels.items():
+                for key,data in list(self.labels.items()):
                     f.create_dataset(key, data=data)
                 f.close()
 
@@ -134,11 +135,11 @@ class LEGACY:
             assert self.PROCESSED
 
             # make sure there are equal numbers of samples for all data
-            samples = set([x.shape[0] for x in self.data.values()])
+            samples = set([x.shape[0] for x in list(self.data.values())])
             assert len(samples) == 1
             sample_size = samples.pop()
 
-            sizes = [reduce(mul, x.shape[1:], 1) for x in self.data.values()]
+            sizes = [reduce(mul, x.shape[1:], 1) for x in list(self.data.values())]
             splits = [0,] + [sum(sizes[:i+1]) for i in range(len(sizes))]
         
             self.train_dataset = np.empty((sample_size, sum(sizes)))
@@ -159,7 +160,7 @@ class LEGACY:
             denorm = dataset*(self.dmax - self.dmin)
             denorm += self.dmin
 
-            sizes = [reduce(mul, x.shape[1:], 1) for x in self.data.values()]
+            sizes = [reduce(mul, x.shape[1:], 1) for x in list(self.data.values())]
             splits = [0,] + [sum(sizes[:i+1]) for i in range(len(sizes))]
 
             recon = odict()
@@ -185,7 +186,7 @@ class LEGACY:
             self.build_training_dataset()
 
             if output_data is None:
-                output_data = self.data.keys()
+                output_data = list(self.data.keys())
 
             assert self.BUILT_TRAINING_DATASET
 
@@ -297,13 +298,13 @@ class LEGACY:
             self.train_params['optimizer'] = optimizer
             self.train_params['learning_rate'] = learning_rate
             self.train_params['n_samples'] = n_samples
-            print(self.train_params)
+            print((self.train_params))
             self.TRAINED = True
 
         def plot_training_history(
             self,
         ):
-            for key,value in b.history.history.items():
+            for key,value in list(b.history.history.items()):
                 plt.plot(value, label=key)
             plt.legend(); plt.show()
 
@@ -342,7 +343,7 @@ class LEGACY:
                 self.autoencoder.load_weights(base_filename)
                 self.reps = self.encoder.predict(self.normalized)
                 return True
-            print("no weights found with filename " + base_filename)
+            print(("no weights found with filename " + base_filename))
             return False
 
         def save(
@@ -355,7 +356,7 @@ class LEGACY:
             if not os.path.exists(base_filename):
                 self.autoencoder.save_weights(base_filename)
                 return True
-            print("error: identically named file already exists at " + base_filename)
+            print(("error: identically named file already exists at " + base_filename))
             return False
             
         def base_fname(

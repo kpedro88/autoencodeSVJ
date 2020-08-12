@@ -75,7 +75,7 @@ for n, plist in enumerate(elts):
         continue
     dim, bs, lrv = plist
     reset_keras()
-    print('Training with batch {}, lr {:.7f}'.format(bs, lrv))
+    print(('Training with batch {}, lr {:.7f}'.format(bs, lrv)))
     mse = ev.ae_train(
         signal_path='data/all_signals/2000GeV_0.15/base_3/*.h5',
         qcd_path='data/background/base_3/*.h5',
@@ -88,7 +88,7 @@ for n, plist in enumerate(elts):
         es_patience=int(es_patience),
         epochs=int(epochs)
     )
-    print('model {} finished (mse = {:.4f})'.format(n, mse))
+    print(('model {} finished (mse = {:.4f})'.format(n, mse)))
     spot = str(n + 1)
     with open('spot', 'w') as f:
         f.write(spot)

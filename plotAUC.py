@@ -37,7 +37,7 @@ for m in mzprime:
 
 aucs = np.array(auc_values)
 
-print "AUCs ", aucs
+print("AUCs ", aucs)
 
 fig, ax = plt.subplots()
 im = ax.imshow(aucs)
@@ -61,11 +61,11 @@ plt.setp(ax.get_xticklabels(), rotation=45, ha="right",
 
 
 
-for r in xrange(len(rinv)):
-    for m in xrange(len(mzprime)):
+for r in range(len(rinv)):
+    for m in range(len(mzprime)):
 
         sig = "%sGeV_%s"%(mzprime[m],rinv[r])
-        print "Signal ", sig
+        print("Signal ", sig)
 #        text = ax.text(m, r, aucs_[sig],
         text = ax.text(r, m, aucs[m,r],
                        ha="center", va="center", color="w")

@@ -22,7 +22,7 @@ class dtrans:
         else:
             self.data = dict_in
         
-        self.keys = self.data.keys()
+        self.keys = list(self.data.keys())
         self.key_indicies = odict()
         for i,key in enumerate(self.keys):
             self.key_indicies[key] = i
@@ -34,8 +34,8 @@ class dtrans:
             setattr(self, attr, np.asarray([self.data[key]['out'][attr] for key in self.keys]))
 
         self.params = pd.DataFrame(
-            [self.data[key]['params'].values() for key in self.keys],
-            columns=self.data[self.keys[0]]['params'].keys()
+            [list(self.data[key]['params'].values()) for key in self.keys],
+            columns=list(self.data[self.keys[0]]['params'].keys())
         )
         self.params['loss'] = [elt.replace('error', 'err').replace('mean_', '').replace('absolute', 'abs').replace('percentage', 'pct').replace('squared', 'sq').replace('logarithmic', 'log')  for elt in self.params.loss]
         self.params['train_loss'] = self.loss.min(axis=1).tolist()

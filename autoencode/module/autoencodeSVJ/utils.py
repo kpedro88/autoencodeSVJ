@@ -17,6 +17,7 @@ from enum import Enum
 import subprocess
 import json
 import datetime
+from functools import reduce
 
 plt.rcParams['figure.figsize'] = (10,10)
 plt.rcParams.update({'font.size': 18})
@@ -87,11 +88,11 @@ class logger:
         s,
         prefix
     ):
-        if isinstance(s, basestring):
+        if isinstance(s, str):
             for line in s.split('\n'):
-                print(prefix + str(line))
+                print((prefix + str(line)))
         else:
-            print(prefix + str(s))
+            print((prefix + str(s)))
 
     def _log_str(
         self,
@@ -99,7 +100,7 @@ class logger:
         prefix
     ):
         out = ''
-        if isinstance(s, basestring):
+        if isinstance(s, str):
             for line in s.split('\n'):
                 out += prefix + str(line) + '\n'
         else:
@@ -113,7 +114,7 @@ class data_table(logger):
         StandardScaler = 1
         RobustScaler = 2
 
-    _RDICT_NORM_TYPES = dict(map(lambda x: (x.value, x.name), NORM_TYPES))
+    _RDICT_NORM_TYPES = dict([(x.value, x.name) for x in NORM_TYPES])
 
     TABLE_COUNT = 0
 
@@ -265,7 +266,10 @@ class data_table(logger):
         if hasattr(self.df, attr):
             return self.df.__getattr__(attr)
         else:
-            raise(AttributeError, "no dataframe or data_table attribute matching '{}'".format(attr))
+            raise AttributeError
+
+    def __getitem__(self, item):
+        return self.df[item]
 
     def __str__(
         self,
@@ -311,7 +315,7 @@ class data_table(logger):
     ):
         # shuffle event indicies
         train_idx, test_idx = train_test_split(self.df.index[0::n_skip], test_size=test_fraction, random_state=random_state)
-        train, test = map(lambda x: np.asarray([x + i for i in range(n_skip)]).T.flatten(), [train_idx, test_idx])
+        train, test = [np.asarray([x + i for i in range(n_skip)]).T.flatten() for x in [train_idx, test_idx]]
         return (data_table(self.df.loc[train], name="train"),
             data_table(self.df.loc[test], name="test"))
 
@@ -509,7 +513,7 @@ class data_loader(logger):
                     self.sample_keys = keys
                 else:
                     if keys != self.sample_keys:
-                        raise(AttributeError("Cannot add current sample with keys {} to established sample with keys {}!".format(keys, self.sample_keys)))
+                        raise AttributeError
 
                 self._update_data(f, keys)
 
@@ -569,7 +573,7 @@ class data_loader(logger):
                 )
                 # combine behavior
         else:
-            raise(AttributeError("cannot process table for data with dimension {}".format(data.shape)))
+            raise AttributeError
 
     def make_tables(
         self,
@@ -614,9 +618,9 @@ class data_loader(logger):
         keys=None,
     ):
         if keys is None:
-            raise(AttributeError("please choose data keys to add to sample dataset! \noptions: {0}".format(list(self.sample_keys))))
+            raise AttributeError
 
-        assert hasattr(keys, "__iter__") or isinstance(keys, basestring), "keys must be iterable of strings!"
+        assert hasattr(keys, "__iter__") or isinstance(keys, str), "keys must be iterable of strings!"
 
         if isinstance(keys, str):
             keys = [keys]
@@ -633,21 +637,21 @@ class data_loader(logger):
             else:
                 shapes.append(data_dict[key].shape)
 
-        types = [v.dtype.kind for v in data_dict.values()]
+        types = [v.dtype.kind for v in list(data_dict.values())]
         is_string = [t == 'S' for t in types]
         if any(is_string):
             if all(is_string):
-                return np.concatenate(data_dict.values()), data_dict
-            raise(AttributeError, "Cannot ask for mixed type datasets! types: {0}".format(types))
+                return np.concatenate(list(data_dict.values())), data_dict
+            raise AttributeError
 
         self.log("Grabbing dataset with keys {0}".format(list(data_dict.keys())))
 
-        samples = set([x.shape[0] for x in data_dict.values()])
+        samples = set([x.shape[0] for x in list(data_dict.values())])
         assert len(samples) == 1, "all datasets with matching keys need to have IDENTICAL sizes!"
         sample_size = samples.pop()
 
 
-        sizes = [reduce(mul, x.shape[1:], 1) for x in data_dict.values()]
+        sizes = [reduce(mul, x.shape[1:], 1) for x in list(data_dict.values())]
         splits = [0,] + [sum(sizes[:i+1]) for i in range(len(sizes))]
 
         dataset = np.empty((sample_size, sum(sizes)))
@@ -672,7 +676,7 @@ class data_loader(logger):
             return 1
 
         f = h5py.File(filepath, "w")
-        for key,data in self.data.items():
+        for key,data in list(self.data.items()):
             f.create_dataset(key, data=data)
 
         self.log("Saving current dataset to file '{0}'".format(filepath))
@@ -709,7 +713,7 @@ def parse_globlist(glob_list, match_list):
     assert all([isinstance(c, str) for c in glob_list])
 
     match = set()
-    match_list = [x.decode("utf-8") for x in match_list]
+    match_list = [x for x in match_list]
     
     for g in glob_list:
         
@@ -773,7 +777,7 @@ def get_errors(true, pred, out_name="errors", functions=["mse", "mae"], names=[N
             functions_keep.append(f)
     
     raw = [func(true, pred) for func in functions_keep]
-    raw = np.asarray(map(lambda x: keras.backend.eval(x) if isinstance(x, tf.Tensor) else x, raw)).T
+    raw = np.asarray([keras.backend.eval(x) if isinstance(x, tf.Tensor) else x for x in raw]).T
     return data_table(
         pd.DataFrame(raw, columns=[str(f) for f in names], index=index),
         name=out_name
@@ -798,12 +802,12 @@ def split_table_by_column(column_name, df, tag_names=None, keep_split_column=Fal
     gb = df.groupby(column_name)
     index = gb.groups
     
-    for region, idx in index.items():
+    for region, idx in list(index.items()):
         if keep_split_column or column_name not in df_to_write:
             tagged.append(data_table(df_to_write.iloc[idx], headers=list(df_to_write.columns), name=tag_names[region]))
         else:
             tagged.append(data_table(df_to_write.iloc[idx].drop(column_name, axis=1), name=tag_names[region]))
-    return tagged, dict([(tag_names[k], v) for k,v in index.items()])
+    return tagged, dict([(tag_names[k], v) for k,v in list(index.items())])
 
 def smartpath(path):
     if path.startswith("~/"):
@@ -817,14 +821,14 @@ def get_cutflow_table(glob_path):
     ret = odict()
     for path in paths:
         with open(path) as f:
-            values_comp, keys_comp = map(lambda x: x.strip('\n').split(','), f.readlines())
-            values_comp = map(int, values_comp)
-            keys_comp = map(str.strip, ['no cut'] + keys_comp)
+            values_comp, keys_comp = [x.strip('\n').split(',') for x in f.readlines()]
+            values_comp = list(map(int, values_comp))
+            keys_comp = list(map(str.strip, ['no cut'] + keys_comp))
             for k,v in zip(keys_comp, values_comp):
                 if k not in ret:
                     ret[k] = 0
                 ret[k] = ret[k] + v
-    df = pd.DataFrame(ret.items(), columns=['cut_name', 'n_events'])
+    df = pd.DataFrame(list(ret.items()), columns=['cut_name', 'n_events'])
     df['abs eff.'] = np.round(100.*(df.n_events / df.n_events[0]), 2)
     df['rel eff.'] = np.round([100.] + [100.*(float(df.n_events[i + 1]) / float(df.n_events[i])) for i in range(len(df.n_events) - 1)], 2)
     
@@ -866,10 +870,10 @@ def get_selections_dict(list_of_selections):
     ret = {}
     for sel in list_of_selections:
         with open(sel, 'r') as f:
-            data = map(lambda x: x.strip('\n'), f.readlines())
+            data = [x.strip('\n') for x in f.readlines()]
         for elt in data:
             key, raw = elt.split(': ')
-            ret[key] = map(int, raw.split())
+            ret[key] = list(map(int, raw.split()))
     return ret
 
 def get_repo_info():
@@ -884,7 +888,7 @@ def split_to_jets(data):
     table for all jets.
     """
     headers = get_subheaders(data)
-    assert len(set().union(*headers.values())) == len(headers.values()[0])
+    assert len(set().union(*list(headers.values()))) == len(list(headers.values())[0])
     jets = []
     next = data
     for h in headers:
@@ -917,24 +921,24 @@ def split_by_tag(data, tag_column="jetFlavor", printout=True):
         False
     )
     if printout:
-        sizes = map(lambda x: x.shape[0], tagged)
+        sizes = [x.shape[0] for x in tagged]
         for t,s in zip(tagged, sizes):
-            print("{} jet: {}, {}%".format(t.name, s, round(100.*s/sum(sizes), 1)))
+            print(("{} jet: {}, {}%".format(t.name, s, round(100.*s/sum(sizes), 1))))
         
     return tagged, tag_index
     
 def compare_tags(datasets):
     
-    tags = map(lambda x: dict([(t.name, t) for t in split_by_tag(x, printout=False)[0]]), datasets)
+    tags = [dict([(t.name, t) for t in split_by_tag(x, printout=False)[0]]) for x in datasets]
     tag_ids = set().union(*[set([tn for tn in tlist]) for tlist in tags])
     
     for tag_id in tag_ids:
-        print("{}:".format(tag_id))
+        print(("{}:".format(tag_id)))
         for t,d in zip(tags, datasets):
             
             if tag_id in t:
                 tag = t[tag_id]
-                print("\t{:.1f}% ({}) {}".format(100.*tag.shape[0]/d.shape[0], tag.shape[0], d.name))
+                print(("\t{:.1f}% ({}) {}".format(100.*tag.shape[0]/d.shape[0], tag.shape[0], d.name)))
             
 def get_recon_errors(data_list, autoencoder, **kwargs):
 
@@ -1008,7 +1012,7 @@ def roc_auc_plot(data_errs, signal_errs, metrics='loss', *args, **kwargs):
     ax = ax_begin(0)
     styles = [ '-','--','-.',':']
     for i,(data_err,signal_err) in enumerate(zip(data_errs, signal_errs)):
-	
+        
         for j,metric in enumerate(metrics):
             pred = np.hstack([signal_err[metric].values, data_err[metric].values])
             true = np.hstack([np.ones(signal_err.shape[0]), np.zeros(data_err.shape[0])])
@@ -1055,7 +1059,7 @@ def OLD_load_all_data(data_path, name, cols_to_drop = ["jetM", "*MET*", "*Delta*
     data.cdrop(cols_to_drop, inplace=True)
     # signal.cdrop(cols_to_drop, inplace=True)
     
-    print("{} tags:".format(name))
+    print(("{} tags:".format(name)))
     print("")
     tagged_data, tag_index_data = split_by_tag(data)
     print("")
@@ -1144,7 +1148,7 @@ def evaluate_model(data_path, signal_path, model_path):
     signal_error.plot(data_error, normed=1, bins=100, figname="signal vs data errors")
 
 def percentile_normalization_ranges(data, n):
-    return np.asarray(zip(np.percentile(data, n, axis=0), np.percentile(data, 100-n, axis=0)))
+    return np.asarray(list(zip(np.percentile(data, n, axis=0), np.percentile(data, 100-n, axis=0))))
 
 def get_plot_params(
     n_plots,
@@ -1184,8 +1188,8 @@ def get_plot_params(
         
     def on_plot_end():
         handles,labels = plt.gca().get_legend_handles_labels()
-        by_label = odict(zip(map(str, labels), handles))
-        plt.figlegend(by_label.values(), by_label.keys(), loc=figloc)
+        by_label = odict(list(zip(list(map(str, labels)), handles)))
+        plt.figlegend(list(by_label.values()), list(by_label.keys()), loc=figloc)
         # plt.figlegend(handles, labels, loc=figloc)
         plt.suptitle(figname)
         plt.tight_layout(pad=0.01, w_pad=0.01, h_pad=0.01, rect=[0, 0.03, 1, 0.95])
@@ -1299,9 +1303,9 @@ def eflow_modify(tables):
 
 def jet_flavor_check(flavors):
     d = split_table_by_column("Flavor", flavors, tag_names=delphes_jet_tags_dict)[1]
-    print(flavors.name.center(30))
-    print("-"*30)
-    for name,index in d.items():
+    print((flavors.name.center(30)))
+    print(("-"*30))
+    for name,index in list(d.items()):
         tp = "{}:".format(name).rjust(10)
         tp = tp + "{}".format(len(index)).rjust(10)
         tp = tp + "({} %)".format(round(100.*len(index)/len(flavors), 1)).rjust(10)
@@ -1325,7 +1329,7 @@ def load_all_data(globstring, name, include_hlf=True, include_eflow=True, hlf_to
     files = glob_in_repo(globstring)
     
     if len(files) == 0:
-        raise(AttributeError("No files found matching spec '{}'".format(globstring)))
+        raise AttributeError
 
     to_include = []
     if include_hlf:
@@ -1336,7 +1340,7 @@ def load_all_data(globstring, name, include_hlf=True, include_eflow=True, hlf_to
         
         
     if not (include_hlf or include_eflow):
-        raise(AttributeError("both HLF and EFLOW are not included! Please include one or both, at least."))
+        raise AttributeError
         
     d = data_loader(name, verbose=False)
     for f in files:
@@ -1391,8 +1395,8 @@ def BDT_load_all_data(
     SVJ_train, SVJ_test = train_test_split(SVJ.df, test_size=test_split, random_state=random_state)
     QCD_train, QCD_test = train_test_split(QCD.df, test_size=test_split, random_state=random_state)
 
-    SVJ_Y_train, SVJ_Y_test = map(lambda elt: pd.DataFrame(np.ones((len(elt), 1)), index=elt.index, columns=['tag']), [SVJ_train, SVJ_test])
-    QCD_Y_train, QCD_Y_test = map(lambda elt: pd.DataFrame(np.zeros((len(elt), 1)), index=elt.index, columns=['tag']), [QCD_train, QCD_test])
+    SVJ_Y_train, SVJ_Y_test = [pd.DataFrame(np.ones((len(elt), 1)), index=elt.index, columns=['tag']) for elt in [SVJ_train, SVJ_test]]
+    QCD_Y_train, QCD_Y_test = [pd.DataFrame(np.zeros((len(elt), 1)), index=elt.index, columns=['tag']) for elt in [QCD_train, QCD_test]]
 
     X = SVJ_train.append(QCD_train)
     Y = SVJ_Y_train.append(QCD_Y_train)
@@ -1461,9 +1465,9 @@ def summary_by_name(name):
     matches = summary_match(name)
     
     if len(matches) == 0:
-        raise(AttributeError("No summary found with name '{}'".format(name)))
+        raise AttributeError
     elif len(matches) > 1:
-        raise(AttributeError("Multiple summaries found with name '{}'".format(name)))
+        raise AttributeError
     
     return matches[0]
 
@@ -1491,7 +1495,7 @@ def summary(
         with open(f) as to_read:
             d = json.load(to_read)
             d['time'] = datetime.datetime.fromtimestamp(os.path.getmtime(f))
-            for k,v in defaults.items():
+            for k,v in list(defaults.items()):
                 if k not in d:
                     d[k] = v
             data.append(d)
@@ -1511,7 +1515,7 @@ def summary_match(globstr, verbose=1):
     
     ret = glob.glob(globstr)
     if verbose:
-        print("found {} matches with search '{}'".format(len(ret), globstr))
+        print(("found {} matches with search '{}'".format(len(ret), globstr)))
     return ret
 
 def summary_by_features(**kwargs):
@@ -1572,7 +1576,7 @@ def path_in_repo(
 ):
     head = get_repo_info()['head']
     suffix = ""
-    comps = filter(len, filename.split(os.path.sep))
+    comps = list(filter(len, filename.split(os.path.sep)))
     for i in range(len(comps)):
         considered = os.path.join(head, os.path.join(*comps[i:])) + suffix
         if os.path.exists(considered):
@@ -1599,7 +1603,7 @@ def get_particle_PIDs_statuses(root_filename):
     
     parr = np.zeros((tree.Draw("Particle.PID", "", "goff"), 2))
     total = 0
-    for i in tqdm(range(tree.GetEntries())):
+    for i in tqdm(list(range(tree.GetEntries()))):
         tree.GetEntry(i)
         for p in tree.Particle:
             parr[total,:] = p.PID, p.Status
@@ -1623,8 +1627,8 @@ def plot_particle_statuses(figsize=(7,7), **fdict):
     statuses
     """
 
-    cols = set().union(*[list(frame.columns) for frame in fdict.values()])
-    parts = set().union(*[list(frame.index) for frame in fdict.values()])
+    cols = set().union(*[list(frame.columns) for frame in list(fdict.values())])
+    parts = set().union(*[list(frame.index) for frame in list(fdict.values())])
 
     for name in fdict:
         fdict[name].fillna(0, inplace=True)
@@ -1659,7 +1663,7 @@ def merge_rootfiles(glob_path, out_name, treename="Delphes"):
         chain.Merge(out_name)
         return 0
     except:
-        print(tb.format_exc())
+        print((tb.format_exc()))
         return 1
 
 def set_random_seed(seed_value):

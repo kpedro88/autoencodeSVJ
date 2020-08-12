@@ -20,7 +20,7 @@ def logbase(s, prefix):
     if not isinstance(s, str):
         s = str(s)
     for line in s.split('\n'):
-        print prefix + str(line)
+        print(prefix + str(line))
 
 def _range_input(s):
     try:
@@ -104,10 +104,10 @@ def get_data_dict(list_of_selections):
     ret = {}
     for sel in list_of_selections:
         with open(sel, 'r') as f:
-            data = map(lambda x: x.strip('\n'), f.readlines())
+            data = [x.strip('\n') for x in f.readlines()]
         for elt in data:
             key, raw = elt.split(': ')
-            ret[key] = map(int, raw.split())
+            ret[key] = list(map(int, raw.split()))
     return ret
 
     # sys.exit(0)
@@ -224,7 +224,7 @@ def select_main(inputdir, outputdir, name, batch, filter, range, debug, timing, 
 
 
     log("running {0} jobs with {1} rootfiles each".format(len(split_samplenames), split))
-    log("splits: {0}".format(map(len, split_samplenames)))
+    log("splits: {0}".format(list(map(len, split_samplenames))))
 
     if not os.path.exists(outputdir):
         log("making ouput directory '{0}'".format(outputdir))
@@ -248,7 +248,7 @@ def select_main(inputdir, outputdir, name, batch, filter, range, debug, timing, 
         if build:
             setup_command += "; cd {0}; cd ../..; scram b -j 10; cd {1}".format(path, path)
             
-        run_command = 'cd {0}; ../../bin/sl*/SVJselection '.format(path) + ' '.join([samplefile, name_sample, outputdir] + list(map(lambda x: str(int(x)), [debug, timing, cuts, rng[0], rng[1]])))
+        run_command = 'cd {0}; ../../bin/sl*/SVJselection '.format(path) + ' '.join([samplefile, name_sample, outputdir] + list([str(int(x)) for x in [debug, timing, cuts, rng[0], rng[1]]]))
         master_command = setup_command + "; " + run_command
 
         if dryrun:
@@ -300,7 +300,7 @@ def convert_main(inputdir, outputdir, name, batch, range, DR, NC, dryrun, split,
     if split < 0:
         split = int(len(all_data)/len(spaths))
 
-    split_keys = list(split_to_chunks(all_data.keys(), split))
+    split_keys = list(split_to_chunks(list(all_data.keys()), split))
 
     for i,keys in enumerate(split_keys):
 

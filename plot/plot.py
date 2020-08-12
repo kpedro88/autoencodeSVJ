@@ -23,7 +23,7 @@ if __name__=="__main__":
             rf = os.path.abspath(files[0])
         else:
             assert False, "FILE '{0}' given does not exist!".format(args.FILE)
-    print "working on rootfile", rf
+    print("working on rootfile", rf)
     
     os.system("""root -b -q '{4}("{0}", "{3}", {1}, {2})'""".format(rf, args.x, args.y, out, plotfile))
     

@@ -52,7 +52,7 @@ class robust_deep(logger):
         elif hasattr(base_ae, "compile"):
             self.AE = base_ae
         else:
-            raise(AttributeError, "'base_ae' parameter must be keras model or base_autoencoder instance!")
+            raise AttributeError
         logger.__init__(self, VERBOSE=verbose, LOG_PREFIX="robust_deep_ae :: ")
         self.L, self.S = None, None
         self.lambda_ = lambda_

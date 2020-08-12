@@ -21,10 +21,10 @@ def get_data_dict(list_of_selections):
     ret = {}
     for sel in list_of_selections:
         with open(sel, 'r') as f:
-            data = map(lambda x: x.strip('\n'), f.readlines())
+            data = [x.strip('\n') for x in f.readlines()]
         for elt in data:
             key, raw = elt.split(': ')
-            ret[key] = map(int, raw.split())
+            ret[key] = list(map(int, raw.split()))
     return ret
 
 class Converter:
@@ -114,7 +114,7 @@ class Converter:
             self.efp_size = self.efpset.count()
             self.log("eflow set is size {}".format(self.efp_size))
         # self.selections_abs = np.asarray([sum(self.sizes[:s[0]]) + s[1] for s in self.selections])
-        self.log("found {0} selected events, out of a total of {1}".format(sum(map(len, self.selections.values())), self.nEvents))
+        self.log("found {0} selected events, out of a total of {1}".format(sum(map(len, list(self.selections.values()))), self.nEvents))
 
     def log(
         self,
@@ -122,9 +122,9 @@ class Converter:
     ):
         if isinstance(msg, str):
             for line in msg.split('\n'):
-                print(self.LOGMSG + line)
+                print((self.LOGMSG + line))
         else:
-            print(self.LOGMSG + str(msg))
+            print((self.LOGMSG + str(msg)))
 
     def jet_axis2_pt2(
         self,
@@ -176,7 +176,7 @@ class Converter:
         constituentp4s
     ):
         j = jet_raw.P4()
-        nc, nn = map(float, [jet_raw.NCharged, jet_raw.NNeutrals])
+        nc, nn = list(map(float, [jet_raw.NCharged, jet_raw.NNeutrals]))
         n_total = nc + nn
         jet_cfrac = nc / n_total if n_total > 0 else -1
 
@@ -275,7 +275,7 @@ class Converter:
                     if deta**2. + dphi**2. < dr**2.:
                         constituents[j].append(vec)
                         
-        return map(np.asarray, constituents)
+        return list(map(np.asarray, constituents))
 
     def pad_to_n(
         self,
@@ -293,10 +293,7 @@ class Converter:
     ):
         return self.efpset.compute(
             ef.utils.ptyphims_from_p4s(
-                map(
-                    lambda c: (c.E(), c.Px(), c.Py(), c.Pz()),
-                    constituents
-                )
+                [(c.E(), c.Px(), c.Py(), c.Pz()) for c in constituents]
             )
         )
 
@@ -318,11 +315,11 @@ class Converter:
         nmin, nmax = rng
         selections_iter = self.selections.copy()
 
-        for k,v in selections_iter.items():
+        for k,v in list(selections_iter.items()):
             v = np.asarray(v).astype(int)
             selections_iter[k] = v[(v > nmin) & (v < nmax)]
 
-        total_size = sum(map(len, selections_iter.values()))
+        total_size = sum(map(len, list(selections_iter.values())))
         total_count = 0
 
         self.log("selecting on range {0}".format(rng))

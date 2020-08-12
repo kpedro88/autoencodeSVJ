@@ -47,6 +47,6 @@ def get_args():
     return parser.parse_args(sys.argv[1:])
 
 if __name__ == "__main__":
-    raise NotImplementedError, "yEAh nO don't use this yet please"
+    raise NotImplementedError("yEAh nO don't use this yet please")
     args = get_args()
-    print args
+    print(args)

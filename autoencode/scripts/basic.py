@@ -6,8 +6,8 @@ reps = 3
 for norm_type in ['StandardScaler', 'MinMaxScaler']:
     for target_dim in [9,10,11]:
         print('running reps with...')
-        print(' - norm_type: {}'.format(norm_type))
-        print(' - target_dim: {}'.format(target_dim))
+        print((' - norm_type: {}'.format(norm_type)))
+        print((' - target_dim: {}'.format(target_dim)))
         for i in range(reps):
             auc = ev.ae_train(
                 qcd_path='data/background/base_3/*.h5',
@@ -24,4 +24,4 @@ for norm_type in ['StandardScaler', 'MinMaxScaler']:
                 eflow=1,
                 verbose=False
             )
-            print("finished training, AUC {:.5f}".format(auc))
+            print(("finished training, AUC {:.5f}".format(auc)))
