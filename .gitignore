@@ -187,3 +187,7 @@ dmypy.json
 # Xcode projects
 *.xcodeproj
 *.xcodeproj/*
+
+# Other IDE projects
+*.komodoproject
+.idea/*
