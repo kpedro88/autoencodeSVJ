@@ -2,6 +2,8 @@
 # import autoencodeSVJ.utils as utils
 # import autoencodeSVJ.trainer as trainer
 
+import os
+
 def _get_args():
     import argparse
 

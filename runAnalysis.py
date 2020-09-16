@@ -3,7 +3,11 @@ import autoencodeSVJ.trainer as trainer
 import autoencodeSVJ.evaluate as ev
 
 import pandas as pd
+import numpy as np
+
 import datetime
+import os
+import glob
 
 print("imports OK")
 
@@ -38,10 +42,7 @@ plt.scatter(res.total_loss, res.mae_auc)
 #reload(ev)
 #reload(trainer)
 
-import os
-import glob
-import datetime
-import pandas as pd
+
 
 t = {}
 
@@ -52,8 +53,7 @@ t = pd.DataFrame(t.items(), columns=['name', 'time'])
 t = t[t.name.str.startswith('hlf_eflow3_7_v')].sort_values('time')
 
 utils.summary().filename
-import glob
-import pandas as pd
+
 
 l = {}
 for f in glob.glob('TEST/*'):
@@ -72,3 +72,22 @@ if l:
 s = utils.summary()
 # l = l.drop(['Unnamed: 0', 'mass', 'nu'], axis=1).T
 
+#help(ev.ae_train)
+
+signal_dir = '../data/all_signals'
+signals = glob.glob('{}/*'.format(signal_dir))
+dim = 7
+for i in range(100):
+    mu, sigma = 0.00075, 0.01
+    lr = np.random.lognormal(np.log(mu), sigma)
+    print('target_dim {}, lr {}:'.format(dim, lr),)
+    auc = ev.ae_train(
+        signal_path='../data/all_signals/1500GeV_0p75/*.h5',
+        qcd_path='../data/qcd/*.h5',
+        target_dim=dim,
+        verbose=False,
+        batch_size=32,
+        learning_rate=lr,
+        norm_percentile=25
+    )
+    print(auc)

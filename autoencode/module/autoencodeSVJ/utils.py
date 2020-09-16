@@ -1,4 +1,6 @@
-import numpy as np 
+# import autoencodeSVJ.trainer
+
+import numpy as np
 from collections import OrderedDict as odict
 from operator import mul
 import h5py
@@ -18,6 +20,8 @@ import subprocess
 import json
 import datetime
 from functools import reduce
+
+import chardet
 
 plt.rcParams['figure.figsize'] = (10,10)
 plt.rcParams.update({'font.size': 18})
@@ -428,8 +432,12 @@ class data_table(logger):
         else:
             ret = data_table(self)
             modify = ret
-        for d in to_drop:
-            modify.df.drop(d, axis=1, inplace=True)
+            
+        for i, d in enumerate(to_drop):
+            if type(d) is str:
+                to_drop[i] = d.encode("utf-8")
+        modify.df.drop(to_drop, axis=1, inplace=True)
+        
         modify.headers = list(modify.df.columns)
         modify.data = np.asarray(modify.df)
         return modify
@@ -442,14 +450,89 @@ class data_table(logger):
         to_keep = parse_globlist(globstr, list(self.df.columns))
         to_drop = set(self.headers).difference(to_keep)
 
+        to_drop = list(to_drop)
+
         modify = None
         if inplace:
             modify = self
         else:
             ret = data_table(self)
             modify = ret
+        
+        
+#        modify.df.columns = [col.decode("ascii") for col in modify.df.columns]
+        
+#        modify.df.columns = [col.decode("ascii") for col in modify.df.columns if col is bytes else col]
+        
+        dummy = []
+        
+        for col in modify.df.axes[1]:
+            print("type col:", type(col))
+            if type(col) is bytes:
+                dummy.append(col.decode("ascii"))
+            else:
+                dummy.append(col)
+            
+            
+        print("dummy:", dummy)
+            
+        modify.df.set_axis(dummy, axis=1, inplace=True)
+        
+        
+        ###
+#        for i, label in enumerate(modify.df.axes[1]):
+#            if label is bytes:
+#                modify.df.axes[1][i] = label.decode("ascii")
+#                    modify.df[col][row] = modify.df[col][row].decode("ascii")
+        ###
+        
+#        for i, row in modify.df.iterrows():
+#            ifor_val = something
+#            df.at[i,'ifor'] = ifor_val
+        
+        for t in modify.df.axes[1]:
+            print("axis type:", type(t))
+        
+        first_axis_label = modify.df.axes[1][0]
+        
+        for i, d in enumerate(to_drop):
+            if type(d) is str and type(first_axis_label) is bytes:
+                print("CC")
+                axis_encoding = chardet.detect(first_axis_label)["encoding"]
+                to_drop[i] = d.encode(axis_encoding)
+            elif type(d) is np.bytes_ and type(first_axis_label) is bytes:
+                print("BB: ", d, "\ttype:", type(d))
+                
+                dd = d.decode(chardet.detect(d)["encoding"])
+                
+                print("dd type:", type(dd), "\tvalue:", dd)
+                axis_encoding = chardet.detect(first_axis_label)["encoding"]
+                ddd = dd.encode(axis_encoding)
+                print("ddd type:", type(ddd), "\tvalue: ", ddd)
+                to_drop[i] = ddd
+            elif type(d) is np.bytes_ and type(first_axis_label) is str:
+                print("FF")
+                to_drop[i] = d.decode("ascii")
+                
+            else:
+                print("AA d type: ", type(d), "\taxis type: ", type(modify.df.axes[1][0]))
+                to_drop[i] = d
+        
+        print("axis: ", modify.df.axes[1])
+        
+        print("col type:", type(modify.df.columns))
+        
         for d in to_drop:
+            print("d type: ", type(d), "\taxis type: ", type(modify.df.axes[1][0]))
+            print("d: ", d)
+            
+            if type(first_axis_label) is not str and type(d) is not str:
+              axis_encoding = chardet.detect(first_axis_label)["encoding"]
+              d_encoding = chardet.detect(first_axis_label)["encoding"]
+              print("axis encoding: ", axis_encoding, "\td encoding: ", d_encoding)
+            
             modify.df.drop(d, axis=1, inplace=True)
+        
         modify.headers = list(modify.df.columns)
         return modify
 
@@ -713,10 +796,11 @@ def parse_globlist(glob_list, match_list):
     assert all([isinstance(c, str) for c in glob_list])
 
     match = set()
-    match_list = [x for x in match_list]
+    
+    if type(match_list[0]) is bytes:
+        match_list = [x.decode("utf-8") for x in match_list]
     
     for g in glob_list:
-        
         match.update(glob.fnmatch.filter(match_list, g))
 
     return match
@@ -1270,12 +1354,22 @@ def glob_in_repo(globstring):
     
     return files
 
+
 def all_modify(tables, hlf_to_drop=['Energy', 'Flavor']):
     if not isinstance(tables, list) or isinstance(tables, tuple):
-        tables = [tables] 
-    for i,table in enumerate(tables):
+        tables = [tables]
+    for i, table in enumerate(tables):
         tables[i].cdrop(['0'] + hlf_to_drop, inplace=True)
-        tables[i].df.rename(columns=dict([(c, "eflow {}".format(c)) for c in tables[i].df.columns if c.isdigit()]), inplace=True)
+        
+        newNames = dict()
+        
+        for column in table.df.columns:
+            if column.isdigit():
+                newNames[column] = "eflow %s" % (column.decode("ascii"))
+            elif type(column) is bytes:
+                newNames[column] = column.decode("ascii")
+        
+        tables[i].df.rename(columns=newNames, inplace=True)
         tables[i].headers = list(tables[i].df.columns)
     if len(tables) == 1:
         return tables[0]
@@ -1681,10 +1775,11 @@ def set_random_seed(seed_value):
 
     # 4. Set `tensorflow` pseudo-random generator at a fixed value
     import tensorflow as tf
-    tf.set_random_seed(seed_value)
+    tf.random.set_seed(seed_value)
 
     # 5. Configure a new global `tensorflow` session
     from keras import backend as K
-    session_conf = tf.ConfigProto(intra_op_parallelism_threads=1, inter_op_parallelism_threads=1)
-    sess = tf.Session(graph=tf.get_default_graph(), config=session_conf)
-    K.set_session(sess)
+    session_conf = tf.compat.v1.ConfigProto(intra_op_parallelism_threads=1, inter_op_parallelism_threads=1)
+    sess = tf.compat.v1.Session(graph=tf.compat.v1.get_default_graph(), config=session_conf)
+    tf.compat.v1.keras.backend.set_session(sess)
+#    K.set_session(sess)

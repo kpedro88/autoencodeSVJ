@@ -1,10 +1,10 @@
 import autoencodeSVJ.utils as utils
-import autoencodeSVJ.trainer
-import autoencodeSVJ.evaluate
+import autoencodeSVJ.trainer as trainer
+# import autoencodeSVJ.evaluate as evaluate
 import numpy as np
 import tensorflow as tf
 import os
-import autoencodeSVJ.models
+import autoencodeSVJ.models as models
 import datetime
 from collections import OrderedDict as odict 
 import time
@@ -518,7 +518,7 @@ def ae_train(
 
     if output_data_path is None:
         output_data_path = os.path.join(utils.get_repo_info()['head'], "autoencode/data/training_runs")
-
+    
     # get all our data
     (signal,
      signal_jets,
@@ -539,6 +539,7 @@ def ae_train(
     )
 
     if eflow:
+        print("columns: ", qcd.columns)
         qcd_eflow = len([x for x in qcd.columns if "eflow" in x])
         signal_eflow = len([x for x in signal.columns if "eflow" in x])
 
@@ -1237,7 +1238,7 @@ def check_training(filepath):
     return pd.DataFrame(vals, index=idx)
 
 def update_aucs(filelist):
-    print(('filelist: {}'.format(filelst)))
+    print(('filelist: {}'.format(filelist)))
     eflow_base = 3
     d = evaluate.data_holder(
         qcd='data/background/base_3/*.h5',

@@ -13,6 +13,7 @@ import keras.optimizers
 import os
 import collections
 import pickle
+import tensorflow as tf
 
 class pkl_file(collections.MutableMapping):
     """Dictionary which saves all attributes to a .pkl file on access/altering"""
@@ -60,6 +61,7 @@ class pkl_file(collections.MutableMapping):
             pickle.dump(self.store, f, protocol=pickle.HIGHEST_PROTOCOL)
 
     def update_store(self):
+        print("opening file:", self.path)
         with open(self.path, 'rb') as f:
             self.store.update(pickle.load(f))
             
@@ -213,7 +215,7 @@ class trainer(logger):
             else:
                 optimizer = getattr(keras.optimizers, "adam")(lr=learning_rate)
         elif isinstance(optimizer, str):
-            optimizer = getattr(keras.optimizers, optimizer)(lr=learning_rate)
+            optimizer = getattr(keras.optimizers, "Adam")(lr=learning_rate)
         if loss is None:
             if hasattr(model, "loss"):
                 loss = model.loss
