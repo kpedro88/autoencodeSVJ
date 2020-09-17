@@ -1,6 +1,6 @@
 import autoencodeSVJ.utils as utils
 import autoencodeSVJ.trainer as trainer
-# import autoencodeSVJ.evaluate as evaluate
+import autoencodeSVJ.evaluate as evaluate
 import numpy as np
 import tensorflow as tf
 import os
@@ -229,11 +229,7 @@ class ae_evaluation:
 
         return SVJ_out, qcd_out, flag
 
-    def retdict(
-        self,
-        this,
-        others,
-    ):
+    def retdict(self, this, others,):
         ret = {}
         for elt in [this] + others:
             assert elt.name not in ret
@@ -539,7 +535,6 @@ def ae_train(
     )
 
     if eflow:
-        print("columns: ", qcd.columns)
         qcd_eflow = len([x for x in qcd.columns if "eflow" in x])
         signal_eflow = len([x for x in signal.columns if "eflow" in x])
 
@@ -565,7 +560,7 @@ def ae_train(
 
     assert len(utils.summary_match(filename, 0)) == 0, "filename '{}' exists already! Change version id, or leave blank.".format(filename)
 
-    filepath = os.path.join(output_data_path, filename)
+    filepath = os.path.join(output_data_path, "trainingRuns", filename)
     input_dim = len(signal.columns)
 
     data_args = {
@@ -664,13 +659,15 @@ def ae_train(
 
     result_args = dict([(r + '_auc', roc_dict[r]['auc']) for r in roc_dict])
     
-    vid = utils.summary_vid()
+    vid = utils.summary_vid(path=(output_data_path+"/summary"))
     
     time_args = {'start_time': start_time, 'end_time': end_time, 'VID': vid, 'total_loss': total_loss}
-    utils.dump_summary_json(result_args, train_args, data_args, norm_args, time_args)
+    
+    utils.dump_summary_json(result_args, train_args, data_args, norm_args, time_args,
+                            output_path = (output_data_path+"/summary"))
 
     # roc as figure of merit
-    return total_loss
+    return total_loss, ae, test_norm
 
     # def vae_train(
     #     signal_path,
@@ -926,12 +923,11 @@ class signal_element(object):
         delattr(self, name)
 
 class data_holder(object):
-    def __init__(
-        self,
-        **kwargs
-    ):
+    def __init__(self, **kwargs):
         self.KEYS = {}
         names = sorted(kwargs.keys())
+        
+        print("names: ", names)
         for name in names:
             path = kwargs[name]
             if name[0].isdigit():
@@ -943,34 +939,19 @@ class data_holder(object):
 
         print(('found {} datasets'.format(len(names))))
 
-    def load(
-        self,
-        hlf=True,
-        eflow=True,
-        hlf_to_drop=['Energy', 'Flavor']
-    ):
+    def load(self, hlf=True, eflow=True, hlf_to_drop=['Energy', 'Flavor']):
         for k,v in list(self.KEYS.items()):
             v._load(hlf, eflow, hlf_to_drop)
 
-    def add_attribute(
-        self,
-        name,
-        function,
-    ):
+    def add_attribute(self, name, function):
         for k,v in list(self.KEYS.items()):
             v._add_attribute(name, function)
     
-    def rm_attribute(
-        self,
-        name
-    ):
+    def rm_attribute(self, name):
         for k,v in list(self.KEYS.items()):
             v._rm_attribute(name)
 
-    def get(
-        self,
-        name
-    ):
+    def get(self, name):
         return [getattr(v, name) for v in list(self.KEYS.values())]
 
 class auc_getter(object):
@@ -1150,7 +1131,21 @@ class auc_getter(object):
     ):
         fmt = pd.DataFrame([(k,v['mae']['auc']) for k,v in list(aucs.items())], columns=['name', 'auc'])
 
-        mass, nu = np.asarray([list([float(y.rstrip('GeV')) for y in x.split('_')[1:]]) for x in fmt.name]).T
+        newList = []
+
+        for x in fmt.name:
+            massAndR = []
+            for y in x.split('_')[1:]:
+                variable = y.rstrip('GeV')
+                variable = variable.replace("p", ".")
+
+                massAndR.append(float(variable))
+                
+            newList.append(massAndR)
+
+        # newList = [list([float(y.rstrip('GeV')) for y in x.split('_')[1:]]) for x in fmt.name]
+
+        mass, nu = np.asarray(newList).T
         nu /= 100
 
         fmt['mass'] = mass
@@ -1158,15 +1153,23 @@ class auc_getter(object):
 
         return fmt
 
-def update_all_signal_evals(path='autoencode/data/aucs', update_date=None, dummy=False):
+def update_all_signal_evals(
+        path,
+        background_path,
+        signal_path,
+        update_date=None,
+        dummy=False):
     """update signal auc evaluations, with path `path`. 
     """
-    top = utils.summary().cfilter(['*auc*', 'target_dim', 'filename', 'signal_path', 'batch*', 'learning_rate']).sort_values('mae_auc')[::-1]
+    summary = utils.summary(custom_dir=(path+"/summary"))
+    
+    print("\n\nSummary: ", summary)
+    
+    top = summary.cfilter(['*auc*', 'target_dim', 'filename', 'signal_path', 'batch*', 'learning_rate']).sort_values('mae_auc')[::-1]
     eflow_base = 3
     
-    print("top: ", top)
-    
     to_add = ['{}/{}'.format(path, f) for f in top.filename.values if not os.path.exists('{}/{}'.format(path, f))]
+    
     print("to add: ", to_add)
     
     to_update = []
@@ -1184,8 +1187,8 @@ def update_all_signal_evals(path='autoencode/data/aucs', update_date=None, dummy
             d = None
         else:
             d = evaluate.data_holder(
-                qcd='data/background/base_3/*.h5',
-                **{os.path.basename(p): '{}/base_{}/*.h5'.format(p, eflow_base) for p in glob.glob('data/all_signals/*')}
+                qcd=background_path,
+                **{os.path.basename(p): '{}/base_{}/*.h5'.format(p, eflow_base) for p in glob.glob(signal_path)}
             )
             d.load()
         
@@ -1195,8 +1198,10 @@ def update_all_signal_evals(path='autoencode/data/aucs', update_date=None, dummy
         
         if not dummy:
             for path in to_add:
+                print("path: ", path)
                 name = path.split('/')[-1]
-                tf.reset_default_graph()            
+                print("name: ", name)
+                tf.compat.v1.reset_default_graph()
                 a = evaluate.auc_getter(name, times=True)
                 norm, err, recon = a.get_errs_recon(d)
                 aucs = a.get_aucs(err)
@@ -1210,7 +1215,7 @@ def update_all_signal_evals(path='autoencode/data/aucs', update_date=None, dummy
         if not dummy:
             for path in to_update:
                 name = path.split('/')[-1]
-                tf.reset_default_graph()            
+                tf.compat.v1.reset_default_graph()
                 a = evaluate.auc_getter(name, times=True)
                 a.update_event_range(d, percentile_n=1)
                 norm, err, recon = a.get_errs_recon(d)
@@ -1226,6 +1231,7 @@ def get_training_info_dict(filepath):
     if not os.path.exists(fp):
         fp = os.path.join(default, filepath)
     if not os.path.exists(fp):
+        print("Could not open file: ", fp)
         raise AttributeError
     return trainer.pkl_file(fp).store.copy()
     
@@ -1248,7 +1254,7 @@ def update_aucs(filelist):
     
     
     for name, path in list(filelist.items()):
-        tf.reset_default_graph()
+        tf.compat.v1.reset_default_graph()
         a = evaluate.auc_getter(name, times=True)
         norm, err, recon = a.get_errs_recon(d)
         aucs = a.get_aucs(err)

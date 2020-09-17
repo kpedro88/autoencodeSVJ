@@ -20,6 +20,7 @@ import subprocess
 import json
 import datetime
 from functools import reduce
+from pathlib import Path
 
 import chardet
 
@@ -66,11 +67,7 @@ class logger:
         self._ERROR_PREFIX = ERROR_PREFIX
         self.VERBOSE = VERBOSE
 
-    def log(
-        self, 
-        s,
-        string=False,
-    ):
+    def log(self, s, string=False):
         if string:
             if self.VERBOSE:
                 return self._log_str(s, self._LOG_PREFIX)
@@ -78,31 +75,19 @@ class logger:
         if self.VERBOSE: 
             self._log_base(s, self._LOG_PREFIX)
 
-    def error(
-        self,
-        s,
-        string=False,
-    ):
+    def error(self, s, string=False):
         if string:
             return self._log_str(s, self._LOG_PREFIX + self._ERROR_PREFIX)    
         self._log_base(s, self._LOG_PREFIX + self._ERROR_PREFIX)
 
-    def _log_base(
-        self,
-        s,
-        prefix
-    ):
+    def _log_base(self, s, prefix):
         if isinstance(s, str):
             for line in s.split('\n'):
                 print((prefix + str(line)))
         else:
             print((prefix + str(s)))
 
-    def _log_str(
-        self,
-        s,
-        prefix
-    ):
+    def _log_str(self, s, prefix):
         out = ''
         if isinstance(s, str):
             for line in s.split('\n'):
@@ -458,79 +443,36 @@ class data_table(logger):
         else:
             ret = data_table(self)
             modify = ret
-        
-        
-#        modify.df.columns = [col.decode("ascii") for col in modify.df.columns]
-        
-#        modify.df.columns = [col.decode("ascii") for col in modify.df.columns if col is bytes else col]
-        
+            
         dummy = []
         
         for col in modify.df.axes[1]:
-            print("type col:", type(col))
             if type(col) is bytes:
-                dummy.append(col.decode("ascii"))
+                encoding = chardet.detect(col)["encoding"]
+                dummy.append(col.decode(encoding))
             else:
                 dummy.append(col)
-            
-            
-        print("dummy:", dummy)
-            
+
         modify.df.set_axis(dummy, axis=1, inplace=True)
-        
-        
-        ###
-#        for i, label in enumerate(modify.df.axes[1]):
-#            if label is bytes:
-#                modify.df.axes[1][i] = label.decode("ascii")
-#                    modify.df[col][row] = modify.df[col][row].decode("ascii")
-        ###
-        
-#        for i, row in modify.df.iterrows():
-#            ifor_val = something
-#            df.at[i,'ifor'] = ifor_val
-        
-        for t in modify.df.axes[1]:
-            print("axis type:", type(t))
         
         first_axis_label = modify.df.axes[1][0]
         
         for i, d in enumerate(to_drop):
             if type(d) is str and type(first_axis_label) is bytes:
-                print("CC")
                 axis_encoding = chardet.detect(first_axis_label)["encoding"]
                 to_drop[i] = d.encode(axis_encoding)
             elif type(d) is np.bytes_ and type(first_axis_label) is bytes:
-                print("BB: ", d, "\ttype:", type(d))
-                
                 dd = d.decode(chardet.detect(d)["encoding"])
-                
-                print("dd type:", type(dd), "\tvalue:", dd)
                 axis_encoding = chardet.detect(first_axis_label)["encoding"]
                 ddd = dd.encode(axis_encoding)
-                print("ddd type:", type(ddd), "\tvalue: ", ddd)
                 to_drop[i] = ddd
             elif type(d) is np.bytes_ and type(first_axis_label) is str:
-                print("FF")
-                to_drop[i] = d.decode("ascii")
-                
+                encoding = chardet.detect(d)["encoding"]
+                to_drop[i] = d.decode(encoding)
             else:
-                print("AA d type: ", type(d), "\taxis type: ", type(modify.df.axes[1][0]))
                 to_drop[i] = d
         
-        print("axis: ", modify.df.axes[1])
-        
-        print("col type:", type(modify.df.columns))
-        
         for d in to_drop:
-            print("d type: ", type(d), "\taxis type: ", type(modify.df.axes[1][0]))
-            print("d: ", d)
-            
-            if type(first_axis_label) is not str and type(d) is not str:
-              axis_encoding = chardet.detect(first_axis_label)["encoding"]
-              d_encoding = chardet.detect(first_axis_label)["encoding"]
-              print("axis encoding: ", axis_encoding, "\td encoding: ", d_encoding)
-            
             modify.df.drop(d, axis=1, inplace=True)
         
         modify.headers = list(modify.df.columns)
@@ -1364,10 +1306,12 @@ def all_modify(tables, hlf_to_drop=['Energy', 'Flavor']):
         newNames = dict()
         
         for column in table.df.columns:
+            encoding = chardet.detect(column)["encoding"]
             if column.isdigit():
-                newNames[column] = "eflow %s" % (column.decode("ascii"))
+                
+                newNames[column] = "eflow %s" % (column.decode(encoding))
             elif type(column) is bytes:
-                newNames[column] = column.decode("ascii")
+                newNames[column] = column.decode(encoding)
         
         tables[i].df.rename(columns=newNames, inplace=True)
         tables[i].headers = list(tables[i].df.columns)
@@ -1423,6 +1367,7 @@ def load_all_data(globstring, name, include_hlf=True, include_eflow=True, hlf_to
     files = glob_in_repo(globstring)
     
     if len(files) == 0:
+        print("\n\nERROR -- no files found in ", globstring, "\n\n")
         raise AttributeError
 
     to_include = []
@@ -1500,7 +1445,7 @@ def BDT_load_all_data(
     
     return (X, Y), (X_test, Y_test)
 
-def dump_summary_json(*dicts):
+def dump_summary_json(*dicts, output_path):
     from collections import OrderedDict
     import json
 
@@ -1510,13 +1455,10 @@ def dump_summary_json(*dicts):
         summary.update(d)
 
     assert 'filename' in summary, 'NEED to include a filename arg, so we can save the dict!'
-    head = os.path.join(get_repo_info()['head'], 'autoencode/data/summary/')
     
-    fpath = os.path.join(head, summary['filename'] + '.summary')
+    fpath = os.path.join(output_path, summary['filename'] + '.summary')
 
     if os.path.exists(fpath):
-        # print("warning.. filepath '{}' exists!".format(fpath))
-
         newpath = fpath
 
         while os.path.exists(newpath):
@@ -1525,25 +1467,26 @@ def dump_summary_json(*dicts):
         # just a check
         assert not os.path.exists(newpath)
         fpath = newpath
-        # print("saving to path '{}' instead :-)".format(fpath))
 
     summary['summary_path'] = fpath
-
-    # for k,v in summary.items():
-    #     print(k, ":", v)
-    
-    # print
 
     with open(fpath, "w+") as f:
         json.dump(summary, f)
 
-    # print("successfully dumped size-{} summary dict to file '{}'".format(len(summary), fpath))
     return summary
 
-def summary_vid():
-    with open(os.path.join(summary_dir(), "VID")) as f:
-        vid = int(f.read().strip('\n').strip())
-    return vid
+def summary_vid(path=""):
+    Path(path).mkdir(parents=True, exist_ok=True)
+    filepath = os.path.join(path, "VID")
+
+    if os.path.exists(filepath):
+        with open(filepath, "r") as file:
+            vid = int(file.read().strip('\n').strip())
+            return vid
+    else:
+        file = open(filepath, "w")
+        file.write("0\n")
+        return 0
 
 def summary_dir():
     return os.path.join(get_repo_info()['head'], 'autoencode/data/summary')
@@ -1571,19 +1514,15 @@ def load_summary(path):
          ret = json.load(f)
     return ret
         
-def summary(
-    include_outdated=False,
-    custom_dir=None,
-    defaults={
-    'hlf_to_drop': ['Flavor', 'Energy']
-    }
-):
-
-    if custom_dir is None:
-        custom_dir = summary_dir()
+def summary(custom_dir,
+            include_outdated=False,
+            defaults={'hlf_to_drop': ['Flavor', 'Energy']}
+            ):
 
     files = glob.glob(os.path.join(custom_dir,"*.summary"))
-
+    
+    print("Opening summary files: ", files)
+    
     data = []
     for f in files: 
         with open(f) as to_read:
@@ -1593,7 +1532,7 @@ def summary(
                 if k not in d:
                     d[k] = v
             data.append(d)
-
+    
     s = data_table(pd.DataFrame(data), name='summary')
     # if 'hlf_to_drop' in s:
     #     s.hlf_to_drop.fillna(('Energy', 'Flavor'), inplace=True)
@@ -1602,6 +1541,9 @@ def summary(
     return data_table(s[s.VID == s.VID.max()], name='summary')
 
 def summary_match(globstr, verbose=1):
+    
+    print("Summary matches globstr: ", globstr)
+    
     if not (os.path.dirname(globstr) == summary_dir()):
         globstr = os.path.join(summary_dir(), globstr)
     else:

@@ -14,6 +14,7 @@ import os
 import collections
 import pickle
 import tensorflow as tf
+from pathlib import Path
 
 class pkl_file(collections.MutableMapping):
     """Dictionary which saves all attributes to a .pkl file on access/altering"""
@@ -55,13 +56,13 @@ class pkl_file(collections.MutableMapping):
     def __len__(self):
         self.update_store()
         return len(self.store)
-    
+
     def update_pkl(self):
+        Path(self.path).parent.mkdir(parents=True, exist_ok=True)
         with open(self.path, 'wb') as f:
             pickle.dump(self.store, f, protocol=pickle.HIGHEST_PROTOCOL)
 
     def update_store(self):
-        print("opening file:", self.path)
         with open(self.path, 'rb') as f:
             self.store.update(pickle.load(f))
             
