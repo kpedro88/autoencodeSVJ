@@ -4,7 +4,7 @@ from collections import OrderedDict as odict
 import os
 import traceback
 from datetime import datetime
-from autoencodeSVJ.utils import logger, smartpath, get_plot_params
+from autoencode.module.autoencodeSVJ.utils import logger, smartpath, get_plot_params
 import h5py
 import matplotlib.pyplot as plt
 import glob

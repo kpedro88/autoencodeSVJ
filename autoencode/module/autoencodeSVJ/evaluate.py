@@ -1,16 +1,16 @@
-import autoencodeSVJ.utils as utils
-import autoencodeSVJ.trainer as trainer
-import autoencodeSVJ.evaluate as evaluate
+import autoencode.module.autoencodeSVJ.utils as utils
+import autoencode.module.autoencodeSVJ.trainer as trainer
+import autoencode.module.autoencodeSVJ.evaluate as evaluate
+import autoencode.module.autoencodeSVJ.models as models
+import autoencode.module.autoencodeSVJ.summaryProcessor as summaryProcessor
 import numpy as np
 import tensorflow as tf
 import os
-import autoencodeSVJ.models as models
 import datetime
 from collections import OrderedDict as odict 
 import time
 import pandas as pd
 import glob
-
 
 eflow_base_lookup = {
     12: 3,
@@ -29,8 +29,8 @@ class ae_evaluation:
         aux_signals_dict={},
         custom_objects={},
     ):
-        self.name = utils.summary_by_name(name)
-        self.d = utils.load_summary(self.name)
+        self.name = summaryProcessor.summary_by_name(name)
+        self.d = summaryProcessor.load_summary(self.name)
 
         if qcd_path is None:
             if 'qcd_path' in self.d:
@@ -546,7 +546,9 @@ def ae_train(
     filename = "{}{}{}_".format('hlf_' if hlf else '', 'eflow{}_'.format(eflow_base) if eflow else '', target_dim)
     
     if version is None:
-        existing_ids = [int(os.path.basename(x).rstrip('.summary').split('_')[-1].lstrip('v')) for x in utils.summary_match(filename + "v*", 0)]
+        print("Looking for summary files: ", filename + "v*")
+        summaryFiles = summaryProcessor.summary_match(filename + "v*", verbose=False)
+        existing_ids = [int(os.path.basename(x).rstrip('.summary').split('_')[-1].lstrip('v')) for x in summaryFiles]
         assert len(existing_ids) == len(set(existing_ids)), "no duplicate ids"
         id_set = set(existing_ids)
         this_num = 0
@@ -558,7 +560,7 @@ def ae_train(
     filename += "v{}".format(version)
     print(("training under filename '{}'".format(filename)))
 
-    assert len(utils.summary_match(filename, 0)) == 0, "filename '{}' exists already! Change version id, or leave blank.".format(filename)
+    assert len(summaryProcessor.summary_match(filename, 0)) == 0, "filename '{}' exists already! Change version id, or leave blank.".format(filename)
 
     filepath = os.path.join(output_data_path, "trainingRuns", filename)
     input_dim = len(signal.columns)
@@ -659,12 +661,12 @@ def ae_train(
 
     result_args = dict([(r + '_auc', roc_dict[r]['auc']) for r in roc_dict])
     
-    vid = utils.summary_vid(path=(output_data_path+"/summary"))
+    vid = summaryProcessor.summary_vid(path=(output_data_path+"/summary"))
     
     time_args = {'start_time': start_time, 'end_time': end_time, 'VID': vid, 'total_loss': total_loss}
     
-    utils.dump_summary_json(result_args, train_args, data_args, norm_args, time_args,
-                            output_path = (output_data_path+"/summary"))
+    summaryProcessor.dump_summary_json(result_args, train_args, data_args, norm_args, time_args,
+                                       output_path = (output_data_path+"/summary"))
 
     # roc as figure of merit
     return total_loss, ae, test_norm
@@ -967,8 +969,8 @@ class auc_getter(object):
     ):
         self.times = times
         self.start()
-        self.name = utils.summary_by_name(filename)
-        self.d = utils.load_summary(self.name)
+        self.name = summaryProcessor.summary_by_name(filename)
+        self.d = summaryProcessor.load_summary(self.name)
         
         self.norm_args = {
         }
@@ -1154,26 +1156,27 @@ class auc_getter(object):
         return fmt
 
 def update_all_signal_evals(
-        path,
+        output_path,
         background_path,
         signal_path,
         update_date=None,
         dummy=False):
     """update signal auc evaluations, with path `path`. 
     """
-    summary = utils.summary(custom_dir=(path+"/summary"))
-    
+    summary = summaryProcessor.summary(custom_dir=(output_path+"/summary"))
     print("\n\nSummary: ", summary)
     
     top = summary.cfilter(['*auc*', 'target_dim', 'filename', 'signal_path', 'batch*', 'learning_rate']).sort_values('mae_auc')[::-1]
     eflow_base = 3
     
-    to_add = ['{}/{}'.format(path, f) for f in top.filename.values if not os.path.exists('{}/{}'.format(path, f))]
-    
-    print("to add: ", to_add)
+    to_add = []
+    for fileName in top.filename.values:
+        fullPath = output_path+"/summary/"+fileName
+        if not os.path.exists(fullPath):
+            to_add.append(fullPath)
     
     to_update = []
-    for f in glob.glob('{}/*'.format(path)):
+    for f in glob.glob('{}/*'.format(output_path)):
         if update_date is None:
             pass
         elif datetime.datetime.fromtimestamp(os.path.getmtime(f)) < update_date:
@@ -1181,6 +1184,7 @@ def update_all_signal_evals(
 
     total = len(to_add) + len(to_update)
     print(('found {} trainings total'.format(total)))
+    
     if total > 0:
         
         if dummy:
@@ -1198,11 +1202,8 @@ def update_all_signal_evals(
         
         if not dummy:
             for path in to_add:
-                print("path: ", path)
-                name = path.split('/')[-1]
-                print("name: ", name)
                 tf.compat.v1.reset_default_graph()
-                a = evaluate.auc_getter(name, times=True)
+                a = evaluate.auc_getter(path, times=True)
                 norm, err, recon = a.get_errs_recon(d)
                 aucs = a.get_aucs(err)
                 fmt = a.auc_metric(aucs)

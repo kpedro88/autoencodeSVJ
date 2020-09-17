@@ -1,6 +1,6 @@
-import autoencodeSVJ.utils as utils
-import autoencodeSVJ.trainer as trainer
-import autoencodeSVJ.evaluate as ev
+import autoencode.module.autoencodeSVJ.utils as utils
+import autoencode.module.autoencodeSVJ.trainer as trainer
+import autoencode.module.autoencodeSVJ.evaluate as ev
 
 import pandas as pd
 import numpy as np
@@ -93,16 +93,16 @@ auc = ev.ae_train(
     epochs=5,
 )
 
-# print("Running update_all_signal_evals")
-# ev.update_all_signal_evals(background_path="../data/qcd/*.h5",
-#                            signal_path="../data/all_signals/*",
-#                            path="trainingResults")
-#
-# total_loss, ae, test_norm = auc
-#
-# print("Total loss: ", total_loss)
-# print("Autoencoder: ", ae)
-# print("Test norm: ", test_norm)
+print("Running update_all_signal_evals")
+ev.update_all_signal_evals(background_path="../data/qcd/*.h5",
+                           signal_path="../data/all_signals/*",
+                           output_path="trainingResults")
+
+total_loss, ae, test_norm = auc
+
+print("Total loss: ", total_loss)
+print("Autoencoder: ", ae)
+print("Test norm: ", test_norm)
 
 
 #
