@@ -476,6 +476,7 @@ def ae_train(
     signal_path,
     qcd_path,
     target_dim,
+    output_data_path,
     hlf=True,
     eflow=True,
     version=None,
@@ -490,7 +491,6 @@ def ae_train(
     learning_rate=0.0005,
     custom_objects={},
     interm_architecture=(30,30),
-    output_data_path=None,
     verbose=1, 
     hlf_to_drop=['Energy', 'Flavor'],
     norm_percentile=1,
@@ -512,9 +512,6 @@ def ae_train(
     # set random seed
     utils.set_random_seed(seed)
 
-    if output_data_path is None:
-        output_data_path = os.path.join(utils.get_repo_info()['head'], "autoencode/data/training_runs")
-    
     # get all our data
     (signal,
      signal_jets,
@@ -546,9 +543,14 @@ def ae_train(
     filename = "{}{}{}_".format('hlf_' if hlf else '', 'eflow{}_'.format(eflow_base) if eflow else '', target_dim)
     
     if version is None:
-        print("Looking for summary files: ", filename + "v*")
-        summaryFiles = summaryProcessor.summary_match(filename + "v*", verbose=False)
-        existing_ids = [int(os.path.basename(x).rstrip('.summary').split('_')[-1].lstrip('v')) for x in summaryFiles]
+        summary_search_path = output_data_path+"/summary/"+filename+"v*"
+        summary_files = summaryProcessor.summary_match(summary_search_path, verbose=False)
+        existing_ids = []
+
+        for file in summary_files:
+            version_number = os.path.basename(file).rstrip('.summary').split('_')[-1].lstrip('v')
+            existing_ids.append(int(version_number))
+    
         assert len(existing_ids) == len(set(existing_ids)), "no duplicate ids"
         id_set = set(existing_ids)
         this_num = 0
@@ -1225,16 +1227,12 @@ def update_all_signal_evals(
                 fmt.to_csv(path)
 
 def get_training_info_dict(filepath):
-    default = os.path.join(utils.get_repo_info()['head'], 'autoencode/data/training_runs/')
-    fp = filepath
     if not filepath.endswith('.pkl'):
         filepath += '.pkl'
-    if not os.path.exists(fp):
-        fp = os.path.join(default, filepath)
-    if not os.path.exists(fp):
-        print("Could not open file: ", fp)
+    if not os.path.exists(filepath):
+        print("Could not open file: ", filepath)
         raise AttributeError
-    return trainer.pkl_file(fp).store.copy()
+    return trainer.pkl_file(filepath).store.copy()
     
 def check_training(filepath):
     info_dict = get_training_info_dict(filepath)

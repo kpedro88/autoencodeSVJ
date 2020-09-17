@@ -11,14 +11,14 @@ from collections import OrderedDict
 
 
 def dump_summary_json(*dicts, output_path):
-    summary = OrderedDict()
+    summary_dict = OrderedDict()
     
     for d in dicts:
-        summary.update(d)
+        summary_dict.update(d)
     
-    assert 'filename' in summary, 'NEED to include a filename arg, so we can save the dict!'
+    assert 'filename' in summary_dict, 'NEED to include a filename arg, so we can save the dict!'
     
-    fpath = os.path.join(output_path, summary['filename'] + '.summary')
+    fpath = os.path.join(output_path, summary_dict['filename'] + '.summary')
     
     if os.path.exists(fpath):
         newpath = fpath
@@ -30,12 +30,12 @@ def dump_summary_json(*dicts, output_path):
         assert not os.path.exists(newpath)
         fpath = newpath
     
-    summary['summary_path'] = fpath
+    summary_dict['summary_path'] = fpath
     
     with open(fpath, "w+") as f:
-        json.dump(summary, f)
+        json.dump(summary_dict, f)
     
-    return summary
+    return summary_dict
 
 
 def summary_vid(path=""):
@@ -76,11 +76,11 @@ def load_summary(path):
     return ret
 
 
-def summary(custom_dir,
+def summary(summaryPath,
             include_outdated=False,
             defaults={'hlf_to_drop': ['Flavor', 'Energy']}
             ):
-    files = glob.glob(os.path.join(custom_dir, "*.summary"))
+    files = glob.glob(os.path.join(summaryPath, "*.summary"))
     
     print("Opening summary files: ", files)
     
@@ -93,6 +93,10 @@ def summary(custom_dir,
                 if k not in d:
                     d[k] = v
             data.append(d)
+    
+    if len(data)==0:
+        print("WARNING - no summary files found!!")
+        return None
     
     s = utils.data_table(pd.DataFrame(data), name='summary')
     # if 'hlf_to_drop' in s:
