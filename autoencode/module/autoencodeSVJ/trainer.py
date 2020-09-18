@@ -1,78 +1,21 @@
-import numpy as np
+from autoencode.module.autoencodeSVJ.logger import logger
+from autoencode.module.autoencodeSVJ.pklFile import pkl_file
+import autoencode.module.autoencodeSVJ.utils as utils
+
+
 from keras.models import Model, model_from_json
-from collections import OrderedDict as odict
-import os
-import traceback
-from datetime import datetime
-from autoencode.module.autoencodeSVJ.utils import logger, smartpath, get_plot_params
-import h5py
-import matplotlib.pyplot as plt
-import glob
 from keras.callbacks import EarlyStopping, ReduceLROnPlateau, TerminateOnNaN, ModelCheckpoint
 import keras.optimizers
+
+from collections import OrderedDict as odict
+from datetime import datetime
+
+import traceback
+import glob
 import os
-import collections
-import pickle
-import tensorflow as tf
-from pathlib import Path
 
-class pkl_file(collections.MutableMapping):
-    """Dictionary which saves all attributes to a .pkl file on access/altering"""
+import numpy as np
 
-    def __init__(self, path, verbose=1, *args, **kwargs):
-        
-        if not path.endswith(".pkl"):
-            path += ".pkl"
-        
-        self.path = smartpath(path)
-        self.store = {}
-        
-        if os.path.exists(self.path):
-            try:
-                self.update_store()
-            except:
-                raise AttributeError("failed to load pickle file!")
-              
-        self.update_pkl()
-        
-    def __getitem__(self, key):
-        self.update_store()
-        return self.store[key]
-    
-    def __setitem__(self, key, value):
-        self.update_store()
-        self.store[key] = value
-        self.update_pkl()
-        
-    def __delitem__(self, key):
-        self.update_store()
-        del self.store[key]
-        self.update_pkl()
-    
-    def __iter__(self):
-        self.update_store()
-        return iter(self.store)
-    
-    def __len__(self):
-        self.update_store()
-        return len(self.store)
-
-    def update_pkl(self):
-        Path(self.path).parent.mkdir(parents=True, exist_ok=True)
-        with open(self.path, 'wb') as f:
-            pickle.dump(self.store, f, protocol=pickle.HIGHEST_PROTOCOL)
-
-    def update_store(self):
-        with open(self.path, 'rb') as f:
-            self.store.update(pickle.load(f))
-            
-    def __str__(self):
-        self.update_store()
-        return str(self.store)
-    
-    def __repr__(self): 
-        self.update_store()
-        return "pkl_file instance at {}\n".format(self.path) + str(self)
 
 class trainer(logger):
     """
@@ -93,7 +36,7 @@ class trainer(logger):
         self._LOG_PREFIX = "train_shell :: "
         self.VERBOSE = verbose
 
-        self.config_file = smartpath(name)
+        self.config_file = utils.smartpath(name)
         self.path = os.path.dirname(self.config_file)
 
         if not self.config_file.endswith(".pkl"):
@@ -160,13 +103,13 @@ class trainer(logger):
                         self.log("using saved model")
                     else:
                         if isinstance(model, str):
-                            model = load_model(model, custom_objects=custom_objects)
+                            model = self.load_model(model, custom_objects=custom_objects)
                         self.log("using model passed as function argument")
             else:
                 if model is None:
                     self._throw("no model passed, and saved model not found!")
                 if isinstance(model, str):
-                    model = load_model(model, custom_objects=custom_objects)
+                    model = self.load_model(model, custom_objects=custom_objects)
                 self.log("using model passed as function argument")
         
         if model is None:
@@ -393,7 +336,7 @@ class trainer(logger):
 
         # plot em'
 
-        fig, ax_begin, ax_end, plt_end, colors = get_plot_params(1, *args, **kwargs)
+        fig, ax_begin, ax_end, plt_end, colors = utils.get_plot_params(1, *args, **kwargs)
 
         ax = ax_begin(0)
 

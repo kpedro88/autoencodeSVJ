@@ -5,12 +5,13 @@ import autoencode.module.autoencodeSVJ.summaryProcessor as summaryProcessor
 
 import pandas as pd
 import numpy as np
+import energyflow as ef
+import matplotlib.pyplot as plt
 
 import datetime
 import os
 import glob
 
-import matplotlib.pyplot as plt
 
 print("imports OK")
 
@@ -31,9 +32,6 @@ summary, summaryWithOutdated = loadSummaries()
 # aucs = ev.load_auc_table(path="autoencode/data/aucs")
 
 # print(aucs.mean().sort_values()[::-1])
-
-
-
 
 # consider = summary.sort_values('start_time')[::-1].iloc[1:15].filename
 # a = aucs.loc[:,consider.values]
@@ -100,11 +98,10 @@ def printSummaries():
 
 def trainWithRandomRate(n_trainings):
     dim = 7
+    mu, sigma = 0.00075, 0.01
 
     for i in range(n_trainings):
         print("\n\nStarting training ", i, "\n\n")
-        
-        mu, sigma = 0.00075, 0.01
         learning_rate = np.random.lognormal(np.log(mu), sigma)
         print('target_dim {}, learning_rate {}:'.format(dim, learning_rate),)
         auc = ev.ae_train(
@@ -120,65 +117,47 @@ def trainWithRandomRate(n_trainings):
         total_loss, ae, test_norm = auc
         print("Total loss: ", total_loss)
 
+def trainAndEvaluate():
+    auc = ev.ae_train(
+        signal_path=signal_path,
+        qcd_path=qcd_path,
+        output_data_path=output_path,
+        target_dim=5,
+        verbose=1,
+        batch_size=32,
+        learning_rate=0.001,
+        epochs=5,
+    )
 
+    total_loss, ae, test_norm = auc
 
+    print("Total loss: ", total_loss)
+    print("Autoencoder: ", ae)
+    print("Test norm: ", test_norm)
 
-# auc = ev.ae_train(
-#     signal_path='../data/all_signals/1500GeV_0p75/base_3/*.h5',
-#     qcd_path='../data/qcd/*.h5',
-#     output_data_path="trainingResults",
-#     target_dim=5,
-#     verbose=1,
-#     batch_size=32,
-#     learning_rate=0.001,
-#     epochs=5,
-# )
+    ae.evaluate(test_norm.values, test_norm.values)
+    
 
-# print("Running update_all_signal_evals")
-# ev.update_all_signal_evals(background_path="../data/qcd/*.h5",
-#                            signal_path="../data/all_signals/*",
-#                            output_path="trainingResults")
+def updataSignalEvals():
+    ev.update_all_signal_evals(background_path=qcd_path,
+                               signal_path=signal_path,
+                               output_path=output_path)
 
-# total_loss, ae, test_norm = auc
-#
-# print("Total loss: ", total_loss)
-# print("Autoencoder: ", ae)
-# print("Test norm: ", test_norm)
-
-
-#
-# # help(ae.evaluate)
-#
 
 def printTrainingInfo():
     trainingOutputPath = results_path+"/hlf_eflow3_5_v0.pkl"
     trainingInfo = ev.get_training_info_dict(trainingOutputPath)
     print("Training info - val_loss: ", trainingInfo['metrics']['val_loss'][-1,1])
 
-# ae.evaluate(test_norm.values, test_norm.values)
 
-
-#
-# # help(ev.ae_train)
-#
-# for i in range(20):
-#     mu, sigma = 0.002, 0.925
-#     learning_rate = np.random.lognormal(np.log(mu), sigma)
-#     print('target_dim {}, learning_rate {}:'.format(dim, learning_rate))
-#     print('  aucs: ',)
-#     for i in range(5):
-#         auc = ev.ae_train(
-#             signal_path='../data/all_signals/1500GeV_0p75/base_3/*.h5',
-#             qcd_path='../data/qcd/*.h5',
-#             target_dim=dim,
-#             verbose=False,
-#             batch_size=32,
-#             learning_rate=learning_rate,
-#         )
-#         print(auc, ' ',)
-#
 
 printSummary()
-plotAuc()
+# plotAuc()
 
 # trainWithRandomRate(10)
+# trainAndEvaluate()
+# updataSignalEvals()
+
+# data, jets, event, flavor = utils.load_all_data(qcd_path, name='QCD')
+# print(help(ef.datasets.qg_jets.load))
+

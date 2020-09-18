@@ -1,6 +1,7 @@
-import keras 
+from autoencode.module.autoencodeSVJ.logger import logger
+
+import keras
 import keras.backend as K
-from autoencode.module.autoencodeSVJ.utils import logger
 import numpy as np
 
 def shallow(bn, n_features, central_activation='relu'):
