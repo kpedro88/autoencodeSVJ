@@ -7,11 +7,11 @@ import pandas as pd
 import numpy as np
 import energyflow as ef
 import matplotlib.pyplot as plt
+import ROOT as rt
 
 import datetime
 import os
 import glob
-
 
 print("imports OK")
 
@@ -157,14 +157,89 @@ def printTrainingInfo():
     print("Training info - val_loss: ", trainingInfo['metrics']['val_loss'][-1,1])
 
 
+def drawROCcurve():
+    elt = ev.ae_evaluation(summary_path+"/hlf_eflow3_7_v0.summary")
+    elt.roc(yscale='log')
 
-printSummary()
+def addSampleAndPrintShape():
+    newData = utils.data_loader(name="data")
+    newData.add_sample("data/background/constituents_3/data_0_data.h5")
+    print("shape: ", newData.data['jet_constituents'].shape)
+
+
+# def consts(globpath):
+#     files = glob.glob(globpath)
+#     assert len(files) > 0, "no files in globpath '{}'".format(globpath)
+#     l = utils.data_loader(name="data")
+#     for f in files:
+#         l.add_sample(f)
+#     stacked = np.vstack(l.data['jet_constituents'])
+#     jets = np.vstack(l.data['jet_features'])
+#     print(l.labels['jet_constituents'])
+#
+#     ret = []
+#     tab = []
+#     for i, elt in enumerate(stacked):
+#         ret.append([])
+#         tab.append(rt.TLorentzVector())
+#         tab[i].SetPtEtaPhiE(jets[i][2], jets[i][0], jets[i][1], jets[i][8])
+#         for j, const in enumerate(elt):
+#             if const[4] > 0.0:
+#                 ret[i].append(rt.TLorentzVector())
+#                 ret[i][j].SetPtEtaPhiE(const[2], const[0], const[1], const[4])
+#
+#     return ret, tab
+#
+# data, jets = consts("TEST.h5")
+
+def plotJetFeatures():
+    evaluation = ev.ae_evaluation(summary_path + "/hlf_eflow3_7_v0.summary")
+    main = evaluation.qcd
+    
+    for normer, rng in [
+        ({'norm_type': 'MinMaxScaler', 'feature_range': (0, 1)}, (0, 1)),
+        ({'norm_type': 'StandardScaler'}, (-5., 5.)),
+        ({'norm_type': 'RobustScaler'}, (-5., 5.))
+    ]:
+        var = main.cdrop('eflow *').norm(**normer)
+        
+        #     rng = var.min().min(), var.max().max()
+        plt.figure(figsize=(9, 9))
+        for colname in var.axes[1]:
+            plt.hist(var[colname], bins=70, range=rng, label=colname, histtype='step')
+        plt.legend()
+        plt.show()
+
+# printSummary()
 # plotAuc()
 
-trainWithRandomRate(10)
+# trainWithRandomRate(10)
 # trainAndEvaluate()
-updataSignalEvals()
+# updataSignalEvals()
+# drawROCcurve()
+# addSampleAndPrintShape()
+plotJetFeatures()
 
 # data, jets, event, flavor = utils.load_all_data(qcd_path, name='QCD')
 # print(help(ef.datasets.qg_jets.load))
+
+# print("data: ", data)
+# print("jets: ", jets)
+# print("event: ", event)
+# print("flavor: ", flavor)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
