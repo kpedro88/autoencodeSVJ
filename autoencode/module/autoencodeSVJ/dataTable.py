@@ -5,6 +5,7 @@ from autoencode.module.autoencodeSVJ.logger import logger
 from enum import Enum
 from sklearn.model_selection import train_test_split
 
+import sklearn.preprocessing as prep
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
@@ -294,18 +295,33 @@ class data_table(logger):
         else:
             plt.savefig(savename)
     
+    
     def cdrop(self, globstr, inplace=False):
         to_drop = list(utils.parse_globlist(globstr, list(self.df.columns)))
-        modify = None
+        
         if inplace:
             modify = self
         else:
             ret = data_table(self)
             modify = ret
-        
+
+        first_axis_label = modify.df.axes[1][0]
+
         for i, d in enumerate(to_drop):
-            if type(d) is str:
-                to_drop[i] = d.encode("utf-8")
+            if type(d) is str and type(first_axis_label) is bytes:
+                axis_encoding = chardet.detect(first_axis_label)["encoding"]
+                to_drop[i] = d.encode(axis_encoding)
+            elif type(d) is np.bytes_ and type(first_axis_label) is bytes:
+                dd = d.decode(chardet.detect(d)["encoding"])
+                axis_encoding = chardet.detect(first_axis_label)["encoding"]
+                ddd = dd.encode(axis_encoding)
+                to_drop[i] = ddd
+            elif type(d) is np.bytes_ and type(first_axis_label) is str:
+                encoding = chardet.detect(d)["encoding"]
+                to_drop[i] = d.decode(encoding)
+            else:
+                to_drop[i] = d
+
         modify.df.drop(to_drop, axis=1, inplace=True)
         
         modify.headers = list(modify.df.columns)
