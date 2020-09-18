@@ -5,7 +5,6 @@ class data_holder(object):
         self.KEYS = {}
         names = sorted(kwargs.keys())
         
-        print("names: ", names)
         for name in names:
             path = kwargs[name]
             if name[0].isdigit():

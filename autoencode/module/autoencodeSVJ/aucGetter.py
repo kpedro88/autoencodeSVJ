@@ -14,19 +14,14 @@ class auc_getter(object):
     and be able to evaluate the auc on each signal to determine a 'general auc' for all signals.
     '''
     
-    def __init__(
-            self,
-            filename,
-            qcd_path=None,
-            times=False
-    ):
+    def __init__(self, filename, qcd_path=None, times=False):
         self.times = times
         self.start()
         self.name = summaryProcessor.summary_by_name(filename)
         self.d = summaryProcessor.load_summary(self.name)
+        self.norm_args = {}
         
-        self.norm_args = {
-        }
+        print("auc getter -- name: ", self.name, "\td: ", self.d)
         
         if 'norm_type' in self.d:
             self.norm_args["norm_type"] = str(self.d["norm_type"])
@@ -97,16 +92,22 @@ class auc_getter(object):
         self.time('test dataset')
         return test
     
-    def get_errs_recon(self, data, test_key='qcd', **kwargs):
-        
-        test = self.get_test_dataset(data, test_key)
-        
+    def get_errs_recon(self, data_holder, test_key='qcd', **kwargs):
+        test = self.get_test_dataset(data_holder, test_key)
         self.start()
+        
+        normed = {}
+        
         if 'rng' in self.norm_args:
-            normed = {d: getattr(data, d).data.norm(**self.norm_args) for d in data.KEYS if d != test_key}
+            for key in data_holder.KEYS:
+                if key != test_key:
+                    normed[key] = getattr(data_holder, key).data.norm(**self.norm_args)
             normed[test_key] = test.norm(**self.norm_args)
         else:
-            normed = {d: test.norm(elt.data, **self.norm_args) for d, elt in list(data.KEYS.items()) if d != test_key}
+            for d, elt in list(data_holder.KEYS.items()):
+                if d != test_key:
+                    normed[d] = test.norm(elt.data, **self.norm_args)
+            
             normed[test_key] = test.norm(test, **self.norm_args)
         
         for key in normed:
@@ -152,9 +153,8 @@ class auc_getter(object):
         return ret
     
     def auc_metric(self, aucs):
-        fmt = pd.DataFrame([(k, v['mae']['auc']) for k, v in list(aucs.items())], columns=['name', 'auc'])
-        
-        print("fmt: ", fmt)
+        data = [(k, v['mae']['auc']) for k, v in list(aucs.items())]
+        fmt = pd.DataFrame(data, columns=['name', 'auc'])
         
         newList = []
         
@@ -167,8 +167,6 @@ class auc_getter(object):
                 massAndR.append(float(variable))
             
             newList.append(massAndR)
-        
-        # newList = [list([float(y.rstrip('GeV')) for y in x.split('_')[1:]]) for x in fmt.name]
         
         mass, nu = np.asarray(newList).T
         nu /= 100

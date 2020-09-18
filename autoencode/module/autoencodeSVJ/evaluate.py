@@ -552,6 +552,8 @@ def ae_train(
 
         for file in summary_files:
             version_number = os.path.basename(file).rstrip('.summary').split('_')[-1].lstrip('v')
+            
+            print("file: ", file, "\tversion: ", version_number)
             existing_ids.append(int(version_number))
     
         assert len(existing_ids) == len(set(existing_ids)), "no duplicate ids"
@@ -884,7 +886,7 @@ def update_all_signal_evals(
         dummy=False):
     """update signal auc evaluations, with path `path`. 
     """
-    summary = summaryProcessor.summary(summaryPath=(output_path+"/summary"))
+    summary = summaryProcessor.summary(summary_path=(output_path+"/summary"))
     print("\n\nSummary: ", summary)
     
     top = summary.cfilter(['*auc*', 'target_dim', 'filename', 'signal_path', 'batch*', 'learning_rate']).sort_values('mae_auc')[::-1]
@@ -892,7 +894,7 @@ def update_all_signal_evals(
     
     to_add = []
     for fileName in top.filename.values:
-        fullPath = output_path+"/summary/"+fileName
+        fullPath = output_path+"/summary/"+fileName+".summary"
         if not os.path.exists(fullPath):
             to_add.append(fullPath)
     
@@ -909,13 +911,16 @@ def update_all_signal_evals(
     if total > 0:
         
         if dummy:
-            d = None
+            dataHolder = None
         else:
-            d = data_holder(
-                qcd=background_path,
-                **{os.path.basename(p): p for p in glob.glob(signal_path)}
-            )
-            d.load()
+            signalDict = {}
+
+            for path in glob.glob(signal_path):
+                key = path.split("/")[-3]
+                signalDict[key] = path
+                
+            dataHolder = data_holder(qcd=background_path, **signalDict)
+            dataHolder.load()
         
         if len(to_add) > 0:
             print(('found {} trainings to add'.format(len(to_add))))
@@ -923,19 +928,23 @@ def update_all_signal_evals(
         
         if not dummy:
             for path in to_add:
+                
+                print("path: ", path)
+                
                 tf.compat.v1.reset_default_graph()
-                a = auc_getter(path, times=True)
                 
-                print("d: ", d)
+                aucGetter = auc_getter(path, times=True)
                 
-                norm, err, recon = a.get_errs_recon(d)
+                print("d: ", dataHolder)
+                
+                norm, err, recon = aucGetter.get_errs_recon(dataHolder)
                 
                 print("err: ", err)
                 
-                aucs = a.get_aucs(err)
+                aucs = aucGetter.get_aucs(err)
                 print("aucs: ", aucs)
                 
-                fmt = a.auc_metric(aucs)
+                fmt = aucGetter.auc_metric(aucs)
                 fmt.to_csv(path)
             
         if len(to_update) > 0:
@@ -947,8 +956,8 @@ def update_all_signal_evals(
                 name = path.split('/')[-1]
                 tf.compat.v1.reset_default_graph()
                 a = auc_getter(name, times=True)
-                a.update_event_range(d, percentile_n=1)
-                norm, err, recon = a.get_errs_recon(d)
+                a.update_event_range(dataHolder, percentile_n=1)
+                norm, err, recon = a.get_errs_recon(dataHolder)
                 aucs = a.get_aucs(err)
                 fmt = a.auc_metric(aucs)
                 fmt.to_csv(path)

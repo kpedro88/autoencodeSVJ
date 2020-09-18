@@ -16,15 +16,16 @@ import glob
 print("imports OK")
 
 output_path = "trainingResults"
-summaryPath = output_path+"/summary"
+summary_path = output_path+"/summary"
 results_path = output_path+"/trainingRuns"
 signal_path = "../data/all_signals/1500GeV_0p75/base_3/*.h5"
 qcd_path = "../data/qcd/*.h5"
 
 
 def loadSummaries():
-    summary = summaryProcessor.summary(summaryPath)
-    summaryWithOutdated = summaryProcessor.summary(summaryPath=summaryPath, include_outdated=True)
+    print("\nRunning loadSummaries\n")
+    summary = summaryProcessor.summary(summary_path)
+    summaryWithOutdated = summaryProcessor.summary(summary_path=summary_path, include_outdated=True)
     return summary, summaryWithOutdated
 
 summary, summaryWithOutdated = loadSummaries()
@@ -40,6 +41,7 @@ summary, summaryWithOutdated = loadSummaries()
 
 
 def printSummary():
+    print("\nRunning printSummary\n")
     if summary is None:
         print("Could not print summary")
         return
@@ -48,7 +50,7 @@ def printSummary():
 
 def plotAuc():
     """ Some plotting code """
-    
+    print("\nRunning plotAuc\n")
     if summary is None:
         print("Could not load summary for plotting")
         return
@@ -62,9 +64,10 @@ def plotAuc():
 
 def printSummaries():
     """ Some code printing summaries and their timestamps """
+    print("\nRunning printSummaries\n")
     summaries_timestamps = {}
 
-    for filePath in glob.glob(summaryPath+"/*.summary"):
+    for filePath in glob.glob(summary_path+"/*.summary"):
         file_name = filePath.split('/')[-1].replace(".summary", "")
         summaries_timestamps[file_name] = datetime.datetime.fromtimestamp(os.path.getmtime(filePath))
 
@@ -97,6 +100,7 @@ def printSummaries():
 #
 
 def trainWithRandomRate(n_trainings):
+    print("\nRunning trainWithRandomRate\n")
     dim = 7
     mu, sigma = 0.00075, 0.01
 
@@ -118,6 +122,7 @@ def trainWithRandomRate(n_trainings):
         print("Total loss: ", total_loss)
 
 def trainAndEvaluate():
+    print("\nRunning trainAndEvaluate\n")
     auc = ev.ae_train(
         signal_path=signal_path,
         qcd_path=qcd_path,
@@ -139,12 +144,14 @@ def trainAndEvaluate():
     
 
 def updataSignalEvals():
+    print("\nRunning updateSignalEvals\n")
     ev.update_all_signal_evals(background_path=qcd_path,
                                signal_path=signal_path,
                                output_path=output_path)
 
 
 def printTrainingInfo():
+    print("\nRunning printTrainingInfo\n")
     trainingOutputPath = results_path+"/hlf_eflow3_5_v0.pkl"
     trainingInfo = ev.get_training_info_dict(trainingOutputPath)
     print("Training info - val_loss: ", trainingInfo['metrics']['val_loss'][-1,1])
@@ -154,9 +161,9 @@ def printTrainingInfo():
 printSummary()
 # plotAuc()
 
-# trainWithRandomRate(10)
+trainWithRandomRate(10)
 # trainAndEvaluate()
-# updataSignalEvals()
+updataSignalEvals()
 
 # data, jets, event, flavor = utils.load_all_data(qcd_path, name='QCD')
 # print(help(ef.datasets.qg_jets.load))

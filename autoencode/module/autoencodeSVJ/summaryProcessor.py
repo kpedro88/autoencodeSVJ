@@ -76,13 +76,11 @@ def load_summary(path):
     return ret
 
 
-def summary(summaryPath,
+def summary(summary_path,
             include_outdated=False,
             defaults={'hlf_to_drop': ['Flavor', 'Energy']}
             ):
-    files = glob.glob(os.path.join(summaryPath, "*.summary"))
-    
-    print("Opening summary files: ", files)
+    files = glob.glob(os.path.join(summary_path, "*.summary"))
     
     data = []
     for f in files:
