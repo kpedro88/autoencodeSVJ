@@ -10,8 +10,7 @@ import numpy as np
 import tensorflow as tf
 import os
 import datetime
-from collections import OrderedDict as odict 
-import time
+from collections import OrderedDict as odict
 import pandas as pd
 import glob
 
@@ -118,9 +117,10 @@ class ae_evaluation:
                     self.filepath.rstrip(".h5")
 
         # normalization args
-        self.norm_args = {
-            "norm_type": str(self.d["norm_type"])
-        }
+        self.norm_args = {}
+        
+        if "norm_type" in self.d:
+            self.norm_args["norm_type"] = str(self.d["norm_type"])
         
 
         self.all_train, self.test = self.qcd.split_by_event(test_fraction=self.test_split, random_state=self.seed, n_skip=len(self.qcd_jets))
