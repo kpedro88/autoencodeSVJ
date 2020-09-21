@@ -15,11 +15,13 @@ import glob
 
 print("imports OK")
 
-output_path = "trainingResults"
-summary_path = output_path+"/summary"
-results_path = output_path+"/trainingRuns"
-signal_path = "../data/all_signals/1500GeV_0p75/base_3/*.h5"
-qcd_path = "../data/qcd/*.h5"
+output_path = "trainingResults/"
+summary_path = output_path+"summary/"
+results_path = output_path+"trainingRuns/"
+
+input_path = "../data/training_data/"
+signal_path = input_path + "1500GeV_0.15/base_3/*.h5"
+qcd_path = input_path + "qcd/base_3/*.h5"
 
 
 def loadSummaries():
@@ -121,17 +123,17 @@ def trainWithRandomRate(n_trainings):
         total_loss, ae, test_norm = auc
         print("Total loss: ", total_loss)
 
-def trainAndEvaluate():
+def trainAndEvaluate(bottleneck_dim, batch_size, learning_rate, epochs):
     print("\nRunning trainAndEvaluate\n")
     auc = ev.ae_train(
         signal_path=signal_path,
         qcd_path=qcd_path,
         output_data_path=output_path,
-        target_dim=5,
+        target_dim=bottleneck_dim,
         verbose=1,
-        batch_size=32,
-        learning_rate=0.001,
-        epochs=5,
+        batch_size=batch_size,
+        learning_rate=learning_rate,
+        epochs=epochs,
     )
 
     total_loss, ae, test_norm = auc
@@ -157,9 +159,14 @@ def printTrainingInfo():
     print("Training info - val_loss: ", trainingInfo['metrics']['val_loss'][-1,1])
 
 
-def drawROCcurve():
-    elt = ev.ae_evaluation(summary_path+"/hlf_eflow3_7_v0.summary")
-    elt.roc(yscale='log')
+def drawROCcurve(efp_base, bottleneck_dim, version=None):
+    if version is None:
+        version = summaryProcessor.get_last_summary_file_version(output_path, "hlf_eflow{}_{}_".format(efp_base, bottleneck_dim))
+
+    input_summary_path = summary_path+"/hlf_eflow{}_{}_v{}.summary".format(efp_base, bottleneck_dim, version)
+    print("drawing ROC curve from summary file: ", input_summary_path)
+    elt = ev.ae_evaluation(input_summary_path)
+    elt.roc(xscale='log')
 
 def addSampleAndPrintShape():
     newData = utils.data_loader(name="data")
@@ -214,11 +221,18 @@ def plotJetFeatures():
 # plotAuc()
 
 # trainWithRandomRate(10)
-# trainAndEvaluate()
+
 # updataSignalEvals()
-# drawROCcurve()
+
+
+# trainAndEvaluate(bottleneck_dim=8, batch_size=64, learning_rate=0.0005, epochs=100)
+
+drawROCcurve(efp_base=3, bottleneck_dim=8)
+
+
+
 # addSampleAndPrintShape()
-plotJetFeatures()
+# plotJetFeatures()
 
 # data, jets, event, flavor = utils.load_all_data(qcd_path, name='QCD')
 # print(help(ef.datasets.qg_jets.load))
