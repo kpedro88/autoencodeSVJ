@@ -482,7 +482,6 @@ def ae_train(
     output_data_path,
     hlf=True,
     eflow=True,
-    version=None,
     seed=None,
     test_split=0.15, 
     val_split=0.15,
@@ -545,26 +544,8 @@ def ae_train(
 
     filename = "{}{}{}_".format('hlf_' if hlf else '', 'eflow{}_'.format(eflow_base) if eflow else '', target_dim)
     
-    if version is None:
-        summary_search_path = output_data_path+"/summary/"+filename+"v*"
-        summary_files = summaryProcessor.summary_match(summary_search_path, verbose=False)
-        existing_ids = []
-
-        for file in summary_files:
-            version_number = os.path.basename(file).rstrip('.summary').split('_')[-1].lstrip('v')
-            
-            print("file: ", file, "\tversion: ", version_number)
-            existing_ids.append(int(version_number))
-    
-        assert len(existing_ids) == len(set(existing_ids)), "no duplicate ids"
-        id_set = set(existing_ids)
-        this_num = 0
-        while this_num in id_set:
-            this_num += 1
-        
-        version = this_num
-
-    filename += "v{}".format(version)
+    last_version = summaryProcessor.get_last_summary_file_version(output_data_path, filename)
+    filename += "v{}".format(last_version+1)
     print(("training under filename '{}'".format(filename)))
 
     assert len(summaryProcessor.summary_match(filename, 0)) == 0, "filename '{}' exists already! Change version id, or leave blank.".format(filename)

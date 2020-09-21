@@ -120,3 +120,23 @@ def summary_by_features(**kwargs):
             data = data[data[k] == kwargs[k]]
     
     return data
+
+
+def get_last_summary_file_version(output_path, filename):
+    summary_search_path = output_path + "/summary/" + filename + "v*"
+    summary_files = summary_match(summary_search_path, verbose=False)
+    existing_ids = []
+    
+    for file in summary_files:
+        version_number = os.path.basename(file).rstrip('.summary').split('_')[-1].lstrip('v')
+        
+        print("file: ", file, "\tversion: ", version_number)
+        existing_ids.append(int(version_number))
+    
+    assert len(existing_ids) == len(set(existing_ids)), "no duplicate ids"
+    id_set = set(existing_ids)
+    version = 0
+    while version in id_set:
+        version += 1
+    
+    return version-1
