@@ -9,10 +9,12 @@ import os
 import glob
 import subprocess
 import chardet
+import random
 
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+import tensorflow as tf
 
 plt.rcParams['figure.figsize'] = (10,10)
 plt.rcParams.update({'font.size': 18})
@@ -343,49 +345,6 @@ def roc_auc_plot(data_errs, signal_errs, metrics='loss', *args, **kwargs):
     plt_end()
     plt.show()
     
-def OLD_load_all_data(data_path, name, cols_to_drop = ["jetM", "*MET*", "*Delta*"]):
-    """Returns: a tuple with... 
-        a data_table with all data, (columns dropped),
-        a list of data_tables, by jetFlavor tag (columns dropped),
-        a list of data_tables, split by jet # (columns dropped)
-    """
-    repo_head = get_repo_info()['head']
-
-    if not os.path.exists(data_path):
-        assert len(repo_head) > 0, "not running jupyter notebook from within a repo!! Prolly won't work :-)"
-        data_path = os.path.join(repo_head, data_path)
-    
-    # if not os.path.exists(signal_path):
-    #     assert len(repo_head) > 0, "not running jupyter notebook from within a repo!! Prolly won't work :-)"
-    #     signal_path = os.path.join(repo_head, signal_path)
-        
-    # if not os.path.exists(model_path):
-    #     assert len(repo_head) > 0, "not running jupyter notebook from within a repo!! Prolly won't work :-)"
-    #     model_path = os.path.join(repo_head, model_path)
-
-    data, data_jets = get_training_data_jets(data_path, 0)
-
-    for i,d in enumerate(data_jets):
-        data_jets[i].name = d.name + " " + name
-
-    # signal, signal_jets = get_training_data_jets(signal_path, 0)
-
-    data.name = name
-
-    data.cdrop(cols_to_drop, inplace=True)
-    # signal.cdrop(cols_to_drop, inplace=True)
-    
-    print(("{} tags:".format(name)))
-    print("")
-    tagged_data, tag_index_data = split_by_tag(data)
-    print("")
-    # print("signal tags:")
-    # print("")
-    # tagged_signal, tag_index_signal = split_by_tag(signal)
-    # print("")
-
-    return data, tagged_data, data_jets
-
 def evaluate_model(data_path, signal_path, model_path):
     # get h5 datasets
     repo_head = get_repo_info()['head']
@@ -877,19 +836,15 @@ def merge_rootfiles(glob_path, out_name, treename="Delphes"):
 
 def set_random_seed(seed_value):
     # 1. Set `PYTHONHASHSEED` environment variable at a fixed value
-    import os
     os.environ['PYTHONHASHSEED']=str(seed_value)
 
     # 2. Set `python` built-in pseudo-random generator at a fixed value
-    import random
     random.seed(seed_value)
 
     # 3. Set `numpy` pseudo-random generator at a fixed value
-    import numpy as np
     np.random.seed(seed_value)
 
     # 4. Set `tensorflow` pseudo-random generator at a fixed value
-    import tensorflow as tf
     tf.random.set_seed(seed_value)
 
     # 5. Configure a new global `tensorflow` session
