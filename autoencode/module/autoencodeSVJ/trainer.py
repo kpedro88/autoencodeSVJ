@@ -218,7 +218,7 @@ class trainer(logger):
                         y=y_train,
                         # steps_per_epoch=int(np.ceil(len(x_train)/batch_size)),
                         # validation_steps=int(np.ceil(len(x_test)/batch_size)),
-                        validation_data=[x_test, y_test],
+                        validation_data=(x_test, y_test),
                         initial_epoch=master_epoch_n,
                         epochs=master_epoch_n + 1,
                         verbose=verbose,
@@ -252,7 +252,7 @@ class trainer(logger):
                 x=x_train,
                 y=y_train,
 
-                validation_data=[x_test, y_test],
+                validation_data=(x_test, y_test),
                 initial_epoch=master_epoch_n,
                 epochs=master_epoch_n + epochs,
                 verbose=verbose,
