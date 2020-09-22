@@ -152,34 +152,23 @@ class robust_deep(logger):
 
 class base_autoencoder(logger):
 
-    def __init__(
-        self,
-        name="autoencoder",
-        verbose=True,
-    ):
+    def __init__(self, name="autoencoder", verbose=True):
         logger.__init__(self)
         self._LOG_PREFIX = "base_autoencoder :: "
         self.VERBOSE = verbose
         self.name = name
         self.layers = []
 
-    def __str__(
-        self,
-    ):
+    def __str__(self):
         s = self.log('Current Structure:', True)
         for layer in self.layers:
             s += self.log("{0}: {1} nodes {2}".format(layer[0], layer[1], layer[2:]), True)
         return s
 
-    def __repr__(
-        self,
-    ):
+    def __repr__(self):
         return str(self)
 
-    def remove(
-        self,
-        index=None,
-    ):
+    def remove(self, index=None):
         if index is None:
             index = -1
         self.layers.pop(index)
@@ -288,10 +277,7 @@ class base_autoencoder(logger):
     #             raise AttributeError, "Model does not exist at file '{}'!!".format(filename)
     #         setattr(self, typename, keras.models.load_model(filename))
 
-    def _find_bottleneck(
-        self,
-        layers,
-    ):
+    def _find_bottleneck(self, layers):
         imin = 0
         lmin = layers[0][1]
         for i,layer in enumerate(layers):
@@ -300,28 +286,17 @@ class base_autoencoder(logger):
                 lmin = layer[1]
         return imin
 
-    def _add_layers(
-        self,
-        layers,
-        base_layer,
-    ):
+    def _add_layers(self, layers, base_layer):
         lnext = base_layer
         for layer in layers:
             temp = lnext
             lnext = keras.layers.Dense(layer[1], activation=layer[2], activity_regularizer=layer[3], name=layer[0], bias_initializer=layer[4], kernel_initializer=layer[5])(temp)
         return lnext
 
-    def _add_layer(
-        self,
-        layer,
-        base_layer,
-    ):
+    def _add_layer(self, layer, base_layer):
         return keras.layers.Dense(layer[1], activation=layer[2], activity_regularizer=layer[3], name=layer[0], bias_initializer=layer[4], kernel_initializer=layer[5])(base_layer)
 
-    def _input(
-        self,
-        layer,
-    ):
+    def _input(self, layer):
         return keras.layers.Input(shape=(layer[1],), name=layer[0])
 
 def sampling(args):

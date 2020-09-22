@@ -610,7 +610,7 @@ def ae_train(
 
     train_args = {
         'batch_size': batch_size, 
-        'loss': loss, 
+        'loss': loss,
         'optimizer': optimizer,
         'epochs': epochs,
         'learning_rate': learning_rate,
@@ -625,6 +625,10 @@ def ae_train(
             print((arg, ":", train_args[arg]))
 
     if train_me:
+        print("Training the model")
+        print("Number of training samples: ", len(train_norm.data))
+        print("Number of validation samples: ", len(val_norm.data))
+        
         ae = instance.train(
             x_train=train_norm.data,
             x_test=val_norm.data,
@@ -638,6 +642,7 @@ def ae_train(
             **train_args
         )
     else:
+        print("Using existing model")
         ae = instance.load_model(custom_objects=custom_objects)
 
     end_time = str(datetime.datetime.now())
@@ -859,19 +864,15 @@ def ae_train(
     #     hlf_to_drop=['Energy', 'Flavor'],
     # ):
     
-def update_all_signal_evals(
-        output_path,
-        background_path,
-        signal_path,
-        update_date=None,
-        dummy=False):
-    """update signal auc evaluations, with path `path`. 
-    """
+def update_all_signal_evals(output_path, background_path, signal_path, update_date=None, dummy=False):
+    """update signal auc evaluations, with path `path`. """
     summary = summaryProcessor.summary(summary_path=(output_path+"/summary"))
     print("\n\nSummary: ", summary)
     
     top = summary.cfilter(['*auc*', 'target_dim', 'filename', 'signal_path', 'batch*', 'learning_rate']).sort_values('mae_auc')[::-1]
     eflow_base = 3
+    
+    print("\n\ntop: ", top)
     
     to_add = []
     for fileName in top.filename.values:
@@ -879,12 +880,21 @@ def update_all_signal_evals(
         if not os.path.exists(fullPath):
             to_add.append(fullPath)
     
+    print("\n\nTo add: ", to_add)
+    
     to_update = []
-    for f in glob.glob('{}/*'.format(output_path)):
+    
+    search_path = '{}/*'.format(output_path)
+    print("search path: ", search_path)
+    
+    for f in glob.glob(output_path+"/summary/*"):
+        print("file: ", f)
         if update_date is None:
             pass
         elif datetime.datetime.fromtimestamp(os.path.getmtime(f)) < update_date:
             to_update.append(f)
+
+    print("\n\nTo update: ", to_update)
 
     total = len(to_add) + len(to_update)
     print(('found {} trainings total'.format(total)))
@@ -910,21 +920,11 @@ def update_all_signal_evals(
         if not dummy:
             for path in to_add:
                 
-                print("path: ", path)
-                
                 tf.compat.v1.reset_default_graph()
                 
                 aucGetter = auc_getter(path, times=True)
-                
-                print("d: ", dataHolder)
-                
                 norm, err, recon = aucGetter.get_errs_recon(dataHolder)
-                
-                print("err: ", err)
-                
                 aucs = aucGetter.get_aucs(err)
-                print("aucs: ", aucs)
-                
                 fmt = aucGetter.auc_metric(aucs)
                 fmt.to_csv(path)
             
