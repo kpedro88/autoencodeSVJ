@@ -17,7 +17,7 @@ summary_path = output_path+"summary/"
 results_path = output_path+"trainingRuns/"
 
 input_path = "../data/training_data/"
-signal_path = input_path + "2000GeV_0.75/base_3/*.h5"
+signal_path = input_path + "2000GeV_0.15/base_3/*.h5"
 qcd_path = input_path + "qcd/base_3/*.h5"
 
 
@@ -123,7 +123,7 @@ def trainWithRandomRate(n_trainings, bottleneck_dim, batch_size):
         total_loss, ae, test_norm = auc
         print("Total loss: ", total_loss)
 
-def trainAndEvaluate(bottleneck_dim, batch_size, learning_rate, epochs):
+def trainAndEvaluate(bottleneck_dim, batch_size, learning_rate, epochs, es_patience, lr_patience, lr_factor, norm_percentile):
     print("\nRunning trainAndEvaluate\n")
     auc = ev.ae_train(
         signal_path=signal_path,
@@ -134,6 +134,10 @@ def trainAndEvaluate(bottleneck_dim, batch_size, learning_rate, epochs):
         batch_size=batch_size,
         learning_rate=learning_rate,
         epochs=epochs,
+        es_patience=es_patience,
+        lr_patience=lr_patience,
+        lr_factor=lr_factor,
+        norm_percentile=norm_percentile
     )
 
     total_loss, ae, test_norm = auc
@@ -169,7 +173,7 @@ def getLatestSummaryFilePath(efp_base, bottleneck_dim, version=None):
 
 def drawROCcurve(efp_base, bottleneck_dim, version=None):
     input_summary_path = getLatestSummaryFilePath(efp_base, bottleneck_dim, version)
-    elt = ev.ae_evaluation(input_summary_path)
+    elt = ev.ae_evaluation(input_summary_path, qcd_path=qcd_path, SVJ_path=signal_path)
     elt.roc(xscale='log')
 
 def addSampleAndPrintShape():
@@ -239,20 +243,31 @@ def loadAndPrintQCD():
 
 
 
-### these work well:
 
-trainAndEvaluate(bottleneck_dim=8, batch_size=64, learning_rate=0.0005, epochs=100)
+# lr = .00051
+# es_patience = 12
+# norm_percentile = 25
+# epochs = 100
+
+# trainAndEvaluate(bottleneck_dim=8,
+#                  batch_size=32,
+#                  learning_rate=0.00051,
+#                  epochs=10,
+#                  es_patience=12,
+#                  lr_patience=9,
+#                  lr_factor=0.5,
+#                  norm_percentile=25
+#                  )
+
 # printSummary()
 # plotAuc()
-drawROCcurve(efp_base=3, bottleneck_dim=8)
+# drawROCcurve(efp_base=3, bottleneck_dim=8)
 # addSampleAndPrintShape()
 # plotJetFeatures(efp_base=3, bottleneck_dim=8)
 # trainWithRandomRate(n_trainings=10, bottleneck_dim=8, batch_size=64)
 # loadAndPrintQCD()
 
-### these don't work / I don't understand:
-
-# updataSignalEvals()
+# ev.update_all_signal_evals(summary_path=summary_path, signal_path=signal_path, qcd_path=qcd_path, path="trainingResults/aucs")
 
 
 

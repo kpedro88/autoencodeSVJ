@@ -53,6 +53,9 @@ def summary_vid(path=""):
 
 
 def summary_by_name(name):
+    
+    print("Summary by name: ", name)
+    
     if not name.endswith(".summary"):
         name += ".summary"
     
@@ -76,10 +79,7 @@ def load_summary(path):
     return ret
 
 
-def summary(summary_path,
-            include_outdated=False,
-            defaults={'hlf_to_drop': ['Flavor', 'Energy']}
-            ):
+def summary(summary_path, include_outdated=False, defaults={'hlf_to_drop': ['Flavor', 'Energy']}):
     files = glob.glob(os.path.join(summary_path, "*.summary"))
     
     data = []
@@ -129,8 +129,6 @@ def get_last_summary_file_version(output_path, filename):
     
     for file in summary_files:
         version_number = os.path.basename(file).rstrip('.summary').split('_')[-1].lstrip('v')
-        
-        print("file: ", file, "\tversion: ", version_number)
         existing_ids.append(int(version_number))
     
     assert len(existing_ids) == len(set(existing_ids)), "no duplicate ids"

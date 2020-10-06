@@ -4,6 +4,7 @@ from autoencode.module.autoencodeSVJ.trainer import trainer
 
 from collections import OrderedDict as odict
 from sklearn.model_selection import train_test_split
+from sklearn.metrics import roc_curve, roc_auc_score
 
 import os
 import glob
@@ -15,6 +16,7 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import tensorflow as tf
+
 
 plt.rcParams['figure.figsize'] = (10,10)
 plt.rcParams.update({'font.size': 18})
@@ -313,7 +315,7 @@ def roc_auc_dict(data_errs, signal_errs, metrics=['mse', 'mae'], *args, **kwargs
     return ret
 
 def roc_auc_plot(data_errs, signal_errs, metrics='loss', *args, **kwargs):
-    from sklearn.metrics import roc_curve, roc_auc_score
+    
     if not isinstance(metrics, list):
         metrics = [metrics]
 
@@ -345,83 +347,6 @@ def roc_auc_plot(data_errs, signal_errs, metrics='loss', *args, **kwargs):
     plt_end()
     plt.show()
     
-def evaluate_model(data_path, signal_path, model_path):
-    # get h5 datasets
-    repo_head = get_repo_info()['head']
-
-    if not os.path.exists(data_path):
-        assert len(repo_head) > 0, "not running jupyter notebook from within a repo!! Prolly won't work :-)"
-        data_path = os.path.join(repo_head, data_path)
-    
-    if not os.path.exists(signal_path):
-        assert len(repo_head) > 0, "not running jupyter notebook from within a repo!! Prolly won't work :-)"
-        signal_path = os.path.join(repo_head, signal_path)
-        
-    if not os.path.exists(model_path):
-        assert len(repo_head) > 0, "not running jupyter notebook from within a repo!! Prolly won't work :-)"
-        model_path = os.path.join(repo_head, model_path)
-
-        
-    data, data_jets = get_training_data_jets(data_path, 0)
-    signal, signal_jets = get_training_data_jets(signal_path, 0)
-
-    signal.name = "signal"
-    data.name = "background"
-
-    # drop some unused columns
-    cols_to_drop = ["jetM", "*MET*", "*Delta*"]
-
-    data.cdrop(cols_to_drop, inplace=True)
-    signal.cdrop(cols_to_drop, inplace=True)
-    
-    print("data tags:")
-    print("")
-    tagged_data, tag_index_data = split_by_tag(data)
-    print("")
-    print("signal tags:")
-    print("")
-    tagged_signal, tag_index_signal = split_by_tag(signal)
-    print("")
-    
-    data_raw = data.cdrop("*Flavor")
-    signal_raw = signal.cdrop("*Flavor")
-
-    norm_args = {
-        "norm_type": "StandardScaler",
-    #     "feature_range": (0.01, 0.99)
-    }
-
-    data_norm = data_raw.norm(**norm_args)
-    signal_norm = data_raw.norm(signal_raw, **norm_args)
-    
-
-    instance = trainer.trainer(model_path, verbose=False)
-    autoencoder = instance.load_model()
-    encoder, decoder = autoencoder.layers[1:]
-    
-    tagged_norm = [data_raw.norm(t, **norm_args) for t in tagged_data]
-
-    errors, recon = get_recon_errors([data_norm, signal_norm] + tagged_norm, autoencoder)
-    
-    data_recon, signal_recon, tagged_recon = recon[0], recon[1], recon[2:]
-    data_error, signal_error, tagged_error = errors[0], errors[1], errors[2:]
-    
-    roc_auc_plot(data_error, signal_error)
-    
-    data_recon.name = "background pred"
-    signal_recon.name = "signal pred"
-    data_norm.name = "background (norm)"
-    signal_norm.name = "signal (norm)"
-    
-    data_norm.plot(
-        [data_recon, signal_norm, signal_recon],
-        normed=1, bins=70, cols=2, figsize=(10,20),
-#         rng=((0,2), (-3.2, 3.2), (0,2500), (0,1), (0, 0.8),(0,.1), (0,3000)),
-        figname="signal/data comparison"
-    )
-    
-    signal_error.plot(data_error, normed=1, bins=100, figname="signal vs data errors")
-
 def percentile_normalization_ranges(data, n):
     return np.asarray(list(zip(np.percentile(data, n, axis=0), np.percentile(data, 100-n, axis=0))))
 

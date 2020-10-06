@@ -18,11 +18,7 @@ class data_loader(logger):
     of this repository
     """
     
-    def __init__(
-            self,
-            name,
-            verbose=True
-    ):
+    def __init__(self, name, verbose=True):
         logger.__init__(self)
         self.name = name
         self._LOG_PREFIX = "data_loader :: "
@@ -32,10 +28,7 @@ class data_loader(logger):
         self.data = odict()
         self.labels = odict()
     
-    def add_sample(
-            self,
-            sample_path,
-    ):
+    def add_sample(self, sample_path):
         filepath = utils.smartpath(sample_path)
         
         assert os.path.exists(filepath)
@@ -56,12 +49,8 @@ class data_loader(logger):
                 
                 self._update_data(f, keys)
     
-    def make_table(
-            self,
-            key,
-            name=None,
-            third_dim_handle="stack",  # stack, combine, or split
-    ):
+    def make_table(self, key, name=None, third_dim_handle="stack"):
+        """ stack, combine, or split """
         assert third_dim_handle in ['stack', 'combine', 'split']
         assert key in self.sample_keys
         

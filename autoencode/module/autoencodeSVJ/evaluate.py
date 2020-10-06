@@ -388,6 +388,9 @@ class ae_evaluation:
         qcd = self.errs_dict['qcd']
         others = [self.errs_dict[n] for n in self.all_names if n != 'qcd']
 
+        print("ROC qcd: ", qcd)
+        print("ROC others: ", others)
+
         # if split_by_leading_jet:
         #     SVJ, qcd, _ = self.split_my_jets(self.qcd_err, self.SVJ_err, True, False)
         #     SVJ += [self.SVJ_err]
@@ -664,284 +667,64 @@ def ae_train(
     # roc as figure of merit
     return total_loss, ae, test_norm
 
-    # def vae_train(
-    #     signal_path,
-    #     qcd_path,
-    #     target_dim,
-    #     hlf=True,
-    #     eflow=True,
-    #     version=None,
-    #     seed=None,
-    #     test_split=0.15, 
-    #     val_split=0.15,
-    #     norm_args={
-    #         "norm_type": "MinMaxScaler"
-    #     },
-    #     train_me=True,
-    #     batch_size=64,
-    #     loss='mse',
-    #     optimizer='adam',
-    #     epochs=100,
-    #     learning_rate=0.0005,
-    #     interm_architecture=(30,30),
-    #     output_data_path=None,
-    #     verbose=1, 
-    #     hlf_to_drop=['Energy', 'Flavor'],
-    # ):
-
-    #     """Training function for variational autoencoder (inputs == outputs). 
-    #     Will create and save a summary file for this training run, with relevant
-    #     training details etc.
-
-    #     Not super flexible, but gives a good idea of how good your standard AE is.
-    #     """
-
-    #     if seed is None:
-    #         seed = np.random.randint(0, 99999999)
-
-    #     # set random seed
-    #     utils.set_random_seed(seed)
-
-    #     if output_data_path is None:
-    #         output_data_path = os.path.join(utils.get_repo_info()['head'], "autoencode/data/training_runs")
-
-    #     # get all our data
-    #     (signal,
-    #      signal_jets,
-    #      signal_event,
-    #      signal_flavor) = utils.load_all_data(
-    #         signal_path,
-    #         "signal", include_hlf=hlf, include_eflow=eflow,
-    #         hlf_to_drop=hlf_to_drop,
-    #     )
-
-    #     (qcd,
-    #      qcd_jets,
-    #      qcd_event,
-    #      qcd_flavor) = utils.load_all_data(
-    #         qcd_path, 
-    #         "qcd background", include_hlf=hlf, include_eflow=eflow,
-    #         hlf_to_drop=hlf_to_drop,
-    #     )
-
-    #     if eflow:
-    #         qcd_eflow = len(filter(lambda x: "eflow" in x, qcd.columns))
-    #         signal_eflow = len(filter(lambda x: "eflow" in x, signal.columns))
-
-    #         assert qcd_eflow == signal_eflow, 'signal and qcd eflow basis must be the same!!'
-    #         eflow_base = eflow_base_lookup[qcd_eflow]
-    #     else:
-    #         eflow_base = 0
-
-    #     filename = "{}{}{}_".format('hlf_' if hlf else '', 'eflow{}_'.format(eflow_base) if eflow else '', target_dim)
-        
-    #     if version is None:
-    #         existing_ids = map(lambda x: int(os.path.basename(x).rstrip('.summary').split('_')[-1].lstrip('v')), utils.summary_match(filename + "v*", 0))
-    #         assert len(existing_ids) == len(set(existing_ids)), "no duplicate ids"
-    #         id_set = set(existing_ids)
-    #         this_num = 0
-    #         while this_num in id_set:
-    #             this_num += 1
-            
-    #         version = this_num
-
-    #     filename += "v{}".format(version)
-
-    #     assert len(utils.summary_match(filename, 0)) == 0, "filename '{}' exists already! Change version id, or leave blank.".format(filename)
-
-    #     filepath = os.path.join(output_data_path, filename)
-    #     input_dim = len(signal.columns)
-        
-    #     custom_objects = models.vae_custom_objects
-
-    #     data_args = {
-    #         'target_dim': target_dim,
-    #         'input_dim': input_dim,
-    #         'test_split': test_split,
-    #         'val_split': val_split,
-    #         'hlf': hlf, 
-    #         'eflow': eflow,
-    #         'eflow_base': eflow_base,
-    #         'seed': seed,
-    #         'filename': filename,
-    #         'filepath': filepath,
-    #         'qcd_path': qcd_path,
-    #         'signal_path': signal_path,
-    #         'arch': (input_dim,) + interm_architecture + (target_dim,) + tuple(reversed(interm_architecture)) + (input_dim,),
-    #         'hlf_to_drop': tuple(hlf_to_drop),
-    #         'ae_type': 'vae'
-    #     }
-
-    #     all_train, test = qcd.split_by_event(test_fraction=test_split, random_state=seed, n_skip=len(qcd_jets))
-    #     train, val = all_train.train_test_split(val_split, seed)
-
-    #     train_norm = train.norm(out_name="qcd train norm", rng=rng)
-    #     val_norm = train.norm(val, out_name="qcd val norm", rng=rng)
-        
-    #     test_norm = test.norm(out_name="qcd test norm", rng=rng)
-    #     signal_norm = test.norm(signal, out_name="signal norm", rng=rng)
-
-    #     train.name = "qcd training data"
-    #     test.name = "qcd test data"
-    #     val.name = "qcd validation data"
-
-    #     instance = trainer.trainer(filepath, verbose=verbose)
-        
-    #     loss_reco = loss
-    #     ae, loss = models.build_vae(input_dim=input_dim, latent_dim=target_dim, middle_arch=interm_architecture, loss=loss_reco)
-        
-    #     ae.compile(loss=lambda x,y: loss, optimizer=optimizer)
-    #     if verbose:
-    #         ae.summary()
-
-    #     start_time = str(datetime.datetime.now())
-
-    #     train_args = {
-    #         'batch_size': batch_size, 
-    #         'optimizer': optimizer,
-    #         'epochs': epochs,
-    #         'learning_rate': learning_rate,
-    #     }
-
-    #     if verbose:
-    #         print("TRAINING WITH PARAMS >>>")
-    #         for arg in train_args:
-    #             print(arg, ":", train_args[arg])
+def update_all_signal_evals(summary_path, signal_path, qcd_path, path='autoencode/data/aucs', update_date=None):
+    """update signal auc evaluations, with path `path`.
+    """
+    summaries = summaryProcessor.summary(summary_path=summary_path).cfilter(
+        ['*auc*', 'target_dim', 'filename', 'signal_path', 'batch*', 'learning_rate']).sort_values('mae_auc')[::-1]
     
-    #     if train_me:
-    #         ae = instance.train(
-    #             x_train=train_norm.data,
-    #             x_test=val_norm.data,
-    #             y_train=train_norm.data,
-    #             y_test=val_norm.data,
-    #             model=ae,
-    #             force=True,
-    #             use_callbacks=True,
-    #             custom_objects=custom_objects, 
-    #             verbose=int(verbose),
-    #             **train_args
-    #         )
-    #     else:
-    #         ae = instance.load_model(custom_objects=custom_objects)
-
-    #     end_time = str(datetime.datetime.now())
-
-    #     [data_err, signal_err], [data_recon, signal_recon] = utils.get_recon_errors([test_norm, signal_norm], ae)
-    #     roc_dict = utils.roc_auc_dict(data_err, signal_err, metrics=['mae', 'mse']).values()[0]
-    #     result_args = dict([(r + '_auc', roc_dict[r]['auc']) for r in roc_dict])
-
-    #     vid = utils.summary_vid()
-        
-    #     time_args = {'start_time': start_time, 'end_time': end_time, 'VID': vid}
-    #     utils.dump_summary_json(result_args, train_args, data_args, norm_args, time_args)
-
-    #     # roc as figure of merit
-    #     return max(result_args.values())
-
-    # def ae_cl_train(
-    #     signal_path,
-    #     qcd_path,
-    #     target_dim,
-    #     hlf=True,
-    #     eflow=True,
-    #     version=None,
-    #     seed=None,
-    #     test_split=0.15, 
-    #     val_split=0.15,
-    #     norm_args={
-    #         "norm_type": "MinMaxScaler"
-    #     },
-    #     train_me=True,
-    #     batch_size=64,
-    #     loss='mse',
-    #     optimizer='adam',
-    #     epochs=100,
-    #     learning_rate=0.0005,
-    #     custom_objects={},
-    #     interm_architecture=(30,30),
-    #     output_data_path=None,
-    #     verbose=1, 
-    #     hlf_to_drop=['Energy', 'Flavor'],
-    # ):
-    
-def update_all_signal_evals(output_path, background_path, signal_path, update_date=None, dummy=False):
-    """update signal auc evaluations, with path `path`. """
-    summary = summaryProcessor.summary(summary_path=(output_path+"/summary"))
-    print("\n\nSummary: ", summary)
-    
-    top = summary.cfilter(['*auc*', 'target_dim', 'filename', 'signal_path', 'batch*', 'learning_rate']).sort_values('mae_auc')[::-1]
-    eflow_base = 3
-    
-    print("\n\ntop: ", top)
-    
-    to_add = []
-    for fileName in top.filename.values:
-        fullPath = output_path+"/summary/"+fileName+".summary"
-        if not os.path.exists(fullPath):
-            to_add.append(fullPath)
-    
-    print("\n\nTo add: ", to_add)
+    to_add = ['{}/{}'.format(path, f) for f in summaries.filename.values if not os.path.exists('{}/{}'.format(path, f))]
     
     to_update = []
-    
-    search_path = '{}/*'.format(output_path)
-    print("search path: ", search_path)
-    
-    for f in glob.glob(output_path+"/summary/*"):
-        print("file: ", f)
+    for f in glob.glob('{}/*'.format(path)):
         if update_date is None:
             pass
         elif datetime.datetime.fromtimestamp(os.path.getmtime(f)) < update_date:
             to_update.append(f)
-
-    print("\n\nTo update: ", to_update)
-
-    total = len(to_add) + len(to_update)
-    print(('found {} trainings total'.format(total)))
     
-    if total > 0:
-        
-        if dummy:
-            dataHolder = None
-        else:
-            signalDict = {}
+    total = len(to_add) + len(to_update)
+    print('found {} trainings total'.format(total))
+    if total <= 0:
+        return
 
-            for path in glob.glob(signal_path):
-                key = path.split("/")[-3]
-                signalDict[key] = path
-                
-            dataHolder = data_holder(qcd=background_path, **signalDict)
-            dataHolder.load()
+    signalDict = {}
+
+    for path in glob.glob(signal_path):
+        key = path.split("/")[-3]
+        signalDict[key] = path
+    d = data_holder(qcd=qcd_path, **signalDict)
+    d.load()
+    
+    print("data:", d)
+    
+    if len(to_add) > 0:
+        print('found {} trainings to add'.format(len(to_add)))
+        print('filelist to add: {}'.format('\n'.join(to_add)))
         
-        if len(to_add) > 0:
-            print(('found {} trainings to add'.format(len(to_add))))
-            print(('filelist to add: {}'.format('\n'.join(to_add))))
         
-        if not dummy:
-            for path in to_add:
-                
-                tf.compat.v1.reset_default_graph()
-                
-                aucGetter = auc_getter(path, times=True)
-                norm, err, recon = aucGetter.get_errs_recon(dataHolder)
-                aucs = aucGetter.get_aucs(err)
-                fmt = aucGetter.auc_metric(aucs)
-                fmt.to_csv(path)
-            
-        if len(to_update) > 0:
-            print(('found {} trainings to update'.format(len(to_update))))
-            print(('filelist to update: {}'.format('\n'.join(to_update))))
-            
-        if not dummy:
-            for path in to_update:
-                name = path.split('/')[-1]
-                tf.compat.v1.reset_default_graph()
-                a = auc_getter(name, times=True)
-                a.update_event_range(dataHolder, percentile_n=1)
-                norm, err, recon = a.get_errs_recon(dataHolder)
-                aucs = a.get_aucs(err)
-                fmt = a.auc_metric(aucs)
-                fmt.to_csv(path)
+    for path in to_add:
+        name = path.split('/')[-1]
+        tf.compat.v1.reset_default_graph()
+        a = auc_getter(filename=name, summary_path=summary_path, times=True)
+        norm, err, recon = a.get_errs_recon(d)
+        aucs = a.get_aucs(err)
+        fmt = a.auc_metric(aucs)
+        fmt.to_csv(path)
+        
+    if len(to_update) > 0:
+        print('found {} trainings to update'.format(len(to_update)))
+        print('filelist to update: {}'.format('\n'.join(to_update)))
+        
+        
+    for path in to_update:
+        name = path.split('/')[-1]
+        tf.compat.v1.reset_default_graph()
+        a = auc_getter(filename=name, summary_path=summary_path, times=True)
+        a.update_event_range(d, percentile_n=1)
+        norm, err, recon = a.get_errs_recon(d)
+        aucs = a.get_aucs(err)
+        fmt = a.auc_metric(aucs)
+        fmt.to_csv(path)
 
 def get_training_info_dict(filepath):
     if not filepath.endswith('.pkl'):

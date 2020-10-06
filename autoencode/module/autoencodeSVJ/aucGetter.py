@@ -14,14 +14,12 @@ class auc_getter(object):
     and be able to evaluate the auc on each signal to determine a 'general auc' for all signals.
     '''
     
-    def __init__(self, filename, qcd_path=None, times=False):
+    def __init__(self, filename, summary_path, qcd_path=None, times=False):
         self.times = times
         self.start()
-        self.name = summaryProcessor.summary_by_name(filename)
+        self.name = summaryProcessor.summary_by_name(summary_path+filename)
         self.d = summaryProcessor.load_summary(self.name)
         self.norm_args = {}
-        
-        print("auc getter -- name: ", self.name, "\td: ", self.d)
         
         if 'norm_type' in self.d:
             self.norm_args["norm_type"] = str(self.d["norm_type"])
@@ -131,6 +129,7 @@ class auc_getter(object):
     
     def get_aucs(self, err, qcd_key='qcd', metrics=None):
         self.start()
+
         derr = [v for elt, v in list(err.items()) if elt == qcd_key]
         serr = [v for elt, v in list(err.items()) if elt != qcd_key]
         
@@ -155,7 +154,7 @@ class auc_getter(object):
     def auc_metric(self, aucs):
         data = [(k, v['mae']['auc']) for k, v in list(aucs.items())]
         fmt = pd.DataFrame(data, columns=['name', 'auc'])
-        
+
         newList = []
         
         for x in fmt.name:
