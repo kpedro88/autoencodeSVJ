@@ -173,6 +173,7 @@ def getLatestSummaryFilePath(efp_base, bottleneck_dim, version=None):
 
 def drawROCcurve(efp_base, bottleneck_dim, version=None):
     input_summary_path = getLatestSummaryFilePath(efp_base, bottleneck_dim, version)
+    print("Drawing ROC curve for summary: ", input_summary_path)
     elt = ev.ae_evaluation(input_summary_path, qcd_path=qcd_path, SVJ_path=signal_path)
     elt.roc(xscale='log')
 
@@ -261,7 +262,7 @@ def loadAndPrintQCD():
 
 # printSummary()
 # plotAuc()
-# drawROCcurve(efp_base=3, bottleneck_dim=8)
+drawROCcurve(efp_base=3, bottleneck_dim=8, version=375)
 # addSampleAndPrintShape()
 # plotJetFeatures(efp_base=3, bottleneck_dim=8)
 # trainWithRandomRate(n_trainings=10, bottleneck_dim=8, batch_size=64)
@@ -270,11 +271,68 @@ def loadAndPrintQCD():
 # ev.update_all_signal_evals(summary_path=summary_path, signal_path=signal_path, qcd_path=qcd_path, path="trainingResults/aucs")
 
 
+def get_signal_auc_df(aucs, n_avg=1, do_max=False):
+    lp = None
+    if do_max:
+        lp = aucs.max(axis=1).to_frame().reset_index().rename(columns={0: 'auc'})
+    else:
+        lp = aucs.iloc[
+             :, np.argsort(aucs.mean()).values[::-1][:n_avg]
+             ].mean(axis=1).to_frame().reset_index().rename(columns={0: 'auc'})
+
+    lp['mass'] = lp.mass_nu_ratio.apply(lambda x: x[0])
+    lp['nu'] = lp.mass_nu_ratio.apply(lambda x: x[1])
+
+    lp = lp.drop('mass_nu_ratio', axis=1).pivot('mass', 'nu', 'auc')
+
+    return lp
 
 
+def plot_signal_aucs_from_lp(lp, n_avg=1, do_max=False, title=None, fac=1.5, barlabel=None, cmap='viridis'):
+    plt.figure(figsize=(1.1 * fac * 6.9, 1.1 * fac * 6))
+
+    plt.imshow(lp, cmap=cmap)
+    if barlabel == None:
+        barlabel = 'AUC value'
+    cb = plt.colorbar()
+    cb.set_label(label=barlabel, fontsize=18 * fac)
+
+    plt.xticks(np.arange(0, 5, 1), map(lambda x: '{:.2f}'.format(x), np.unique(lp.columns)))
+    plt.yticks(np.arange(0, 6, 1), np.unique(lp.index))
+
+    if title is not None:
+        plt.title(title, fontsize=fac * 25)
+    elif do_max:
+        plt.title('Best AUCs (for any autoencoder)', fontsize=fac * 25)
+    elif n_avg < 2:
+        plt.title('Signal AUCs (best autoencoder)', fontsize=fac * 25)
+    else:
+        plt.title('Average Signal AUCs (best {} models)'.format(n_avg), fontsize=fac * 25)
+    plt.ylabel(r'$M_{Z^\prime}$ (GeV)', fontsize=fac * 20)
+    plt.xlabel(r'$r_{inv}$', fontsize=fac * 20)
+    plt.xticks(fontsize=18 * fac)
+    plt.yticks(fontsize=18 * fac)
+
+    for mi, (mass, row) in enumerate(lp.iterrows()):
+        for ni, (nu, auc) in enumerate(row.iteritems()):
+            plt.text(ni, mi, '{:.3f}'.format(auc), ha="center", va="center", color="w", fontsize=18 * fac)
+
+    return plt.gca()
 
 
+def plot_signal_aucs(aucs, n_avg=1, do_max=False, title=None, fac=1.5, cmap='viridis'):
+    lp = get_signal_auc_df(aucs, n_avg, do_max)
+    return lp, plot_signal_aucs_from_lp(lp, n_avg, do_max, title, fac, cmap=cmap)
 
+# aucs = ev.load_auc_table("trainingResults/aucs")
+#
+# best_name = "hlf_eflow3_8_v0"
+#
+# best,ax = plot_signal_aucs(aucs[best_name].to_frame(), title='Autoencoder AUCs (Best AE)')
+#
+#
+#
+# plt.show()
 
 
 
