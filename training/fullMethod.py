@@ -1,8 +1,8 @@
 import time
 import datetime
-import ../module.utils as utils
-import ../module.evaluate as ev
-import ../module.summaryProcessor as summaryProcessor
+import module.utils as utils
+import module.evaluate as ev
+import module.summaryProcessor as summaryProcessor
 import glob
 import matplotlib.pyplot as plt
 import matplotlib
@@ -17,8 +17,8 @@ output_path = "trainingResults/"
 summary_path = output_path+"summary/"
 results_path = output_path+"trainingRuns/"
 
-input_path = "../data/training_data/"
-signal_path = input_path + "2000GeV_0.75/base_3/*.h5"
+input_path = "../../data/training_data/"
+signal_path = input_path + "all_signals/2000GeV_0.75/base_3/*.h5"
 qcd_path = input_path + "qcd/base_3/*.h5"
 
 matplotlib.rcParams.update({'font.size': 16})
@@ -28,12 +28,17 @@ plt.rc('font', family='serif')
 
 def get_signal_auc_df(aucs, n_avg=1, do_max=False):
     lp = None
+    
+    print("aucs: ", aucs)
+    
     if do_max:
         lp = aucs.max(axis=1).to_frame().reset_index().rename(columns={0: 'auc'})
     else:
         lp = aucs.iloc[
              :, np.argsort(aucs.mean()).values[::-1][:n_avg]
              ].mean(axis=1).to_frame().reset_index().rename(columns={0: 'auc'})
+
+    print("lp: ", lp)
 
     lp['mass'] = lp.mass_nu_ratio.apply(lambda x: x[0])
     lp['nu'] = lp.mass_nu_ratio.apply(lambda x: x[1])
@@ -88,7 +93,7 @@ es_patience = 12
 target_dim = 8
 batch_size = 32
 norm_percentile = 25
-epochs = 1
+epochs = 2
 n_models = 10  # number of models to train
 model_acceptance_fraction = 10  # take top N best performing models
 
@@ -118,16 +123,21 @@ else:
     res = summaryProcessor.summary(summary_path=summary_path)
     res = res.sort_values('start_time').tail(n_models)
 
+print("res: ", res)
+
 # take lowest 10% losses of all trainings
 n_best = int(0.01 * model_acceptance_fraction * n_models)
 best_ = res.sort_values('total_loss').head(n_best)
 best_name = str(best_.filename.values[0])
 
+print("N best: ", n_best)
+print("Best models: ", best_)
+print("The best model: ", best_name)
 
 ev.update_all_signal_evals(summary_path=summary_path,
                            path=output_path+"/aucs",
                            qcd_path=qcd_path,
-                           signal_path=signal_path)
+                           signal_path=(input_path + "all_signals/*/base_3/*.h5"))
 
 aucs = ev.load_auc_table("trainingResults/aucs")
 # bdts = pd.read_csv(output_path+"/bdt_aucs.csv")

@@ -1,5 +1,7 @@
-trainingResults/*
-autoencode/data_old/*
+training/trainingResults/*
+training/trainingResults/aucs/*
+training/trainingResults/summary/*
+training/trainingResults/trainingRuns/*
 
 # CUSTOM
 #
