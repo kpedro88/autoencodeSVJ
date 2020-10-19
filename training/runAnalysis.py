@@ -151,9 +151,9 @@ def trainAndEvaluate(bottleneck_dim, batch_size, learning_rate, epochs, es_patie
 
 def updataSignalEvals():
     print("\nRunning updateSignalEvals\n")
-    ev.update_all_signal_evals(background_path=qcd_path,
-                               signal_path=signal_path,
-                               output_path=output_path)
+    ev.save_all_missing_AUCs(background_path=qcd_path,
+                             signals_path=signal_path,
+                             output_path=output_path)
 
 
 def printTrainingInfo():

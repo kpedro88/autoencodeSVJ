@@ -126,10 +126,10 @@ print("N best: ", n_best)
 print("Best models: ", best_)
 print("The best model: ", best_name)
 
-ev.update_all_signal_evals(summary_path=summary_path,
-                           path=output_path+"/aucs",
-                           qcd_path=qcd_path,
-                           signal_path=(input_path + "all_signals/*/base_3/*.h5"))
+ev.save_all_missing_AUCs(summary_path=summary_path,
+                         path=output_path+"/aucs",
+                         qcd_path=qcd_path,
+                         signals_path=(input_path + "all_signals/*/base_3/*.h5"))
 
 aucs = ev.load_auc_table("trainingResults/aucs")
 # bdts = pd.read_csv(output_path+"/bdt_aucs.csv")

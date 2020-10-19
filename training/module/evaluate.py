@@ -624,64 +624,29 @@ def ae_train(
     
     return total_loss, ae, test_norm
 
-def update_all_signal_evals(summary_path, signal_path, qcd_path, path='autoencode/data/aucs', update_date=None):
-    """update signal auc evaluations, with path `path`.
+
+def save_all_missing_AUCs(summary_path, signals_path, qcd_path, AUCs_path):
     """
-    summaries = summaryProcessor.summary(summary_path=summary_path).cfilter(
-        ['*auc*', 'target_dim', 'filename', 'signal_path', 'batch*', 'learning_rate']).sort_values('mae_auc')[::-1]
+    Saves values of AUCs for all signals for all summaries for which AUCs file does not exist yet
+    """
     
-    to_add = ['{}/{}'.format(path, f) for f in summaries.filename.values if not os.path.exists('{}/{}'.format(path, f))]
-    
-    to_update = []
-    for f in glob.glob('{}/*'.format(path)):
-        if update_date is None:
-            pass
-        elif datetime.datetime.fromtimestamp(os.path.getmtime(f)) < update_date:
-            to_update.append(f)
-    
-    total = len(to_add) + len(to_update)
-    print('found {} trainings total'.format(total))
-    if total <= 0:
-        return
-
     signalDict = {}
-
-    for path in glob.glob(signal_path):
+    for path in glob.glob(signals_path):
         key = path.split("/")[-3]
         signalDict[key] = path
     d = data_holder(qcd=qcd_path, **signalDict)
     d.load()
     
-    print("data:", d)
-    
-    if len(to_add) > 0:
-        print('found {} trainings to add'.format(len(to_add)))
-        print('filelist to add: {}'.format('\n'.join(to_add)))
-        
-        
-    for path in to_add:
-        name = path.split('/')[-1]
-        tf.compat.v1.reset_default_graph()
-        a = auc_getter(filename=name, summary_path=summary_path, times=True)
-        norm, err, recon = a.get_errs_recon(d)
-        aucs = a.get_aucs(err)
-        fmt = a.auc_metric(aucs)
-        fmt.to_csv(path)
-        
-    if len(to_update) > 0:
-        print('found {} trainings to update'.format(len(to_update)))
-        print('filelist to update: {}'.format('\n'.join(to_update)))
-        
-        
-    for path in to_update:
-        name = path.split('/')[-1]
-        tf.compat.v1.reset_default_graph()
-        a = auc_getter(filename=name, summary_path=summary_path, times=True)
-        a.update_event_range(d, percentile_n=1)
-        norm, err, recon = a.get_errs_recon(d)
-        aucs = a.get_aucs(err)
-        fmt = a.auc_metric(aucs)
-        fmt.to_csv(path)
+    for filename in summaryProcessor.summary(summary_path=summary_path).filename.values:
+        auc_path = AUCs_path + "/" + filename
+        if not os.path.exists(auc_path):
+            tf.compat.v1.reset_default_graph()
+            a = auc_getter(filename=filename, summary_path=summary_path, times=True)
+            norm, err, recon = a.get_errs_recon(d)
+            aucs = a.get_aucs(err)
+            fmt = a.auc_metric(aucs)
+            fmt.to_csv(auc_path)
+
 
 def get_training_info_dict(filepath):
     if not filepath.endswith('.pkl'):
