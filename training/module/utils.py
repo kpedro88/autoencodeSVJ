@@ -1,9 +1,7 @@
 from module.dataTable import data_table
 from module.dataLoader import data_loader
-from module.trainer import trainer
 
 from collections import OrderedDict as odict
-from sklearn.model_selection import train_test_split
 from sklearn.metrics import roc_curve, roc_auc_score
 
 import os
@@ -16,10 +14,11 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import tensorflow as tf
-
+import keras
 
 plt.rcParams['figure.figsize'] = (10,10)
 plt.rcParams.update({'font.size': 18})
+
 
 def parse_globlist(glob_list, match_list):
     if not hasattr(glob_list, "__iter__") or isinstance(glob_list, str):
@@ -41,6 +40,7 @@ def parse_globlist(glob_list, match_list):
 
     return match
 
+
 delphes_jet_tags_dict = {
     1: "down",
     2: "up",
@@ -52,38 +52,9 @@ delphes_jet_tags_dict = {
     9: "gluon"
 }
 
-def plot_error_ratios(main_error, compare_errors, metric='mse', bins= 40, log=False, rng=None, alpha=0.6):
-    import matplotlib.pyplot as plt
-    raw_counts, binned = np.histogram(main_error[metric], bins=bins, normed=False, range=rng)
-    raw_counts = raw_counts.astype(float)
-    
-    zeros = np.where(raw_counts == 0)[0]
-    if len(zeros) > 0:
-        cutoff_index = zeros[0]
-    else:
-        cutoff_index = len(raw_counts)
-    raw_counts = raw_counts[:cutoff_index]
-    binned = binned[:cutoff_index + 1]
-        
-    ratios = []
-    for e in compare_errors:
-        counts, _ = np.histogram(e[metric], bins=bins, normed=False, range=rng)
-        counts = counts.astype(float)[:cutoff_index]
-        ratio = counts/raw_counts
-        ratio_plot = ratio*(main_error.shape[0]/e.shape[0])
-        ratios.append((ratio, raw_counts, counts))
-        toplot = np.asarray(list(ratio_plot) + [0])
-        err = np.asarray(list(1/counts) + [0])
-        plt.plot(binned, toplot, label=e.name.lstrip("error ") + " ({0})".format(e.shape[0]), marker='o', alpha=alpha)
-        if log:
-            plt.yscale("log")
-    plt.legend()
-    plt.show()
-    return ratios
 
 def get_errors(true, pred, out_name="errors", functions=["mse", "mae"], names=[None, None], index=None):
-    import tensorflow as tf
-    import keras
+    
     if names is None:
         names = ['err {}'.format(i) for i in range(len(functions))]
     
@@ -102,6 +73,7 @@ def get_errors(true, pred, out_name="errors", functions=["mse", "mae"], names=[N
         pd.DataFrame(raw, columns=[str(f) for f in names], index=index),
         name=out_name
     )
+
 
 def split_table_by_column(column_name, df, tag_names=None, keep_split_column=False, df_to_write=None):
     if df_to_write is None:
@@ -129,42 +101,12 @@ def split_table_by_column(column_name, df, tag_names=None, keep_split_column=Fal
             tagged.append(data_table(df_to_write.iloc[idx].drop(column_name, axis=1), name=tag_names[region]))
     return tagged, dict([(tag_names[k], v) for k,v in list(index.items())])
 
+
 def smartpath(path):
     if path.startswith("~/"):
         return path
     return os.path.abspath(path)
 
-def get_cutflow_table(glob_path):
-    paths = glob.glob(glob_path)
-    assert len(paths) > 0, "must have SOME paths"
-
-    ret = odict()
-    for path in paths:
-        with open(path) as f:
-            values_comp, keys_comp = [x.strip('\n').split(',') for x in f.readlines()]
-            values_comp = list(map(int, values_comp))
-            keys_comp = list(map(str.strip, ['no cut'] + keys_comp))
-            for k,v in zip(keys_comp, values_comp):
-                if k not in ret:
-                    ret[k] = 0
-                ret[k] = ret[k] + v
-    df = pd.DataFrame(list(ret.items()), columns=['cut_name', 'n_events'])
-    df['abs eff.'] = np.round(100.*(df.n_events / df.n_events[0]), 2)
-    df['rel eff.'] = np.round([100.] + [100.*(float(df.n_events[i + 1]) / float(df.n_events[i])) for i in range(len(df.n_events) - 1)], 2)
-    
-    return df
-
-def get_training_data(glob_path, verbose=1):
-    paths = glob.glob(glob_path)
-    d = data_loader("main sample", verbose=verbose)
-    for p in paths:
-        d.add_sample(p)
-    tables = []
-    
-    return d.make_table("data", "*features_data", "*features_names") 
-
-def get_training_data_jets(glob_path, verbose=1):
-    return split_to_jets(get_training_data(glob_path, verbose))
 
 def get_subheaders(data):
     classes = {}
@@ -186,21 +128,13 @@ def get_subheaders(data):
         i += 1
     return classes
 
-def get_selections_dict(list_of_selections):
-    ret = {}
-    for sel in list_of_selections:
-        with open(sel, 'r') as f:
-            data = [x.strip('\n') for x in f.readlines()]
-        for elt in data:
-            key, raw = elt.split(': ')
-            ret[key] = list(map(int, raw.split()))
-    return ret
 
 def get_repo_info():
     info = {}
     info['head'] = subprocess.Popen("git rev-parse --show-toplevel".split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()[0].decode("utf-8").strip('\n')
     info['name'] = subprocess.Popen("git config --get remote.origin.url".split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()[0].decode("utf-8").strip('\n')
     return info
+
 
 def split_to_jets(data):
     """
@@ -230,8 +164,6 @@ def split_to_jets(data):
     )
     return full, jets
 
-def log_uniform(low, high, size=None, base=10.):
-    return float(base)**(np.random.uniform(np.log(low)/np.log(base), np.log(high)/np.log(base), size))
 
 def split_by_tag(data, tag_column="jetFlavor", printout=True):
     tagged, tag_index = split_table_by_column(
@@ -246,20 +178,8 @@ def split_by_tag(data, tag_column="jetFlavor", printout=True):
             print(("{} jet: {}, {}%".format(t.name, s, round(100.*s/sum(sizes), 1))))
         
     return tagged, tag_index
-    
-def compare_tags(datasets):
-    
-    tags = [dict([(t.name, t) for t in split_by_tag(x, printout=False)[0]]) for x in datasets]
-    tag_ids = set().union(*[set([tn for tn in tlist]) for tlist in tags])
-    
-    for tag_id in tag_ids:
-        print(("{}:".format(tag_id)))
-        for t,d in zip(tags, datasets):
-            
-            if tag_id in t:
-                tag = t[tag_id]
-                print(("\t{:.1f}% ({}) {}".format(100.*tag.shape[0]/d.shape[0], tag.shape[0], d.name)))
-            
+
+
 def get_recon_errors(data_list, autoencoder, **kwargs):
 
     if not isinstance(data_list, list):
@@ -280,6 +200,7 @@ def get_recon_errors(data_list, autoencoder, **kwargs):
         )
         
     return errors, recon
+
 
 def roc_auc_dict(data_errs, signal_errs, metrics=['mse', 'mae'], *args, **kwargs):
     from sklearn.metrics import roc_curve, roc_auc_score
@@ -314,6 +235,7 @@ def roc_auc_dict(data_errs, signal_errs, metrics=['mse', 'mae'], *args, **kwargs
 
     return ret
 
+
 def roc_auc_plot(data_errs, signal_errs, metrics='loss', *args, **kwargs):
     
     if not isinstance(metrics, list):
@@ -347,8 +269,10 @@ def roc_auc_plot(data_errs, signal_errs, metrics='loss', *args, **kwargs):
     plt_end()
     plt.show()
     
+
 def percentile_normalization_ranges(data, n):
     return np.asarray(list(zip(np.percentile(data, n, axis=0), np.percentile(data, 100-n, axis=0))))
+
 
 def get_plot_params(
     n_plots,
@@ -406,60 +330,6 @@ def get_plot_params(
         colors = cm.rainbow(np.linspace(0, 1, n_plots)) 
     return fig, on_axis_begin, on_axis_end, on_plot_end, colors
 
-def plot_spdfs(inputs, outputs, bins=100, *args, **kwargs):
-    if not isinstance(inputs, list):
-        inputs = [inputs]
-    if not isinstance(outputs, list):
-        outputs = [outputs]
-        
-    # assert all([isinstance(inp, data_table) for inp in inputs]), "inputs mst be utils.data_table format"
-    assert len(inputs) > 0, "must have SOME inputs"
-    assert len(outputs) > 0, "must have SOME outputs"
-    assert len(inputs) == len(outputs), "# of outputs and inputs must be the same"
-    
-    columns = inputs[0].headers
-    assert all([columns == inp.headers for inp in inputs]), "all inputs must have identical column titles"
-
-    fig, ax_begin, ax_end, plt_end, colors = get_plot_params(len(columns), *args, **kwargs)
-    
-    for i,name in enumerate(columns):
-        
-        ax_begin(i)
-
-        for j, (IN, OUT) in enumerate(zip(inputs, outputs)):
-
-            dname = IN.name
-            centers, (content, content_new), width = get_bin_content(IN.data[:,i], OUT[0][:,i], OUT[1][:,i], bins) 
-
-            sfac = float(IN.shape[0])
-            plt.errorbar(centers, content/sfac, xerr=width/2., yerr=np.sqrt(content)/sfac, fmt='.', c=colors[j], label='{} input'.format(dname))
-            plt.errorbar(centers, content_new/sfac, xerr=width/2., fmt='--', c=colors[j], label='{} spdf'.format(dname), alpha=0.7)
-    #     plt.hist(mu, histtype='step', bins=bins)
-
-        ax_end(name)
-        
-    plt_end()
-
-def get_bin_content(aux, mu, sigma, bins=50):
-    
-    hrange = (np.percentile(aux, 0.1), np.percentile(aux, 99.9))
-    
-    content, edges = np.histogram(aux, bins=bins, range=hrange)
-    centers = 0.5*(edges[1:] + edges[:-1])
-    
-    width = centers[1] - centers[0]
-    
-    bin_content = np.sum(content)*width*sum_of_gaussians(centers, mu, sigma)
-    
-    return centers, (content, bin_content), width
-
-def sum_of_gaussians(x, mu_vec, sigma_vec):
-    x = np.atleast_2d(x)
-    if x.shape[0] <= x.shape[1]:
-        x = x.T
-    x_norm = (x - mu_vec)/sigma_vec
-    single_gaus_val = np.exp(-0.5*np.square(x_norm))/(sigma_vec*np.sqrt(2*np.pi))
-    return np.sum(single_gaus_val, axis=1)/mu_vec.shape[0]
 
 def glob_in_repo(globstring):
     repo_head = get_repo_info()['head']
@@ -493,6 +363,7 @@ def all_modify(tables, hlf_to_drop=['Energy', 'Flavor']):
         return tables[0]
     return tables
 
+
 def hlf_modify(tables, hlf_to_drop=['Energy', 'Flavor']):
     if not isinstance(tables, list) or isinstance(tables, tuple):
         tables = [tables] 
@@ -501,6 +372,7 @@ def hlf_modify(tables, hlf_to_drop=['Energy', 'Flavor']):
     if len(tables) == 1:
         return tables[0]
     return tables
+
 
 def eflow_modify(tables):
     if not isinstance(tables, list) or isinstance(tables, tuple):
@@ -513,21 +385,12 @@ def eflow_modify(tables):
         return tables[0]
     return tables
 
-def jet_flavor_check(flavors):
-    d = split_table_by_column("Flavor", flavors, tag_names=delphes_jet_tags_dict)[1]
-    print((flavors.name.center(30)))
-    print(("-"*30))
-    for name,index in list(d.items()):
-        tp = "{}:".format(name).rjust(10)
-        tp = tp + "{}".format(len(index)).rjust(10)
-        tp = tp + "({} %)".format(round(100.*len(index)/len(flavors), 1)).rjust(10)
-        print(tp)
-    print()
 
 def jet_flavor_split(to_split, ref=None):
     if ref is None:
         ref = to_split
     return split_table_by_column("Flavor", ref, tag_names=delphes_jet_tags_dict, df_to_write=to_split, keep_split_column=False)[0]
+
 
 def load_all_data(globstring, name, include_hlf=True, include_eflow=True, hlf_to_drop=['Energy', 'Flavor']):
     
@@ -574,51 +437,6 @@ def load_all_data(globstring, name, include_hlf=True, include_eflow=True, hlf_to
     
     return data, jets, event, flavors
 
-def BDT_load_all_data(
-    SVJ_path, QCD_path, 
-    test_split=0.2, random_state=-1,
-    include_hlf=True, include_eflow=True,
-    hlf_to_drop=['Energy', 'Flavor']
-):
-    """General-purpose data loader for BDT training, which separates classes and splits data into training/testing data.
-    
-    Args: 
-        SVJ_path (str): glob-style specification of .h5 files to load as SVJ signal
-        qcd_path (str): glob-style specification of .h5 files to load as qcd background
-        test_split (float): fraction of total data to use for testing 
-        random_state (int): random seed, leave as -1 for random assignment
-        include_hlf (bool): true to include high-level features in loaded data, false for not
-        include_eflow (bool): true to include energy-flow basis features in loaded data, false for not
-        hlf_to_drop (list(str)): list of high-level features to drop from the final dataset. Defaults to dropping Energy and Flavor.
-    
-    Returns:
-        tuple(pandas.DataFrame, pandas.DataFrame): X,Y training data, where X is the data samples for each jet, and Y is the 
-            signal/background tag for each jet
-        tuple(pandas.DataFrame, pandas.DataFrame): X_test,Y_test testing data, where X are data samples for each jet and Y is the
-            signal/background tag for each jet
-    """
-
-    if random_state < 0:
-        random_state = np.random.randint(0, 2**32 - 1)
-
-    SVJ,_,_,_ = load_all_data(SVJ_path, "SVJ", include_hlf=include_hlf, include_eflow=include_eflow, hlf_to_drop=hlf_to_drop)
-    QCD,_,_,_ = load_all_data(QCD_path, "QCD", include_hlf=include_hlf, include_eflow=include_eflow, hlf_to_drop=hlf_to_drop)
-    
-    
-    SVJ_train, SVJ_test = train_test_split(SVJ.df, test_size=test_split, random_state=random_state)
-    QCD_train, QCD_test = train_test_split(QCD.df, test_size=test_split, random_state=random_state)
-
-    SVJ_Y_train, SVJ_Y_test = [pd.DataFrame(np.ones((len(elt), 1)), index=elt.index, columns=['tag']) for elt in [SVJ_train, SVJ_test]]
-    QCD_Y_train, QCD_Y_test = [pd.DataFrame(np.zeros((len(elt), 1)), index=elt.index, columns=['tag']) for elt in [QCD_train, QCD_test]]
-
-    X = SVJ_train.append(QCD_train)
-    Y = SVJ_Y_train.append(QCD_Y_train)
-    
-    X_test = SVJ_test.append(QCD_test)
-    Y_test = SVJ_Y_test.append(QCD_Y_test)
-    
-    return (X, Y), (X_test, Y_test)
-
 
 def get_event_index(jet_tags):
     """Get all events index ids from a list of N jet tags 
@@ -633,9 +451,9 @@ def get_event_index(jet_tags):
     
     return np.sort(np.asarray(list(ret)))
 
+
 def tagged_jet_dict(tags):
-    """Dictionary tags
-    """
+    """ Dictionary tags """
     return dict(
         [
             (
@@ -645,12 +463,8 @@ def tagged_jet_dict(tags):
         ]
     )
 
-def event_error_tags(
-    err_jets,
-    error_threshold,
-    name,
-    error_metric="mae",
-):
+
+def event_error_tags(err_jets, error_threshold, name, error_metric="mae"):
     tag = [err[error_metric] > error_threshold for err in err_jets]
     tag_idx = get_event_index(tag)
     tag_data = [d.loc[tag_idx + i] for i,d in enumerate(tag)]
@@ -664,9 +478,8 @@ def event_error_tags(
     )
     return tagged_jet_dict(jet_tags)
 
-def path_in_repo(
-    filename
-):
+
+def path_in_repo(filename):
     head = get_repo_info()['head']
     suffix = ""
     comps = list(filter(len, filename.split(os.path.sep)))
@@ -676,88 +489,6 @@ def path_in_repo(
             return considered
     return None
 
-def get_particle_PIDs_statuses(root_filename):
-    import pandas as pd
-    import matplotlib.pyplot as plt
-    import os
-    import ROOT as rt
-    from tqdm import tqdm
-
-    DELPHES_DIR = os.environ["DELPHES_DIR"]
-    rt.gSystem.Load("{}/lib/libDelphes.so".format(DELPHES_DIR))
-    rt.gInterpreter.Declare('#include "{}/include/modules/Delphes.h"'.format(DELPHES_DIR))
-    rt.gInterpreter.Declare('#include "{}/include/classes/DelphesClasses.h"'.format(DELPHES_DIR))
-    rt.gInterpreter.Declare('#include "{}/include/classes/DelphesFactory.h"'.format(DELPHES_DIR))
-    rt.gInterpreter.Declare('#include "{}/include/ExRootAnalysis/ExRootTreeReader.h"'.format(DELPHES_DIR))
-
-
-    f = rt.TFile(root_filename)
-    tree = f.Get("Delphes")
-    
-    parr = np.zeros((tree.Draw("Particle.PID", "", "goff"), 2))
-    total = 0
-    for i in tqdm(list(range(tree.GetEntries()))):
-        tree.GetEntry(i)
-        for p in tree.Particle:
-            parr[total,:] = p.PID, p.Status
-            total += 1
-
-    df = pd.DataFrame(parr, columns=["PID", "Status"])
-    new = df[abs(df.PID) > 4900100]
-    counts = new.PID.value_counts()
-    pdict = odict()
-    for c in counts.index:
-        pdict[c] = dict(new[new.PID == c].Status.value_counts())
-
-        
-    converted = pd.DataFrame(pdict).T
-    converted.plot.bar(stacked=True)
-    plt.show()
-    return converted
-
-def plot_particle_statuses(figsize=(7,7), **fdict):
-    """With particle status name=results as the keywords, plot the particle
-    statuses
-    """
-
-    cols = set().union(*[list(frame.columns) for frame in list(fdict.values())])
-    parts = set().union(*[list(frame.index) for frame in list(fdict.values())])
-
-    for name in fdict:
-        fdict[name].fillna(0, inplace=True)
-
-        for v in cols:
-            if v not in fdict[name]:
-                fdict[name][v] = 0
-        for i in parts:
-            if i not in fdict[name].index:
-                fdict[name].loc[i] = 0
-
-        fdict[name] = fdict[name][sorted(fdict[name].columns)]
-        fdict[name].sort_index(inplace=True)
-
-    for i,name in enumerate(fdict):
-        ax = fdict[name].plot.bar(stacked=True, title=name, figsize=figsize)
-        ax.set_xlabel("PID")
-        ax.set_ylabel("Count")
-
-        legend = ax.get_legend()
-        legend.set_title("Status")
-    #     plt.suptitle(name)
-        plt.show()
-
-def merge_rootfiles(glob_path, out_name, treename="Delphes"):
-    import traceback as tb
-    try:
-        import ROOT as rt
-        chain = rt.TChain(treename)
-        for f in glob.glob(glob_path):
-            chain.Add(f)
-        chain.Merge(out_name)
-        return 0
-    except:
-        print((tb.format_exc()))
-        return 1
 
 def set_random_seed(seed_value):
     # 1. Set `PYTHONHASHSEED` environment variable at a fixed value
