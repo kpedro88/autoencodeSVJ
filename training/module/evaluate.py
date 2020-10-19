@@ -10,6 +10,7 @@ import numpy as np
 import tensorflow as tf
 import os
 import datetime
+import time
 from collections import OrderedDict as odict
 import pandas as pd
 import glob
@@ -23,16 +24,12 @@ eflow_base_lookup = {
 
 class ae_evaluation:
     
-    def __init__(
-        self,
-        name,
-        qcd_path=None,
-        SVJ_path=None,
-        aux_signals_dict={},
-        custom_objects={},
-    ):
-        self.name = summaryProcessor.summary_by_name(name)
-        self.d = summaryProcessor.load_summary(self.name)
+    def __init__(self, summary_path, qcd_path=None, SVJ_path=None, aux_signals_dict={}, custom_objects={}):
+        
+        self.d = summaryProcessor.load_summary(summary_path)
+
+        print("Creating object of ae_evaluation class")
+        print("\tdata: ", self.d)
 
         if qcd_path is None:
             if 'qcd_path' in self.d:
@@ -45,14 +42,10 @@ class ae_evaluation:
                 SVJ_path = self.d['signal_path']
             else:
                 raise AttributeError
-        
+
         assert isinstance(aux_signals_dict, (dict, odict)), 'aux_signals_dict must be dict or odict with {name: path} format'
 
-
-        self.signals = {
-            "SVJ": SVJ_path,
-        }
-
+        self.signals = {"SVJ": SVJ_path,}
         self.signals.update(aux_signals_dict)
 
         # set path attributes for all signals
@@ -66,16 +59,12 @@ class ae_evaluation:
         self.eflow_base = self.d['eflow_base']
         self.hlf_to_drop = list(map(str, self.d['hlf_to_drop']))
 
-        #     SVJ_path = "data/SVJ/base_{}/*.h5".format(eflow_base)
-        #     qcd_path = "data/background/base_{}/*.h5".format(eflow_base)
-
         (self.qcd,
          self.qcd_jets,
          self.qcd_event,
          self.qcd_flavor) = utils.load_all_data(
-            self.qcd_path, 
-            "qcd background", include_hlf=self.hlf, include_eflow=self.eflow,
-            hlf_to_drop=self.hlf_to_drop
+            self.qcd_path, "qcd background",
+            include_hlf=self.hlf, include_eflow=self.eflow, hlf_to_drop=self.hlf_to_drop
         )
 
         # set attributes for signals
@@ -84,9 +73,8 @@ class ae_evaluation:
             jets,
             event,
             flavor) = utils.load_all_data(
-                getattr(self, signal + '_path'),
-                signal, include_hlf=self.hlf, include_eflow=self.eflow,
-                hlf_to_drop=self.hlf_to_drop
+                getattr(self, signal + '_path'), signal,
+                include_hlf=self.hlf, include_eflow=self.eflow, hlf_to_drop=self.hlf_to_drop
             )
             setattr(self, signal, data)
             setattr(self, signal + '_jets', jets)
@@ -121,6 +109,8 @@ class ae_evaluation:
         
         if "norm_type" in self.d:
             self.norm_args["norm_type"] = str(self.d["norm_type"])
+        else:
+            self.norm_args["norm_type"] = "RobustScaler"
         
 
         self.all_train, self.test = self.qcd.split_by_event(test_fraction=self.test_split, random_state=self.seed, n_skip=len(self.qcd_jets))
@@ -131,6 +121,8 @@ class ae_evaluation:
         self.val_norm = self.train.norm(self.val, out_name="qcd val norm", **self.norm_args)
 
         self.test_norm = self.test.norm(out_name="qcd test norm", **self.norm_args)
+
+        self.rng = utils.percentile_normalization_ranges(self.test, 25)
 
         # set signal norms
         for signal in self.signals:
@@ -198,14 +190,7 @@ class ae_evaluation:
         self.errs_jet = list(self.errs_jet_dict.values())
         self.flavors = list(self.flavors_dict.values())
 
-    def split_my_jets(
-        self,
-        test_vec,
-        SVJ_vec, 
-        split_by_leading_jet,
-        split_by_flavor,
-        include_names=False,
-    ):
+    def split_my_jets(self, test_vec, SVJ_vec,  split_by_leading_jet, split_by_flavor, include_names=False):
         if split_by_flavor and split_by_leading_jet:
             raise AttributeError
 
@@ -374,56 +359,23 @@ class ae_evaluation:
             return
         return self.retdict(this, others)
     
-    def roc(
-        self,
-        show_plot=True,
-        metrics=['mae', 'mse'],
-        figsize=8,
-        figloc=(0.3, 0.2),
-        *args,
-        **kwargs
-    ):
-        # split_by_leading_jet = False
+    def roc(self, show_plot=True, metrics=['mae', 'mse'], figsize=8, figloc=(0.3, 0.2), *args, **kwargs):
         
         qcd = self.errs_dict['qcd']
         others = [self.errs_dict[n] for n in self.all_names if n != 'qcd']
-
-        print("ROC qcd: ", qcd)
-        print("ROC others: ", others)
-
-        # if split_by_leading_jet:
-        #     SVJ, qcd, _ = self.split_my_jets(self.qcd_err, self.SVJ_err, True, False)
-        #     SVJ += [self.SVJ_err]
-        #     SVJ[-1].name = "combined SVJ error"
         
         if show_plot:
-            utils.roc_auc_plot(
-                qcd, others,
-                metrics=metrics, figsize=figsize,
-                figloc=figloc, *args, **kwargs
-            )
-            
+            utils.roc_auc_plot(qcd, others, metrics=metrics, figsize=figsize, figloc=figloc, *args, **kwargs)
             return
 
-        return utils.roc_auc_dict(
-            qcd, others,
-            metrics=metrics
-        )
+        return utils.roc_auc_dict(qcd, others, metrics=metrics)
 
-    def cut_at_threshold(
-        self,
-        threshold,
-        metric="mae"
-    ):
+    def cut_at_threshold(self, threshold, metric="mae"):
         sig = utils.event_error_tags(self.SVJ_err_jets, threshold, "SVJ", metric)
         qcd = utils.event_error_tags(self.qcd_err_jets, threshold, "qcd", metric)
-
         return {"SVJ": sig, "qcd": qcd}
 
-    def check_cuts(
-        self,
-        cuts,
-    ):
+    def check_cuts(self, cuts):
         for k in cuts:
             s = 0
             print((k +":"))
@@ -511,10 +463,10 @@ def ae_train(
     Not super flexible, but gives a good idea of how good your standard AE is.
     """
 
+    start_timestamp = time.time()
+
     if seed is None:
         seed = np.random.randint(0, 99999999)
-
-    # set random seed
     utils.set_random_seed(seed)
 
     # get all our data
@@ -665,6 +617,11 @@ def ae_train(
                                        output_path = (output_data_path+"/summary"))
 
     # roc as figure of merit
+
+    end_time = time.time()
+    training_time = end_time - start_timestamp
+    print("Training executed in: ", training_time, " s")
+    
     return total_loss, ae, test_norm
 
 def update_all_signal_evals(summary_path, signal_path, qcd_path, path='autoencode/data/aucs', update_date=None):
@@ -734,33 +691,8 @@ def get_training_info_dict(filepath):
         raise AttributeError
     return trainer.pkl_file(filepath).store.copy()
     
-def check_training(filepath):
-    info_dict = get_training_info_dict(filepath)
-    idxs = set([tuple(v[:,0].tolist()) for v in list(info_dict['metrics'].values())])
-    assert len(idxs) == 1, 'datafile corrupt!!'
-    idx = np.asarray(idxs.pop())
-    vals = {k:v[:,1] for k,v in list(info_dict['metrics'].items())}
-    return pd.DataFrame(vals, index=idx)
 
-def update_aucs(filelist):
-    print(('filelist: {}'.format(filelist)))
-    eflow_base = 3
-    d = data_holder(
-        qcd='data/background/base_3/*.h5',
-        **{os.path.basename(p): '{}/base_{}/*.h5'.format(p, eflow_base) for p in glob.glob('data/all_signals/*')}
-    )
-    d.load()
-    
-    
-    for name, path in list(filelist.items()):
-        tf.compat.v1.reset_default_graph()
-        a = auc_getter(name, times=True)
-        norm, err, recon = a.get_errs_recon(d)
-        aucs = a.get_aucs(err)
-        fmt = a.auc_metric(aucs)
-        fmt.to_csv(path)
-
-def load_auc_table(path='autoencode/data/aucs'):
+def load_auc_table(path):
     auc_dict = {}
     for f in glob.glob('{}/*'.format(path)):
         data_elt = pd.read_csv(f)
@@ -774,5 +706,4 @@ def load_auc_table(path='autoencode/data/aucs'):
     pivoted = aucs.pivot('mass_nu_ratio', 'name', 'auc')
 
     return pivoted
-    # l0 = l0p.loc[:,l0p.columns.isin(set(s.filename))]
-    
+

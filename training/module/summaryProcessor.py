@@ -75,8 +75,8 @@ def summary_by_name(name):
 def load_summary(path):
     assert os.path.exists(path)
     with open(path, 'r') as f:
-        ret = json.load(f)
-    return ret
+        summary = json.load(f)
+    return summary
 
 
 def summary(summary_path, include_outdated=False, defaults={'hlf_to_drop': ['Flavor', 'Energy']}):

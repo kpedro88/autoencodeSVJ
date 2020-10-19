@@ -1,17 +1,13 @@
-import time
-import datetime
-import module.utils as utils
 import module.evaluate as ev
 import module.summaryProcessor as summaryProcessor
-import glob
+
+import numpy as np
+import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib
-import numpy as np
-from collections import OrderedDict as odict
-import pandas as pd
-import glob
-import os
-import tensorflow as tf
+import time
+import datetime
+
 
 output_path = "trainingResults/"
 summary_path = output_path+"summary/"
@@ -29,16 +25,12 @@ plt.rc('font', family='serif')
 def get_signal_auc_df(aucs, n_avg=1, do_max=False):
     lp = None
     
-    print("aucs: ", aucs)
-    
     if do_max:
         lp = aucs.max(axis=1).to_frame().reset_index().rename(columns={0: 'auc'})
     else:
         lp = aucs.iloc[
              :, np.argsort(aucs.mean()).values[::-1][:n_avg]
              ].mean(axis=1).to_frame().reset_index().rename(columns={0: 'auc'})
-
-    print("lp: ", lp)
 
     lp['mass'] = lp.mass_nu_ratio.apply(lambda x: x[0])
     lp['nu'] = lp.mass_nu_ratio.apply(lambda x: x[1])
@@ -85,7 +77,7 @@ def plot_signal_aucs(aucs, n_avg=1, do_max=False, title=None, fac=1.5, cmap='vir
     return lp, plot_signal_aucs_from_lp(lp, n_avg, do_max, title, fac, cmap=cmap)
 
 
-TRAIN = True
+TRAIN = False
 
 lr = .00051
 lr_factor = 0.5
@@ -93,8 +85,8 @@ es_patience = 12
 target_dim = 8
 batch_size = 32
 norm_percentile = 25
-epochs = 2
-n_models = 10  # number of models to train
+epochs = 100
+n_models = 50  # number of models to train
 model_acceptance_fraction = 10  # take top N best performing models
 
 start_stamp = time.time()

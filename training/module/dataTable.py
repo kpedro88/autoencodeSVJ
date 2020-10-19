@@ -67,14 +67,7 @@ class data_table(logger):
         else:
             self.df = pd.DataFrame(self.data, columns=self.headers)
     
-    def norm(
-            self,
-            data=None,
-            norm_type=0,
-            out_name=None,
-            rng=None,
-            **scaler_args
-    ):
+    def norm(self, data=None, norm_type=0, out_name=None, rng=None, **scaler_args):
         
         if rng is not None:
             return self.norm_alt(rng, out_name)
