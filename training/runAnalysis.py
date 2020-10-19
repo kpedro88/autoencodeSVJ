@@ -16,8 +16,8 @@ output_path = "trainingResults/"
 summary_path = output_path+"summary/"
 results_path = output_path+"trainingRuns/"
 
-input_path = "../data/training_data/"
-signal_path = input_path + "2000GeV_0.15/base_3/*.h5"
+input_path = "../../data/training_data/"
+signal_path = input_path + "all_signals/2000GeV_0.15/base_3/*.h5"
 qcd_path = input_path + "qcd/base_3/*.h5"
 
 
@@ -174,8 +174,16 @@ def getLatestSummaryFilePath(efp_base, bottleneck_dim, version=None):
 def drawROCcurve(efp_base, bottleneck_dim, version=None):
     input_summary_path = getLatestSummaryFilePath(efp_base, bottleneck_dim, version)
     print("Drawing ROC curve for summary: ", input_summary_path)
-    elt = ev.ae_evaluation(input_summary_path, qcd_path=qcd_path, SVJ_path=signal_path)
-    elt.roc(xscale='log')
+
+    # masses = [1500, 2000, 2500, 3000, 3500, 4000]
+    masses = [2000]
+    rinvs = [0.15, 0.30, 0.45, 0.60, 0.75]
+    base_path = "../../data/training_data/all_signals/"
+    aux_signals = {"{}, {}".format(mass, rinv) : "{}{}GeV_{:1.2f}/base_3/*.h5".format(base_path, mass, rinv) for mass in masses for rinv in rinvs}
+
+    # elt = ev.ae_evaluation(input_summary_path, qcd_path=qcd_path, SVJ_path=signal_path)
+    elt = ev.ae_evaluation(input_summary_path, qcd_path=qcd_path, SVJ_path=signal_path, aux_signals_dict=aux_signals)
+    elt.roc(xscale='log', metrics=["mae"])
 
 def addSampleAndPrintShape():
     newData = utils.data_loader(name="data")
@@ -262,7 +270,7 @@ def loadAndPrintQCD():
 
 # printSummary()
 # plotAuc()
-drawROCcurve(efp_base=3, bottleneck_dim=8)
+drawROCcurve(efp_base=3, bottleneck_dim=8, version=24)
 # addSampleAndPrintShape()
 # plotJetFeatures(efp_base=3, bottleneck_dim=8)
 # trainWithRandomRate(n_trainings=10, bottleneck_dim=8, batch_size=64)
