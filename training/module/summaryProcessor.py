@@ -79,7 +79,7 @@ def load_summary(path):
     return summary
 
 
-def summary(summary_path, include_outdated=False, defaults={'hlf_to_drop': ['Flavor', 'Energy']}):
+def summary(summary_path, defaults={'hlf_to_drop': ['Flavor', 'Energy']}):
     files = glob.glob(os.path.join(summary_path, "*.summary"))
     
     data = []
@@ -96,12 +96,8 @@ def summary(summary_path, include_outdated=False, defaults={'hlf_to_drop': ['Fla
         print("WARNING - no summary files found!!")
         return None
     
-    s = utils.data_table(pd.DataFrame(data), name='summary')
-    # if 'hlf_to_drop' in s:
-    #     s.hlf_to_drop.fillna(('Energy', 'Flavor'), inplace=True)
-    if include_outdated:
-        return s
-    return utils.data_table(s[s.VID == s.VID.max()], name='summary')
+    return utils.data_table(pd.DataFrame(data), name='summary')
+    
 
 
 def summary_match(search_path, verbose=True):

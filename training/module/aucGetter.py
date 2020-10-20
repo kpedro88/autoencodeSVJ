@@ -99,14 +99,14 @@ class auc_getter(object):
         if 'rng' in self.norm_args:
             for key in data_holder.KEYS:
                 if key != test_key:
-                    normed[key] = getattr(data_holder, key).data.norm(**self.norm_args)
-            normed[test_key] = test.norm(**self.norm_args)
+                    normed[key] = getattr(data_holder, key).data.normalize(**self.norm_args)
+            normed[test_key] = test.normalize(**self.norm_args)
         else:
             for d, elt in list(data_holder.KEYS.items()):
                 if d != test_key:
-                    normed[d] = test.norm(elt.data, **self.norm_args)
+                    normed[d] = test.normalize(elt.data, **self.norm_args)
             
-            normed[test_key] = test.norm(test, **self.norm_args)
+            normed[test_key] = test.normalize(test, **self.norm_args)
         
         for key in normed:
             normed[key].name = key
@@ -118,10 +118,10 @@ class auc_getter(object):
         
         if 'rng' in self.norm_args:
             for i in range(len(recon)):
-                recon[i] = recon[i].inorm(out_name=recon[i].name, **self.norm_args)
+                recon[i] = recon[i].inverse_normalize(out_name=recon[i].name, **self.norm_args)
         else:
             for i in range(len(recon)):
-                recon[i] = test.inorm(recon[i], out_name=recon[i].name, **self.norm_args)
+                recon[i] = test.inverse_normalize(recon[i], out_name=recon[i].name, **self.norm_args)
         del ae
         self.time('recon gen')
         

@@ -230,7 +230,7 @@ def plotJetFeatures(efp_base, bottleneck_dim, version=None):
         ({'norm_type': 'StandardScaler'}, (-5., 5.)),
         ({'norm_type': 'RobustScaler'}, (-5., 5.))
     ]:
-        var = main.cdrop('eflow *').norm(**normer)
+        var = main.cdrop('eflow *').normalize(**normer)
         
         plt.figure(figsize=(9, 9))
         for colname in var.axes[1]:

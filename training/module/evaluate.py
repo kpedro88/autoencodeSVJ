@@ -19,76 +19,53 @@ import glob
 
 class ae_evaluation:
     
-    def __init__(self, summary_path, qcd_path=None, SVJ_path=None, aux_signals_dict={}, custom_objects={}):
-        
-        self.d = summaryProcessor.load_summary(summary_path)
-
-        print("Creating object of ae_evaluation class")
-        print("\tdata: ", self.d)
-
+    def set_data_paths(self, qcd_path, signals):
         if qcd_path is None:
             if 'qcd_path' in self.d:
                 qcd_path = self.d['qcd_path']
             else:
                 raise AttributeError
 
-        if SVJ_path is None:
-            if 'signal_path' in self.d:
-                SVJ_path = self.d['signal_path']
-            else:
-                raise AttributeError
+        self.qcd_path = qcd_path
 
-        assert isinstance(aux_signals_dict, (dict, odict)), 'aux_signals_dict must be dict or odict with {name: path} format'
+        assert isinstance(signals, (dict, odict)), 'aux_signals_dict must be dict or odict with {name: path} format'
 
-        self.signals = {"SVJ": SVJ_path,}
-        self.signals.update(aux_signals_dict)
-
-        # set path attributes for all signals
+        self.signals = signals
+        
         for signal in self.signals:
             setattr(self, signal + '_path', self.signals[signal])
 
-        self.qcd_path = qcd_path
-                
-        self.hlf = self.d['hlf']
-        self.eflow = self.d['eflow']
-        self.eflow_base = self.d['eflow_base']
-        self.hlf_to_drop = list(map(str, self.d['hlf_to_drop']))
-
-        (self.qcd,
-         self.qcd_jets,
-         self.qcd_event,
-         self.qcd_flavor) = utils.load_all_data(
-            self.qcd_path, "qcd background",
-            include_hlf=self.hlf, include_eflow=self.eflow, hlf_to_drop=self.hlf_to_drop
-        )
-
-        # set attributes for signals
-        for signal in self.signals:
             (data,
-            jets,
-            event,
-            flavor) = utils.load_all_data(
-                getattr(self, signal + '_path'), signal,
-                include_hlf=self.hlf, include_eflow=self.eflow, hlf_to_drop=self.hlf_to_drop
-            )
+             jets,
+             event,
+             flavor) = utils.load_all_data(getattr(self, signal + '_path'), signal,
+                                           include_eflow=self.eflow, hlf_to_drop=self.hlf_to_drop,
+                                           include_hlf=self.hlf
+                                           )
             setattr(self, signal, data)
             setattr(self, signal + '_jets', jets)
             setattr(self, signal + '_event', event)
             setattr(self, signal + '_flavor', flavor)
 
-        # get and set random seed for reproductions
+    def set_variables_from_summary(self):
+        self.hlf = self.d['hlf']
+        self.eflow = self.d['eflow']
+        self.eflow_base = self.d['eflow_base']
+        self.hlf_to_drop = list(map(str, self.d['hlf_to_drop']))
         self.seed = self.d['seed']
-        utils.set_random_seed(self.seed)
-
-        # manually set a bunch of parameters from the summary dict
         self.target_dim = self.d['target_dim']
-        self.input_dim = len(self.SVJ.columns)
+        self.input_dim = self.d['input_dim']
         self.test_split = self.d['test_split']
         self.val_split = self.d['val_split']
         self.filename = self.d['filename']
         self.filepath = self.d['filepath']
+        self.norm_type = self.d["norm_type"]
+        self.norm_percentile = self.d["norm_percentile"]
 
-        # try to find training pkl file and load 'er up 
+        self.norm_args = {"norm_type" : self.norm_type, "norm_percentile" : self.norm_percentile}
+
+    def find_pkl_file(self):
+        # try to find training pkl file and load 'er up
         if not os.path.exists(self.filepath + ".pkl"):
             print((self.filepath + ".pkl"))
             self.filepath = utils.path_in_repo(self.filepath + ".pkl")
@@ -99,54 +76,74 @@ class ae_evaluation:
                 if self.filepath.endswith(".h5"):
                     self.filepath.rstrip(".h5")
 
-        # normalization args
-        self.norm_args = {}
+    def __init__(self, summary_path, qcd_path=None, signals={}):
         
-        if "norm_type" in self.d:
-            self.norm_args["norm_type"] = str(self.d["norm_type"])
-        else:
-            self.norm_args["norm_type"] = "RobustScaler"
+        # Set internal variables
+        self.d = summaryProcessor.load_summary(summary_path)
+        self.set_variables_from_summary()
+        self.set_data_paths(qcd_path=qcd_path, signals=signals)
         
-
-        self.all_train, self.test = self.qcd.split_by_event(test_fraction=self.test_split, random_state=self.seed, n_skip=len(self.qcd_jets))
-        # self.all_train, self.test = self.qcd.train_test_split(self.test_split, self.seed)
-        self.train, self.val = self.all_train.train_test_split(self.val_split, self.seed)
-
-        self.train_norm = self.train.norm(out_name="qcd train norm", **self.norm_args)
-        self.val_norm = self.train.norm(self.val, out_name="qcd val norm", **self.norm_args)
-
-        self.test_norm = self.test.norm(out_name="qcd test norm", **self.norm_args)
-
-        self.rng = utils.percentile_normalization_ranges(self.test, 25)
-
-        # set signal norms
-        for signal in self.signals:
-            # self.SVJ_norm = self.SVJ.norm(out_name="SVJ norm", **self.norm_args)
-            setattr(self, signal + '_norm', self.test.norm(getattr(self, signal), out_name=signal + ' norm', **self.norm_args))
-
-        self.train.name = "qcd training data"
-        self.test.name = "qcd test data"
-        self.val.name = "qcd validation data"
+      
+        (self.qcd,
+         self.qcd_jets,
+         self.qcd_event,
+         self.qcd_flavor) = utils.load_all_data(self.qcd_path, "qcd background",
+                                                include_hlf=self.hlf, include_eflow=self.eflow,
+                                                hlf_to_drop=self.hlf_to_drop
+                                                )
         
-        self.custom_objects = custom_objects
+        self.find_pkl_file()
+        self.trainer = trainer.trainer(self.filepath)
+        self.model = self.trainer.load_model()
+
+        # Set random seed to the same value as during the training
+        utils.set_random_seed(self.seed)
     
-        self.instance = trainer.trainer(self.filepath)
+    
+        # Split input data into training, validaiton and test samples
+        self.train_and_validation_data, self.test_data = self.qcd.split_by_event(test_fraction=self.test_split, random_state=self.seed, n_skip=len(self.qcd_jets))
+        self.train_data, self.validation_data = self.train_and_validation_data.train_test_split(self.val_split, self.seed)
 
-        self.ae = self.instance.load_model(custom_objects=self.custom_objects)
+        # Normalize the input
+        if self.norm_type == "Custom":
+            self.data_ranges = utils.percentile_normalization_ranges(self.test_data, self.norm_percentile)
+
+            self.train_data.name        = "qcd training data"
+            self.test_data.name         = "qcd test data"
+            self.validation_data.name   = "qcd validation data"
         
-        errors, recons = utils.get_recon_errors([self.test_norm] + [getattr(self, signal + '_norm') for signal in self.signals], self.ae)
-        # [self.qcd_err, self.SVJ_err], [self.qcd_recon, self.SVJ_recon] = utils.get_recon_errors([self.test_norm, self.SVJ_norm], self.ae)
+            self.train_data_normalized      = self.train_data.normalize_in_range(rng=self.data_ranges)
+            self.validation_data_normalized = self.validation_data.normalize(rng=self.data_ranges)
+            self.test_data_normalized       = self.test_data.normalize(rng=self.data_ranges)
+
+            for signal in self.signals:
+                setattr(self, signal + '_norm', getattr(self, signal).normalize(out_name=signal + ' norm', rng=self.data_ranges))
+        else:
+            print("Normalization not implemented: ", self.norm_type)
+            
+
+        # self.train_data_normalized = self.train_data.norm(out_name="qcd train norm", **self.norm_args)
+
+        
+        # Get reconstruction errors and values
+        errors, recons = utils.get_recon_errors([self.test_data_normalized] + [getattr(self, signal + '_norm') for signal in self.signals], self.model)
         self.qcd_err, signal_errs = errors[0], errors[1:]
-        self.qcd_recon, signal_recons = self.test.inorm(recons[0], **self.norm_args), recons[1:]
 
-        for err,recon,signal in zip(signal_errs, signal_recons, self.signals):
-            setattr(self, signal + '_err', err)
-            setattr(self, signal + '_recon', self.test.inorm(recon, **self.norm_args))
+        if self.norm_type == "Custom":
+            self.qcd_recon      = recons[0].inverse_normalize_in_range(rng=self.data_ranges)
+            
+            for err, recon, signal in zip(signal_errs, recons[1:], self.signals):
+                setattr(self, signal + '_err', err)
+                setattr(self, signal + '_recon', recon.inverse_normalize_in_range(rng=self.data_ranges))
+        else:
+            print("Normalization not implemented: ", self.norm_type)
 
-        self.qcd_reps = utils.data_table(self.ae.layers[1].predict(self.test_norm.data), name='QCD reps')
+
+        
+        self.qcd_reps = utils.data_table(self.model.layers[1].predict(self.test_data_normalized.data), name='QCD reps')
 
         for signal in self.signals:
-            setattr(self, signal + '_reps', utils.data_table(self.ae.layers[1].predict(getattr(self, signal + '_norm').data), name=signal + ' reps'))
+            setattr(self, signal + '_reps', utils.data_table(self.model.layers[1].predict(getattr(self, signal + '_norm').data), name=signal + ' reps'))
 
         self.qcd_err_jets = [utils.data_table(self.qcd_err.loc[self.qcd_err.index % 2 == i], name=self.qcd_err.name + " jet " + str(i)) for i in range(2)]
 
@@ -154,7 +151,7 @@ class ae_evaluation:
             serr = getattr(self, signal + '_err')
             setattr(self, signal + '_err_jets', [utils.data_table(serr.loc[serr.index % 2 == i], name=serr.name + " jet " + str(i)) for i in range(2)])
 
-        self.test_flavor = self.qcd_flavor.iloc[self.test.index]
+        self.test_flavor = self.qcd_flavor.iloc[self.test_data.index]
 
         # all 'big lists' for signals
         names = list(self.signals.keys())
@@ -169,7 +166,7 @@ class ae_evaluation:
 
         # add qcd manually
         self.dists_dict['qcd'] = self.qcd
-        self.norms_dict['qcd'] = self.test_norm
+        self.norms_dict['qcd'] = self.test_data_normalized
         self.errs_dict['qcd'] = self.qcd_err
         self.reps_dict['qcd'] = self.qcd_reps
         self.recons_dict['qcd'] = self.qcd_recon
@@ -315,15 +312,7 @@ class ae_evaluation:
 
         return self.retdict(this, others)
         
-    def metrics(
-        self,
-        show_plot=True,
-        figname='metrics',
-        figsize=(8,7),
-        figloc='upper right',
-        *args,
-        **kwargs
-    ):
+    def metrics(self, show_plot=True, figname='metrics', figsize=(8,7), figloc='upper right', *args, **kwargs):
         if show_plot:
             self.instance.plot_metrics(figname=figname, figsize=figsize, figloc=figloc, *args, **kwargs)
         return self.instance.config['metrics']
@@ -447,165 +436,133 @@ def get_filename_and_EFP_base(qcd, target_dim, output_data_path):
     
     return filename, eflow_base
 
+def get_auto_encoder_model(input_dim, intermediete_architecture, target_dim):
+    aes = models.base_autoencoder()
+    aes.add(input_dim)
+    for elt in intermediete_architecture:
+        aes.add(elt, activation='relu')
+    aes.add(target_dim, activation='relu')
+    for elt in reversed(intermediete_architecture):
+        aes.add(elt, activation='relu')
+    aes.add(input_dim, activation='linear')
+    
+    return aes.build()
+
+def get_architecture_summary(input_dim, intermediete_architecture, target_dim):
+    arch = (input_dim,) + intermediete_architecture
+    arch += (target_dim,)
+    arch += tuple(reversed(intermediete_architecture)) + (input_dim,)
+    return arch
 
 def ae_train(
     qcd_path,
     target_dim,
     output_data_path,
+    training_params,
     test_data_fraction=0.15,
     validation_data_fraction=0.15,
-    train_me=True,
-    batch_size=64,
-    loss='mse',
-    optimizer='adam',
-    epochs=100,
-    learning_rate=0.0005,
     custom_objects={},
-    interm_architecture=(30,30),
+    intermediate_architecture=(30,30),
     verbose=1, 
     hlf_to_drop=['Energy', 'Flavor'],
     norm_percentile=1,
-    es_patience=10,
-    lr_patience=9,
-    lr_factor=0.5
 ):
 
-    """Training function for basic autoencoder (inputs == outputs). 
+    """
+    Training function for basic auto-encoder (inputs == outputs).
     Will create and save a summary file for this training run, with relevant
     training details etc.
 
     Not super flexible, but gives a good idea of how good your standard AE is.
     """
 
-    start_timestamp = time.time()
+    start_timestamp = datetime.datetime.now()
 
     seed = np.random.randint(0, 99999999)
     utils.set_random_seed(seed)
 
-    # get all our data
+    # Load QCD samples
     (qcd, qcd_jets, qcd_event, qcd_flavor) = utils.load_all_data(qcd_path, "qcd background",
                                                                  include_hlf=True, include_eflow=True,
                                                                  hlf_to_drop=hlf_to_drop)
 
-    (filename, eflow_base) = get_filename_and_EFP_base(qcd=qcd, target_dim=target_dim, output_data_path=output_data_path)
+    # Determine output filename and EFP base
+    (filename, EFP_base) = get_filename_and_EFP_base(qcd=qcd, target_dim=target_dim, output_data_path=output_data_path)
     print(("training under filename '{}'".format(filename)))
-
     filepath = os.path.join(output_data_path, "trainingRuns", filename)
     
+    # Split input data into training, validaiton and test samples
     train_and_validation_data, test_data = qcd.split_by_event(test_fraction=test_data_fraction, random_state=seed, n_skip=len(qcd_jets))
     train_data, validation_data = train_and_validation_data.train_test_split(test_fraction=validation_data_fraction, random_state=seed)
     
-    
-    rng = utils.percentile_normalization_ranges(train_data, norm_percentile)
-    
-    train_norm  = train_data.norm(out_name="qcd train norm", rng=rng)
-    val_norm    = validation_data.norm(out_name="qcd val norm", rng=rng)
-    test_norm   = test_data.norm(out_name="qcd test norm", rng=rng)
+    # Normalize the input
+    norm_type = "Custom"
+    data_ranges = utils.percentile_normalization_ranges(train_data, norm_percentile)
 
     train_data.name = "qcd training data"
-    test_data.name = "qcd test data"
     validation_data.name = "qcd validation data"
+    
+    train_data_normalized       = train_data.normalize(out_name="qcd train norm", rng=data_ranges)
+    validation_data_normalized  = validation_data.normalize(out_name="qcd val norm", rng=data_ranges)
 
+    # Build the model
     input_dim = len(qcd.columns)
 
-    aes = models.base_autoencoder()
-    aes.add(input_dim)
-    for elt in interm_architecture:
-        aes.add(elt, activation='relu')
-    aes.add(target_dim, activation='relu')
-    for elt in reversed(interm_architecture):
-        aes.add(elt, activation='relu')
-    aes.add(input_dim, activation='linear')
-
-
-    ae = aes.build()
-    if verbose:
-        ae.summary()
-
-    start_time = str(datetime.datetime.now())
-
-    train_args = {
-        'batch_size': batch_size, 
-        'loss': loss,
-        'optimizer': optimizer,
-        'epochs': epochs,
-        'learning_rate': learning_rate,
-        'es_patience': es_patience,
-        'lr_patience': lr_patience,
-        'lr_factor': lr_factor
-    }
+    model = get_auto_encoder_model(input_dim, intermediate_architecture, target_dim)
 
     if verbose:
+        model.summary()
         print("TRAINING WITH PARAMS >>>")
-        for arg in train_args:
-            print((arg, ":", train_args[arg]))
+        for arg in training_params:
+            print((arg, ":", training_params[arg]))
 
+    # Run the training
     instance = trainer.trainer(filepath, verbose=verbose)
-
-    if train_me:
-        print("Training the model")
-        print("Number of training samples: ", len(train_norm.data))
-        print("Number of validation samples: ", len(val_norm.data))
+    
+    print("Training the model")
+    print("Number of training samples: ", len(train_data_normalized.data))
+    print("Number of validation samples: ", len(validation_data_normalized.data))
         
-        ae = instance.train(
-            x_train=train_norm.data,
-            x_test=val_norm.data,
-            y_train=train_norm.data,
-            y_test=val_norm.data,
-            model=ae,
-            force=True,
-            use_callbacks=True,
-            custom_objects=custom_objects, 
-            verbose=int(verbose),
-            **train_args
-        )
-    else:
-        print("Using existing model")
-        ae = instance.load_model(custom_objects=custom_objects)
+    instance.train(
+        x_train=train_data_normalized.data,
+        x_test=validation_data_normalized.data,
+        y_train=train_data_normalized.data,
+        y_test=validation_data_normalized.data,
+        model=model,
+        force=True,
+        use_callbacks=True,
+        custom_objects=custom_objects,
+        verbose=int(verbose),
+        **training_params
+    )
 
-    end_time = str(datetime.datetime.now())
+    end_timestamp = datetime.datetime.now()
 
-    result_args = {}
-    
-    vid = summaryProcessor.summary_vid(path=(output_data_path+"/summary"))
-    
-    time_args = {'start_time': start_time, 'end_time': end_time, 'VID': vid,
-                 # 'total_loss': total_loss
-                 }
-
-    data_args = {
+    # Save training summary
+    summary_dict = {
         'target_dim': target_dim,
         'input_dim': input_dim,
         'test_split': test_data_fraction,
         'val_split': validation_data_fraction,
         'hlf': True,
         'eflow': True,
-        'eflow_base': eflow_base,
+        'eflow_base': EFP_base,
         'seed': seed,
         'filename': filename,
         'filepath': filepath,
         'qcd_path': qcd_path,
-        'arch': (input_dim,) + interm_architecture + (target_dim,) + tuple(reversed(interm_architecture)) + (
-        input_dim,),
-        'hlf_to_drop': tuple(hlf_to_drop)
-    }
-
-    norm_args = {
+        'arch': get_architecture_summary(input_dim, intermediate_architecture, target_dim),
+        'hlf_to_drop': tuple(hlf_to_drop),
+        'start_time': str(start_timestamp),
+        'end_time': str(end_timestamp),
         'norm_percentile': norm_percentile,
-        'range': rng.tolist()
+        'range': data_ranges.tolist(),
+        'norm_type' : norm_type
     }
     
-    summaryProcessor.dump_summary_json(result_args, train_args, data_args, norm_args, time_args,
-                                       output_path = (output_data_path+"/summary"))
+    summaryProcessor.dump_summary_json(training_params, summary_dict, output_path = (output_data_path+"/summary"))
 
-    # roc as figure of merit
-
-    end_time = time.time()
-    training_time = end_time - start_timestamp
-    print("Training executed in: ", training_time, " s")
-    
-    # return total_loss, ae, test_norm
-    return ae, test_norm
+    print("Training executed in: ", (end_timestamp - start_timestamp), " s")
 
 
 def save_all_missing_AUCs(summary_path, signals_path, qcd_path, AUCs_path):
@@ -622,7 +579,10 @@ def save_all_missing_AUCs(summary_path, signals_path, qcd_path, AUCs_path):
     
     for filename in summaryProcessor.summary(summary_path=summary_path).filename.values:
         auc_path = AUCs_path + "/" + filename
+        
+        print("path: ", auc_path)
         if not os.path.exists(auc_path):
+            print("\t adding")
             tf.compat.v1.reset_default_graph()
             a = auc_getter(filename=filename, summary_path=summary_path, times=True)
             norm, err, recon = a.get_errs_recon(d)

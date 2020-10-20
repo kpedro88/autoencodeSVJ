@@ -271,6 +271,9 @@ def roc_auc_plot(data_errs, signal_errs, metrics='loss', *args, **kwargs):
     
 
 def percentile_normalization_ranges(data, n):
+    
+    print("axis 0: ", data.axes[0])
+    
     return np.asarray(list(zip(np.percentile(data, n, axis=0), np.percentile(data, 100-n, axis=0))))
 
 
