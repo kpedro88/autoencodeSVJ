@@ -1,10 +1,13 @@
 import module.utils as utils
+from module.aucGetter import auc_getter
+from module.dataHolder import data_holder
 
 import os
 import json
 import glob
 import datetime
 import pandas as pd
+import tensorflow as tf
 
 from pathlib import Path
 from collections import OrderedDict
@@ -134,3 +137,29 @@ def get_last_summary_file_version(output_path, filename):
         version += 1
     
     return version-1
+
+
+def save_all_missing_AUCs(summary_path, signals_path, qcd_path, AUCs_path):
+    """
+    Saves values of AUCs for all signals for all summaries for which AUCs file does not exist yet
+    """
+    
+    signalDict = {}
+    for path in glob.glob(signals_path):
+        key = path.split("/")[-3]
+        signalDict[key] = path
+    d = data_holder(qcd=qcd_path, **signalDict)
+    d.load()
+    
+    for filename in summary(summary_path=summary_path).filename.values:
+        auc_path = AUCs_path + "/" + filename
+        
+        print("path: ", auc_path)
+        if not os.path.exists(auc_path):
+            print("\t adding")
+            tf.compat.v1.reset_default_graph()
+            a = auc_getter(filename=filename, summary_path=summary_path, times=True)
+            norm, err, recon = a.get_errs_recon(d)
+            aucs = a.get_aucs(err)
+            fmt = a.auc_metric(aucs)
+            fmt.to_csv(auc_path)

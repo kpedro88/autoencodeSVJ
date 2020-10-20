@@ -7,6 +7,8 @@ import matplotlib.pyplot as plt
 import matplotlib
 import time
 import datetime
+import glob
+
 
 
 output_path = "trainingResults/"
@@ -131,7 +133,22 @@ ev.save_all_missing_AUCs(summary_path=summary_path,
                          qcd_path=qcd_path,
                          signals_path=(input_path + "all_signals/*/base_3/*.h5"))
 
-aucs = ev.load_auc_table("trainingResults/aucs")
+def load_auc_table(path):
+    auc_dict = {}
+    for f in glob.glob('{}/*'.format(path)):
+        data_elt = pd.read_csv(f)
+        file_elt = str(f.split('/')[-1])
+        data_elt['name'] = file_elt
+        auc_dict[file_elt] = data_elt
+    aucs = pd.concat(auc_dict)
+
+    aucs['mass_nu_ratio'] = list(zip(aucs.mass, aucs.nu))
+
+    pivoted = aucs.pivot('mass_nu_ratio', 'name', 'auc')
+
+    return pivoted
+
+aucs = load_auc_table("trainingResults/aucs")
 # bdts = pd.read_csv(output_path+"/bdt_aucs.csv")
 # bdts = bdts[bdts.columns[1:]].set_index(bdts[bdts.columns[0]].rename('mass'))
 # bdts = bdts.T.set_index(bdts.T.index.rename('nu')).T

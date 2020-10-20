@@ -1,5 +1,6 @@
 import module.utils as utils
 import module.evaluate as ev
+import module.trainer as trainer
 import module.summaryProcessor as summaryProcessor
 
 import pandas as pd
@@ -156,10 +157,18 @@ def updataSignalEvals():
                              output_path=output_path)
 
 
+def get_training_info_dict(filepath):
+    if not filepath.endswith('.pkl'):
+        filepath += '.pkl'
+    if not os.path.exists(filepath):
+        print("Could not open file: ", filepath)
+        raise AttributeError
+    return trainer.pkl_file(filepath).store.copy()
+
 def printTrainingInfo():
     print("\nRunning printTrainingInfo\n")
     trainingOutputPath = results_path+"/hlf_eflow3_5_v0.pkl"
-    trainingInfo = ev.get_training_info_dict(trainingOutputPath)
+    trainingInfo = get_training_info_dict(trainingOutputPath)
     print("Training info - val_loss: ", trainingInfo['metrics']['val_loss'][-1,1])
 
 
