@@ -6,7 +6,7 @@ import numpy as np
 import os
 from collections import OrderedDict as odict
 
-class aeEvaluator:
+class AutoEncoderEvaluator:
     
     def set_data_paths(self, qcd_path, signals):
         if qcd_path is None:

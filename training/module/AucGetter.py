@@ -8,7 +8,7 @@ import os
 import pandas as pd
 import numpy as np
 
-class auc_getter(object):
+class AucGetter(object):
     '''This object basically needs to be able to load a training run into memory, including all
     training/testing fractions and random seeds. It then should take a library of signals as input
     and be able to evaluate the auc on each signal to determine a 'general auc' for all signals.

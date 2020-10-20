@@ -1,5 +1,5 @@
 import module.utils as utils
-from module.aucGetter import auc_getter
+from module.AucGetter import AucGetter
 from module.dataHolder import data_holder
 
 import os
@@ -147,7 +147,7 @@ def save_all_missing_AUCs(summary_path, signals_path, qcd_path, AUCs_path):
         
         if not os.path.exists(auc_path):
             tf.compat.v1.reset_default_graph()
-            a = auc_getter(filename=filename, summary_path=summary_path, times=True)
+            a = AucGetter(filename=filename, summary_path=summary_path, times=True)
             norm, err, recon = a.get_errs_recon(d)
             aucs = a.get_aucs(err)
             fmt = a.auc_metric(aucs)
