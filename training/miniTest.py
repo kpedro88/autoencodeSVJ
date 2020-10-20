@@ -1,6 +1,6 @@
 import module.summaryProcessor as summaryProcessor
 from module.aeEvaluator import aeEvaluator
-from module.aeTrainer import aeTrainer
+from module.aeTrainer import AutoEncoderTrainer
 
 output_path = "trainingResults/"
 summary_path = output_path+"summary/"
@@ -10,14 +10,14 @@ input_path = "../../data/training_data/"
 signal_path = input_path + "all_signals/2000GeV_0.15/base_3/*.h5"
 qcd_path = input_path + "qcd/base_3/*.h5"
 
+
 def get_latest_summary_file_path(efp_base, bottleneck_dim, version=None):
     if version is None:
-        version = summaryProcessor.get_last_summary_file_version(output_path, "hlf_eflow{}_{}_".format(efp_base, bottleneck_dim))
+        version = summaryProcessor.get_last_summary_file_version(summary_path, "hlf_eflow{}_{}_".format(efp_base, bottleneck_dim))
 
     input_summary_path = summary_path+"/hlf_eflow{}_{}_v{}.summary".format(efp_base, bottleneck_dim, version)
     return input_summary_path
 
-    
     
 training_params = {
     'batch_size': 32,
@@ -30,13 +30,18 @@ training_params = {
     'lr_factor': 0.5
 }
     
-aeTrainer(qcd_path=qcd_path,
-          output_data_path=output_path,
-          target_dim=8,
-          verbose=1,
-          training_params=training_params,
-          norm_percentile=25
-          )
+trainer = AutoEncoderTrainer(qcd_path=qcd_path,
+                             bottleneck_size=8,
+                             training_params=training_params,
+                             norm_percentile=25
+                             )
+
+trainer.run_training(training_output_path=results_path,
+                     summaries_path=summary_path,
+                     verbose=True
+                     )
+
+trainer.save_last_training_summary(path=summary_path)
 
 
 summaryProcessor.save_all_missing_AUCs(summary_path=summary_path,

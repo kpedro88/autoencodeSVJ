@@ -2,169 +2,182 @@ import module.utils as utils
 import module.trainer as trainer
 import module.models as models
 import module.summaryProcessor as summaryProcessor
-
-from module.dataHolder import data_holder
-from module.aucGetter import auc_getter
-
 import numpy as np
-import tensorflow as tf
-import os
 import datetime
-import time
-from collections import OrderedDict as odict
-import pandas as pd
-import glob
 
-class aeTrainer:
+
+class AutoEncoderTrainer:
    
-    
     def __init__(self,
                  qcd_path,
-                 target_dim,
-                 output_data_path,
                  training_params,
+                 bottleneck_size,
+                 intermediate_architecture=(30, 30),
                  test_data_fraction=0.15,
                  validation_data_fraction=0.15,
-                 custom_objects={},
-                 intermediate_architecture=(30, 30),
-                 verbose=1,
-                 hlf_to_drop=['Energy', 'Flavor'],
                  norm_percentile=1,
+                 hlf_to_drop=None,
                  ):
         """
-        Training function for basic auto-encoder (inputs == outputs).
-        Will create and save a summary file for this training run, with relevant
-        training details etc.
-
-        Not super flexible, but gives a good idea of how good your standard AE is.
+        Creates auto-encoder trainer with random seed, provided training parameters and architecture.
+        Loads specified data, splits them into training, validation and test samples according to
+        provided arguments. Normalizes the data as specified by norm_percentile.
+        High-level features specified in hlf_to_drop will not be used for training.
         """
+
+        if hlf_to_drop is None:
+            hlf_to_drop = ['Energy', 'Flavor']
         
-        start_timestamp = datetime.datetime.now()
+        self.seed = np.random.randint(0, 99999999)
+        utils.set_random_seed(self.seed)
         
-        seed = np.random.randint(0, 99999999)
-        utils.set_random_seed(seed)
+        self.qcd_path = qcd_path
+        self.hlf_to_drop = hlf_to_drop
+        
+        self.training_params = training_params
+        self.test_data_fraction = test_data_fraction
+        self.validation_data_fraction = validation_data_fraction
         
         # Load QCD samples
-        (qcd, qcd_jets, qcd_event, qcd_flavor) = utils.load_all_data(qcd_path, "qcd background",
+        (self.qcd, qcd_jets, qcd_event, qcd_flavor) = utils.load_all_data(qcd_path, "qcd background",
                                                                      include_hlf=True, include_eflow=True,
                                                                      hlf_to_drop=hlf_to_drop)
         
-        # Determine output filename and EFP base
-        (filename, EFP_base) = self.get_filename_and_EFP_base(qcd=qcd, target_dim=target_dim,
-                                                              output_data_path=output_data_path)
-        print(("training under filename '{}'".format(filename)))
-        filepath = os.path.join(output_data_path, "trainingRuns", filename)
+      
         
-        # Split input data into training, validaiton and test samples
-        train_and_validation_data, test_data = qcd.split_by_event(test_fraction=test_data_fraction, random_state=seed,
+        # Split input data into training, validation and test samples
+        train_and_validation_data, test_data = self.qcd.split_by_event(test_fraction=test_data_fraction,
+                                                                  random_state=self.seed,
                                                                   n_skip=len(qcd_jets))
+        
         train_data, validation_data = train_and_validation_data.train_test_split(test_fraction=validation_data_fraction,
-                                                                                 random_state=seed)
-        
-        # Normalize the input
-        norm_type = "Custom"
-        data_ranges = utils.percentile_normalization_ranges(train_data, norm_percentile)
-        
+                                                                                 random_state=self.seed)
+
         train_data.name = "qcd training data"
         validation_data.name = "qcd validation data"
         
-        train_data_normalized = train_data.normalize(out_name="qcd train norm", rng=data_ranges)
-        validation_data_normalized = validation_data.normalize(out_name="qcd val norm", rng=data_ranges)
+        # Normalize the input
+        self.norm_type = "Custom"
+        self.norm_percentile = norm_percentile
+        self.data_ranges = utils.percentile_normalization_ranges(train_data, norm_percentile)
+        
+        self.train_data_normalized = train_data.normalize_in_range(rng=self.data_ranges)
+        self.validation_data_normalized = validation_data.normalize(rng=self.data_ranges)
         
         # Build the model
-        input_dim = len(qcd.columns)
+        self.input_size = len(self.qcd.columns)
+        self.intermediate_architecture = intermediate_architecture
+        self.bottleneck_size = bottleneck_size
+        self.model = self.get_auto_encoder_model()
         
-        model = self.get_auto_encoder_model(input_dim, intermediate_architecture, target_dim)
+    def run_training(self, training_output_path, summaries_path, verbose=False):
+        """
+        Runs the training on data loaded and prepared in the constructor, according to training params
+        specified in the constructor
+        """
+        
+        self.output_filename = self.get_filename(summaries_path=summaries_path)
+        self.training_output_path = training_output_path + self.output_filename
+    
+        print("\n\nTraining the model")
+        print("Filename: ", self.training_output_path)
+        print("Number of training samples: ", len(self.train_data_normalized.data))
+        print("Number of validation samples: ", len(self.validation_data_normalized.data))
         
         if verbose:
-            model.summary()
-            print("TRAINING WITH PARAMS >>>")
-            for arg in training_params:
-                print((arg, ":", training_params[arg]))
+            self.model.summary()
+            print("\nTraining params:")
+            for arg in self.training_params:
+                print((arg, ":", self.training_params[arg]))
         
-        # Run the training
-        instance = trainer.trainer(filepath, verbose=verbose)
+        self.start_timestamp = datetime.datetime.now()
         
-        print("Training the model")
-        print("Number of training samples: ", len(train_data_normalized.data))
-        print("Number of validation samples: ", len(validation_data_normalized.data))
-        
-        instance.train(
-            x_train=train_data_normalized.data,
-            x_test=validation_data_normalized.data,
-            y_train=train_data_normalized.data,
-            y_test=validation_data_normalized.data,
-            model=model,
+        trainer.trainer(self.training_output_path, verbose=verbose).train(
+            x_train=self.train_data_normalized.data,
+            x_test=self.validation_data_normalized.data,
+            y_train=self.train_data_normalized.data,
+            y_test=self.validation_data_normalized.data,
+            model=self.model,
             force=True,
             use_callbacks=True,
-            custom_objects=custom_objects,
             verbose=int(verbose),
-            **training_params
+            **self.training_params
         )
         
-        end_timestamp = datetime.datetime.now()
+        self.end_timestamp = datetime.datetime.now()
+        print("Training executed in: ", (self.end_timestamp - self.start_timestamp), " s")
         
-        # Save training summary
+    def save_last_training_summary(self, path):
+        """
+        Dumps summary of the most recent training to a summary file.
+        """
         summary_dict = {
-            'target_dim': target_dim,
-            'input_dim': input_dim,
-            'test_split': test_data_fraction,
-            'val_split': validation_data_fraction,
+            'training_output_path': self.training_output_path,
+            'qcd_path': self.qcd_path,
             'hlf': True,
+            'hlf_to_drop': tuple(self.hlf_to_drop),
             'eflow': True,
-            'eflow_base': EFP_base,
-            'seed': seed,
-            'filename': filename,
-            'filepath': filepath,
-            'qcd_path': qcd_path,
-            'arch': self.get_architecture_summary(input_dim, intermediate_architecture, target_dim),
-            'hlf_to_drop': tuple(hlf_to_drop),
-            'start_time': str(start_timestamp),
-            'end_time': str(end_timestamp),
-            'norm_percentile': norm_percentile,
-            'range': data_ranges.tolist(),
-            'norm_type': norm_type
+            'eflow_base': self.get_EFP_base(),
+            'test_split': self.test_data_fraction,
+            'val_split': self.validation_data_fraction,
+            'norm_type': self.norm_type,
+            'norm_percentile': self.norm_percentile,
+            'range': self.data_ranges.tolist(),
+            'target_dim': self.bottleneck_size,
+            'input_dim': self.input_size,
+            'arch': self.get_architecture_summary(),
+            'seed': self.seed,
+            'start_time': str(self.start_timestamp),
+            'end_time': str(self.end_timestamp),
         }
+        summaryProcessor.dump_summary_json(self.training_params, summary_dict, output_path=path)
         
-        summaryProcessor.dump_summary_json(training_params, summary_dict, output_path=(output_data_path + "/summary"))
+    def get_EFP_base(self):
+        """
+        Returns EFP base deduced from the structure of QCD samples
+        """
+        n_EFP_variables = len([x for x in self.qcd.columns if "eflow" in x])
+        EFP_base_lookup = {12: 3, 13: 3, 35: 4, 36: 4}
+        EFP_base = EFP_base_lookup[n_EFP_variables]
         
-        print("Training executed in: ", (end_timestamp - start_timestamp), " s")
+        return EFP_base
 
-    def get_EFP_base(self, data):
-        return len([x for x in data.columns if "eflow" in x])
-
-    def get_filename_and_EFP_base(self, qcd, target_dim, output_data_path):
+    def get_filename(self, summaries_path):
         """
-        Returns a tuple containing filename for given QCD sample (already with correct next version)
-        and the EFP base deduced from this QCD sample
+        Returns filename for given QCD sample, already with correct next version deduced
+        from contents of the provided summaries directory
         """
-        qcd_eflow = self.get_EFP_base(qcd)
-    
-        eflow_base_lookup = {12: 3, 13: 3, 35: 4, 36: 4}
-        eflow_base = eflow_base_lookup[qcd_eflow]
-    
-        filename = "hlf_eflow{}_{}_".format(eflow_base, target_dim)
-    
-        last_version = summaryProcessor.get_last_summary_file_version(output_data_path, filename)
+        
+        filename = "hlf_eflow{}_{}_".format(self.get_EFP_base(), self.bottleneck_size)
+        last_version = summaryProcessor.get_last_summary_file_version(summaries_path, filename)
         filename += "v{}".format(last_version + 1)
     
-        return filename, eflow_base
+        return filename
 
-    def get_auto_encoder_model(self, input_dim, intermediete_architecture, target_dim):
+    def get_auto_encoder_model(self):
+        """
+        Builds an auto-encoder model as specified in object's fields: input_size,
+        intermediate_architecture and bottleneck_size
+        """
+        
         aes = models.base_autoencoder()
-        aes.add(input_dim)
-        for elt in intermediete_architecture:
+        aes.add(self.input_size)
+        for elt in self.intermediate_architecture:
             aes.add(elt, activation='relu')
-        aes.add(target_dim, activation='relu')
-        for elt in reversed(intermediete_architecture):
+        aes.add(self.bottleneck_size, activation='relu')
+        for elt in reversed(self.intermediate_architecture):
             aes.add(elt, activation='relu')
-        aes.add(input_dim, activation='linear')
+        aes.add(self.input_size, activation='linear')
     
         return aes.build()
 
-    def get_architecture_summary(self, input_dim, intermediete_architecture, target_dim):
-        arch = (input_dim,) + intermediete_architecture
-        arch += (target_dim,)
-        arch += tuple(reversed(intermediete_architecture)) + (input_dim,)
+    def get_architecture_summary(self):
+        """
+        Returns a tuple with number of nodes in each consecutive layer of the auto-encoder
+        """
+        
+        arch = (self.input_size,) + self.intermediate_architecture
+        arch += (self.bottleneck_size,)
+        arch += tuple(reversed(self.intermediate_architecture)) + (self.input_size,)
         return arch
         

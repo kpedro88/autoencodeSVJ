@@ -46,8 +46,7 @@ class aeEvaluator:
         self.input_dim = self.d['input_dim']
         self.test_split = self.d['test_split']
         self.val_split = self.d['val_split']
-        self.filename = self.d['filename']
-        self.filepath = self.d['filepath']
+        self.training_output_path = self.d['training_output_path']
         self.norm_type = self.d["norm_type"]
         self.norm_percentile = self.d["norm_percentile"]
         
@@ -55,15 +54,15 @@ class aeEvaluator:
     
     def find_pkl_file(self):
         # try to find training pkl file and load 'er up
-        if not os.path.exists(self.filepath + ".pkl"):
-            print((self.filepath + ".pkl"))
-            self.filepath = utils.path_in_repo(self.filepath + ".pkl")
-            print((self.filepath))
-            if self.filepath is None:
+        if not os.path.exists(self.training_output_path + ".pkl"):
+            print((self.training_output_path + ".pkl"))
+            self.filepath = utils.path_in_repo(self.training_output_path + ".pkl")
+            print((self.training_output_path))
+            if self.training_output_path is None:
                 raise AttributeError
             else:
-                if self.filepath.endswith(".h5"):
-                    self.filepath.rstrip(".h5")
+                if self.training_output_path.endswith(".h5"):
+                    self.training_output_path.rstrip(".h5")
     
     def __init__(self, summary_path, qcd_path=None, signals={}):
         
@@ -81,7 +80,7 @@ class aeEvaluator:
                                                 )
         
         self.find_pkl_file()
-        self.trainer = trainer.trainer(self.filepath)
+        self.trainer = trainer.trainer(self.training_output_path)
         self.model = self.trainer.load_model()
         
         # Set random seed to the same value as during the training

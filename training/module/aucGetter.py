@@ -44,20 +44,20 @@ class auc_getter(object):
         self.seed = self.d['seed']
         
         # manually set a bunch of parameters from the summary dict
-        for param in ['target_dim', 'input_dim', 'test_split', 'val_split', 'filename', 'filepath']:
+        for param in ['target_dim', 'input_dim', 'test_split', 'val_split', 'training_output_path']:
             setattr(self, param, self.d[param])
         
-        if not os.path.exists(self.filepath + ".pkl"):
-            print((self.filepath + ".pkl"))
-            self.filepath = utils.path_in_repo(self.filepath + ".pkl")
-            print((self.filepath))
-            if self.filepath is None:
+        if not os.path.exists(self.training_output_path + ".pkl"):
+            print((self.training_output_path + ".pkl"))
+            self.training_output_path = utils.path_in_repo(self.training_output_path + ".pkl")
+            print((self.training_output_path))
+            if self.training_output_path is None:
                 raise AttributeError
             else:
-                if self.filepath.endswith(".h5"):
-                    self.filepath.rstrip(".h5")
+                if self.training_output_path.endswith(".h5"):
+                    self.training_output_path.rstrip(".h5")
         
-        self.instance = trainer.trainer(self.filepath)
+        self.instance = trainer.trainer(self.training_output_path)
         self.time('init')
     
     def start(self):

@@ -19,9 +19,11 @@ def dump_summary_json(*dicts, output_path):
     for d in dicts:
         summary_dict.update(d)
     
-    assert 'filename' in summary_dict, 'NEED to include a filename arg, so we can save the dict!'
+    assert 'training_output_path' in summary_dict, 'NEED to include a filename arg, so we can save the dict!'
     
-    fpath = os.path.join(output_path, summary_dict['filename'] + '.summary')
+    fpath = os.path.join(output_path, summary_dict['training_output_path'].split("/")[-1] + '.summary')
+    
+    print("summary path: ", fpath)
     
     if os.path.exists(fpath):
         newpath = fpath
@@ -56,9 +58,6 @@ def summary_vid(path=""):
 
 
 def summary_by_name(name):
-    
-    print("Summary by name: ", name)
-    
     if not name.endswith(".summary"):
         name += ".summary"
     
@@ -102,7 +101,6 @@ def summary(summary_path, defaults={'hlf_to_drop': ['Flavor', 'Energy']}):
     return utils.data_table(pd.DataFrame(data), name='summary')
     
 
-
 def summary_match(search_path, verbose=True):
     ret = glob.glob(search_path)
     if verbose:
@@ -111,23 +109,15 @@ def summary_match(search_path, verbose=True):
     return ret
 
 
-def summary_by_features(**kwargs):
-    data = summary(include_outdated=True)
-    
-    for k in kwargs:
-        if k in data:
-            data = data[data[k] == kwargs[k]]
-    
-    return data
-
-
-def get_last_summary_file_version(output_path, filename):
-    summary_search_path = output_path + "/summary/" + filename + "v*"
+def get_last_summary_file_version(summary_path, filename):
+    summary_search_path = summary_path + filename + "v*"
     summary_files = summary_match(summary_search_path, verbose=False)
+    
     existing_ids = []
     
     for file in summary_files:
         version_number = os.path.basename(file).rstrip('.summary').split('_')[-1].lstrip('v')
+        
         existing_ids.append(int(version_number))
     
     assert len(existing_ids) == len(set(existing_ids)), "no duplicate ids"
@@ -151,12 +141,11 @@ def save_all_missing_AUCs(summary_path, signals_path, qcd_path, AUCs_path):
     d = data_holder(qcd=qcd_path, **signalDict)
     d.load()
     
-    for filename in summary(summary_path=summary_path).filename.values:
+    for path in summary(summary_path=summary_path).training_output_path.values:
+        filename = path.split("/")[-1]
         auc_path = AUCs_path + "/" + filename
         
-        print("path: ", auc_path)
         if not os.path.exists(auc_path):
-            print("\t adding")
             tf.compat.v1.reset_default_graph()
             a = auc_getter(filename=filename, summary_path=summary_path, times=True)
             norm, err, recon = a.get_errs_recon(d)
