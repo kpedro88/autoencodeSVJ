@@ -15,12 +15,7 @@ from collections import OrderedDict as odict
 import pandas as pd
 import glob
 
-eflow_base_lookup = {
-    12: 3,
-    13: 3,
-    35: 4, 
-    36: 4, 
-}
+
 
 class ae_evaluation:
     
@@ -430,16 +425,35 @@ class ae_evaluation:
             
         return all_data
 
+
+def get_EFP_base(data):
+    return len([x for x in data.columns if "eflow" in x])
+
+
+def get_filename_and_EFP_base(qcd, target_dim, output_data_path):
+    """
+    Returns a tuple containing filename for given QCD sample (already with correct next version)
+    and the EFP base deduced from this QCD sample
+    """
+    qcd_eflow = get_EFP_base(qcd)
+
+    eflow_base_lookup = {12: 3, 13: 3, 35: 4, 36: 4}
+    eflow_base = eflow_base_lookup[qcd_eflow]
+    
+    filename = "hlf_eflow{}_{}_".format(eflow_base, target_dim)
+    
+    last_version = summaryProcessor.get_last_summary_file_version(output_data_path, filename)
+    filename += "v{}".format(last_version + 1)
+    
+    return filename, eflow_base
+
+
 def ae_train(
-    signal_path,
     qcd_path,
     target_dim,
     output_data_path,
-    hlf=True,
-    eflow=True,
-    seed=None,
-    test_split=0.15, 
-    val_split=0.15,
+    test_data_fraction=0.15,
+    validation_data_fraction=0.15,
     train_me=True,
     batch_size=64,
     loss='mse',
@@ -465,87 +479,34 @@ def ae_train(
 
     start_timestamp = time.time()
 
-    if seed is None:
-        seed = np.random.randint(0, 99999999)
+    seed = np.random.randint(0, 99999999)
     utils.set_random_seed(seed)
 
     # get all our data
-    (signal,
-     signal_jets,
-     signal_event,
-     signal_flavor) = utils.load_all_data(
-        signal_path,
-        "signal", include_hlf=hlf, include_eflow=eflow,
-        hlf_to_drop=hlf_to_drop,
-    )
+    (qcd, qcd_jets, qcd_event, qcd_flavor) = utils.load_all_data(qcd_path, "qcd background",
+                                                                 include_hlf=True, include_eflow=True,
+                                                                 hlf_to_drop=hlf_to_drop)
 
-    (qcd,
-     qcd_jets,
-     qcd_event,
-     qcd_flavor) = utils.load_all_data(
-        qcd_path, 
-        "qcd background", include_hlf=hlf, include_eflow=eflow,
-        hlf_to_drop=hlf_to_drop,
-    )
-
-    if eflow:
-        qcd_eflow = len([x for x in qcd.columns if "eflow" in x])
-        signal_eflow = len([x for x in signal.columns if "eflow" in x])
-
-        assert qcd_eflow == signal_eflow, 'signal and qcd eflow basis must be the same!!'
-        eflow_base = eflow_base_lookup[qcd_eflow]
-    else:
-        eflow_base = 0
-
-    filename = "{}{}{}_".format('hlf_' if hlf else '', 'eflow{}_'.format(eflow_base) if eflow else '', target_dim)
-    
-    last_version = summaryProcessor.get_last_summary_file_version(output_data_path, filename)
-    filename += "v{}".format(last_version+1)
+    (filename, eflow_base) = get_filename_and_EFP_base(qcd=qcd, target_dim=target_dim, output_data_path=output_data_path)
     print(("training under filename '{}'".format(filename)))
 
-    assert len(summaryProcessor.summary_match(filename, 0)) == 0, "filename '{}' exists already! Change version id, or leave blank.".format(filename)
-
     filepath = os.path.join(output_data_path, "trainingRuns", filename)
-    input_dim = len(signal.columns)
-
-    data_args = {
-        'target_dim': target_dim,
-        'input_dim': input_dim,
-        'test_split': test_split,
-        'val_split': val_split,
-        'hlf': hlf, 
-        'eflow': eflow,
-        'eflow_base': eflow_base,
-        'seed': seed,
-        'filename': filename,
-        'filepath': filepath,
-        'qcd_path': qcd_path,
-        'signal_path': signal_path,
-        'arch': (input_dim,) + interm_architecture + (target_dim,) + tuple(reversed(interm_architecture)) + (input_dim,),
-        'hlf_to_drop': tuple(hlf_to_drop)
-    }
-
-    all_train, test = qcd.split_by_event(test_fraction=test_split, random_state=seed, n_skip=len(qcd_jets))
-    train, val = all_train.train_test_split(val_split, seed)
     
-    rng = utils.percentile_normalization_ranges(train, norm_percentile)
+    train_and_validation_data, test_data = qcd.split_by_event(test_fraction=test_data_fraction, random_state=seed, n_skip=len(qcd_jets))
+    train_data, validation_data = train_and_validation_data.train_test_split(test_fraction=validation_data_fraction, random_state=seed)
     
-    train_norm = train.norm(out_name="qcd train norm", rng=rng)
-    val_norm = val.norm(out_name="qcd val norm", rng=rng)
     
-    test_norm = test.norm(out_name="qcd test norm", rng=rng)
-    signal_norm = signal.norm(out_name="signal norm", rng=rng)
+    rng = utils.percentile_normalization_ranges(train_data, norm_percentile)
+    
+    train_norm  = train_data.norm(out_name="qcd train norm", rng=rng)
+    val_norm    = validation_data.norm(out_name="qcd val norm", rng=rng)
+    test_norm   = test_data.norm(out_name="qcd test norm", rng=rng)
 
-    norm_args = {
-        'norm_percentile': norm_percentile,
-        'range': rng.tolist()
-    }
+    train_data.name = "qcd training data"
+    test_data.name = "qcd test data"
+    validation_data.name = "qcd validation data"
 
-    train.name = "qcd training data"
-    test.name = "qcd test data"
-    val.name = "qcd validation data"
-
-    instance = trainer.trainer(filepath, verbose=verbose)
+    input_dim = len(qcd.columns)
 
     aes = models.base_autoencoder()
     aes.add(input_dim)
@@ -579,6 +540,8 @@ def ae_train(
         for arg in train_args:
             print((arg, ":", train_args[arg]))
 
+    instance = trainer.trainer(filepath, verbose=verbose)
+
     if train_me:
         print("Training the model")
         print("Number of training samples: ", len(train_norm.data))
@@ -602,16 +565,35 @@ def ae_train(
 
     end_time = str(datetime.datetime.now())
 
-    [data_err, signal_err], [data_recon, signal_recon] = utils.get_recon_errors([test_norm, signal_norm], ae)
-    roc_dict = list(utils.roc_auc_dict(data_err, signal_err, metrics=['mae', 'mse']).values())[0]
-
-    total_loss = data_err[loss].mean()
-
-    result_args = dict([(r + '_auc', roc_dict[r]['auc']) for r in roc_dict])
+    result_args = {}
     
     vid = summaryProcessor.summary_vid(path=(output_data_path+"/summary"))
     
-    time_args = {'start_time': start_time, 'end_time': end_time, 'VID': vid, 'total_loss': total_loss}
+    time_args = {'start_time': start_time, 'end_time': end_time, 'VID': vid,
+                 # 'total_loss': total_loss
+                 }
+
+    data_args = {
+        'target_dim': target_dim,
+        'input_dim': input_dim,
+        'test_split': test_data_fraction,
+        'val_split': validation_data_fraction,
+        'hlf': True,
+        'eflow': True,
+        'eflow_base': eflow_base,
+        'seed': seed,
+        'filename': filename,
+        'filepath': filepath,
+        'qcd_path': qcd_path,
+        'arch': (input_dim,) + interm_architecture + (target_dim,) + tuple(reversed(interm_architecture)) + (
+        input_dim,),
+        'hlf_to_drop': tuple(hlf_to_drop)
+    }
+
+    norm_args = {
+        'norm_percentile': norm_percentile,
+        'range': rng.tolist()
+    }
     
     summaryProcessor.dump_summary_json(result_args, train_args, data_args, norm_args, time_args,
                                        output_path = (output_data_path+"/summary"))
@@ -622,7 +604,8 @@ def ae_train(
     training_time = end_time - start_timestamp
     print("Training executed in: ", training_time, " s")
     
-    return total_loss, ae, test_norm
+    # return total_loss, ae, test_norm
+    return ae, test_norm
 
 
 def save_all_missing_AUCs(summary_path, signals_path, qcd_path, AUCs_path):
