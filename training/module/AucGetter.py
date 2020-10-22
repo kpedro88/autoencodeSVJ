@@ -127,18 +127,26 @@ class AucGetter(object):
         
         return [{y.name: y for y in x} for x in [normed, err, recon]]
     
-    def get_aucs(self, err, qcd_key='qcd', metrics=None):
+    def get_aucs(self, errors, qcd_key='qcd', metrics=None):
         self.start()
 
-        derr = [v for elt, v in list(err.items()) if elt == qcd_key]
-        serr = [v for elt, v in list(err.items()) if elt != qcd_key]
-        
         if metrics is None:
             metrics = ['mae']
+
+        background_errors = []
+        signal_errors = []
+
+        for key, value in list(errors.items()):
+            if key == qcd_key:
+                background_errors.append(value)
+            else:
+                signal_errors.append(value)
+
+       
+        ROCs_and_AUCs_per_signal = utils.roc_auc_dict(data_errs=background_errors, signal_errs=signal_errors, metrics=metrics)
         
-        ret = utils.roc_auc_dict(data_errs=derr, signal_errs=serr, metrics=metrics)
         self.time('auc grab')
-        return ret
+        return ROCs_and_AUCs_per_signal
     
     def plot_aucs(self, err, qcd_key='qcd', metrics=None):
         self.start()

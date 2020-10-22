@@ -1,6 +1,6 @@
 from module.signalElement import signal_element
 
-class data_holder(object):
+class DataHolder(object):
     def __init__(self, **kwargs):
         self.KEYS = {}
         names = sorted(kwargs.keys())

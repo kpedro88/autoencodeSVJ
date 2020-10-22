@@ -1,6 +1,6 @@
 import module.utils as utils
 from module.AucGetter import AucGetter
-from module.dataHolder import data_holder
+from module.DataHolder import DataHolder
 
 import os
 import json
@@ -129,26 +129,32 @@ def get_last_summary_file_version(summary_path, filename):
     return version-1
 
 
-def save_all_missing_AUCs(summary_path, signals_path, qcd_path, AUCs_path):
+def save_all_missing_AUCs(summary_path, signals_path, AUCs_path):
     """
-    Saves values of AUCs for all signals for all summaries for which AUCs file does not exist yet
+    Saves values of AUCs for all signals for all summaries for which AUCs file does not exist yet.
+    The QCD path will be read from the corresponding summary file.
     """
     
     signalDict = {}
     for path in glob.glob(signals_path):
         key = path.split("/")[-3]
         signalDict[key] = path
-    d = data_holder(qcd=qcd_path, **signalDict)
-    d.load()
     
-    for path in summary(summary_path=summary_path).training_output_path.values:
+    summaries = summary(summary_path=summary_path)
+    
+    for index, row in summaries.df.iterrows():
+        path = row.training_output_path
         filename = path.split("/")[-1]
         auc_path = AUCs_path + "/" + filename
         
         if not os.path.exists(auc_path):
             tf.compat.v1.reset_default_graph()
-            a = AucGetter(filename=filename, summary_path=summary_path, times=True)
-            norm, err, recon = a.get_errs_recon(d)
-            aucs = a.get_aucs(err)
-            fmt = a.auc_metric(aucs)
-            fmt.to_csv(auc_path)
+            auc_getter = AucGetter(filename=filename, summary_path=summary_path, times=True)
+
+            data_holder = DataHolder(qcd=row.qcd_path, **signalDict)
+            data_holder.load()
+            norm, err, recon = auc_getter.get_errs_recon(data_holder)
+            
+            ROCs = auc_getter.get_aucs(err)
+            AUCs = auc_getter.auc_metric(ROCs)
+            AUCs.to_csv(auc_path)

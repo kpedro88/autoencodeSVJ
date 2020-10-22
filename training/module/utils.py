@@ -202,8 +202,8 @@ def get_recon_errors(data_list, autoencoder, **kwargs):
     return errors, recon
 
 
-def roc_auc_dict(data_errs, signal_errs, metrics=['mse', 'mae'], *args, **kwargs):
-    from sklearn.metrics import roc_curve, roc_auc_score
+def roc_auc_dict(data_errs, signal_errs, metrics=['mse', 'mae']):
+    
     if not isinstance(metrics, list):
         metrics = [metrics]
 

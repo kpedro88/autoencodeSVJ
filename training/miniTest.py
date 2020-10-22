@@ -9,10 +9,11 @@ import matplotlib.pyplot as plt
 
 run_training = False
 run_produce_aucs = True
-run_plot_ROC_curves = True
+run_plot_ROC_curves = False
 run_plot_AUC_table = False
 
 output_path = "trainingResults/"
+aucs_path = output_path+"aucs/"
 summary_path = output_path+"summary/"
 results_path = output_path+"trainingRuns/"
 
@@ -30,7 +31,8 @@ def get_latest_summary_file_path(efp_base, bottleneck_dim, version=None):
 
 
 
-#
+
+# ---------------------------------------------------------------------------------------------------------------------
 # Run the training
 #
 if run_training:
@@ -59,18 +61,20 @@ if run_training:
     trainer.save_last_training_summary(path=summary_path)
 
 
-#
+
+
+# ---------------------------------------------------------------------------------------------------------------------
 # Translate summaries to AUC files
 #
 
 if run_produce_aucs:
     summaryProcessor.save_all_missing_AUCs(summary_path=summary_path,
-                                           AUCs_path=output_path + "/aucs",
-                                           qcd_path=qcd_path,
-                                           signals_path=(input_path + "all_signals/*/base_3/*.h5"))
+                                           signals_path=(input_path + "all_signals/*/base_3/*.h5"),
+                                           AUCs_path=aucs_path)
 
 
-#
+
+# ---------------------------------------------------------------------------------------------------------------------
 # Plot ROC curves
 #
 
@@ -86,52 +90,28 @@ if run_plot_ROC_curves:
     elt = AutoEncoderEvaluator(input_summary_path, qcd_path=qcd_path, signals=signals)
     elt.roc(xscale='log', metrics=["mae"])
 
-#
+
+
+
+
+# ---------------------------------------------------------------------------------------------------------------------
 # Plot AUC tables
 #
 
 
-
-
-
-def get_signal_auc_df(aucs, n_avg=1, do_max=False):
-    lp = None
+def plot_signal_aucs_from_lp(lp, title=None):
+    fac = 1.5
     
-    if do_max:
-        lp = aucs.max(axis=1).to_frame().reset_index().rename(columns={0: 'auc'})
-    else:
-        lp = aucs.iloc[
-             :, np.argsort(aucs.mean()).values[::-1][:n_avg]
-             ].mean(axis=1).to_frame().reset_index().rename(columns={0: 'auc'})
-    
-    lp['mass'] = lp.mass_nu_ratio.apply(lambda x: x[0])
-    lp['nu'] = lp.mass_nu_ratio.apply(lambda x: x[1])
-    
-    lp = lp.drop('mass_nu_ratio', axis=1).pivot('mass', 'nu', 'auc')
-    
-    return lp
-
-
-def plot_signal_aucs_from_lp(lp, n_avg=1, do_max=False, title=None, fac=1.5, barlabel=None, cmap='viridis'):
     plt.figure(figsize=(1.1 * fac * 6.9, 1.1 * fac * 6))
+    plt.imshow(lp, cmap='viridis')
     
-    plt.imshow(lp, cmap=cmap)
-    if barlabel == None:
-        barlabel = 'AUC value'
     cb = plt.colorbar()
-    cb.set_label(label=barlabel, fontsize=18 * fac)
+    cb.set_label(label='AUC value', fontsize=18 * fac)
     
     plt.xticks(np.arange(0, 5, 1), map(lambda x: '{:.2f}'.format(x), np.unique(lp.columns)))
     plt.yticks(np.arange(0, 6, 1), np.unique(lp.index))
     
-    if title is not None:
-        plt.title(title, fontsize=fac * 25)
-    elif do_max:
-        plt.title('Best AUCs (for any autoencoder)', fontsize=fac * 25)
-    elif n_avg < 2:
-        plt.title('Signal AUCs (best autoencoder)', fontsize=fac * 25)
-    else:
-        plt.title('Average Signal AUCs (best {} models)'.format(n_avg), fontsize=fac * 25)
+    plt.title(title, fontsize=fac * 25)
     plt.ylabel(r'$M_{Z^\prime}$ (GeV)', fontsize=fac * 20)
     plt.xlabel(r'$r_{inv}$', fontsize=fac * 20)
     plt.xticks(fontsize=18 * fac)
@@ -144,14 +124,23 @@ def plot_signal_aucs_from_lp(lp, n_avg=1, do_max=False, title=None, fac=1.5, bar
     return plt.gca()
 
 
-def plot_signal_aucs(aucs, n_avg=1, do_max=False, title=None, fac=1.5, cmap='viridis'):
-    lp = get_signal_auc_df(aucs, n_avg, do_max)
-    return lp, plot_signal_aucs_from_lp(lp, n_avg, do_max, title, fac, cmap=cmap)
+def plot_signal_aucs(aucs, title=None):
+    
+    lp = aucs.iloc[:, np.argsort(aucs.mean()).values[::-1][:1]].mean(axis=1).to_frame().reset_index().rename(columns={0: 'auc'})
+    
+    lp['mass'] = lp.mass_nu_ratio.apply(lambda x: x[0])
+    lp['nu'] = lp.mass_nu_ratio.apply(lambda x: x[1])
+    
+    lp = lp.drop('mass_nu_ratio', axis=1).pivot('mass', 'nu', 'auc')
+    
+    
+    return lp, plot_signal_aucs_from_lp(lp, title)
 
 
 if run_plot_AUC_table:
     auc_dict = {}
-    for f in glob.glob('trainingResults/aucs/*'):
+    
+    for f in glob.glob(aucs_path+"*"):
         data_elt = pd.read_csv(f)
         file_elt = str(f.split('/')[-1])
         data_elt['name'] = file_elt
