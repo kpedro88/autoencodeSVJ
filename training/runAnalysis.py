@@ -1,7 +1,7 @@
 import module.utils as utils
 import module.evaluate as ev
 import module.Trainer as trainer
-import module.summaryProcessor as summaryProcessor
+import module.SummaryProcessor as summaryProcessor
 
 import pandas as pd
 import numpy as np

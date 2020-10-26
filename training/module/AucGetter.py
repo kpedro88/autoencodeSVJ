@@ -1,4 +1,4 @@
-import module.summaryProcessor as summaryProcessor
+import module.SummaryProcessor as summaryProcessor
 import module.utils as utils
 import module.Trainer as trainer
 
@@ -71,15 +71,7 @@ class AucGetter(object):
         if self.print_times:
             print((':: TIME: ' + '{}executed in {:.2f} s'.format('' if info is None else info + ' ', end)))
         return end
-    
-    def update_event_range(self, data, percentile_n, test_key='qcd'):
-        utils.set_random_seed(self.seed)
-        qcd = getattr(data, test_key).data
-        train, test = qcd.split_by_event(test_fraction=self.test_split, random_state=self.seed, n_skip=2)
-        rng = utils.percentile_normalization_ranges(train, percentile_n)
-        self.norm_args['rng'] = rng
-        return rng
-    
+        
     def get_test_dataset(self, data_holder, test_key='qcd'):
         self.start()
         assert hasattr(data_holder, test_key), 'please pass a data_holder object instance with attribute \'{}\''.format(
@@ -148,22 +140,10 @@ class AucGetter(object):
             else:
                 signal_errors.append(value)
 
-       
         ROCs_and_AUCs_per_signal = utils.roc_auc_dict(data_errs=background_errors, signal_errs=signal_errors, metrics=metrics)
         
         self.time('auc grab')
         return ROCs_and_AUCs_per_signal
-    
-    def plot_aucs(self, err, qcd_key='qcd', metrics=None):
-        self.start()
-        derr = [v for elt, v in list(err.items()) if elt == qcd_key]
-        serr = [v for elt, v in list(err.items()) if elt != qcd_key]
-        
-        if metrics is None:
-            metrics = ['mae']
-        ret = utils.roc_auc_plot(data_errs=derr, signal_errs=serr, metrics=metrics)
-        self.time('auc plot')
-        return ret
     
     def auc_metric(self, aucs):
         data = [(k, v['mae']['auc']) for k, v in list(aucs.items())]

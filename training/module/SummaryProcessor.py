@@ -8,8 +8,6 @@ import glob
 import datetime
 import pandas as pd
 import tensorflow as tf
-
-from pathlib import Path
 from collections import OrderedDict
 
 
@@ -41,20 +39,6 @@ def dump_summary_json(*dicts, output_path):
         json.dump(summary_dict, f)
     
     return summary_dict
-
-
-def summary_vid(path=""):
-    Path(path).mkdir(parents=True, exist_ok=True)
-    filepath = os.path.join(path, "VID")
-    
-    if os.path.exists(filepath):
-        with open(filepath, "r") as file:
-            vid = int(file.read().strip('\n').strip())
-            return vid
-    else:
-        file = open(filepath, "w")
-        file.write("0\n")
-        return 0
 
 
 def summary_by_name(name):

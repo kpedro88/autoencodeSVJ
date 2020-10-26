@@ -1,5 +1,5 @@
 import module.evaluate as ev
-import module.summaryProcessor as summaryProcessor
+import module.SummaryProcessor as summaryProcessor
 
 import numpy as np
 import pandas as pd

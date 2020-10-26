@@ -1,6 +1,6 @@
 import module.utils as utils
 import module.Trainer as trainer
-import module.summaryProcessor as summaryProcessor
+import module.SummaryProcessor as summaryProcessor
 
 import os
 from collections import OrderedDict as odict

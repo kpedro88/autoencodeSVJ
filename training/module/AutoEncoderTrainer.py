@@ -1,7 +1,7 @@
 import module.utils as utils
 import module.Trainer as trainer
-import module.models as models
-import module.summaryProcessor as summaryProcessor
+import module.AutoEncoderBase as models
+import module.SummaryProcessor as summaryProcessor
 import numpy as np
 import datetime
 
@@ -160,7 +160,7 @@ class AutoEncoderTrainer:
         intermediate_architecture and bottleneck_size
         """
         
-        aes = models.base_autoencoder()
+        aes = models.AutoEncoderBase()
         aes.add(self.input_size)
         for elt in self.intermediate_architecture:
             aes.add(elt, activation='relu')

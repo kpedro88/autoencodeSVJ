@@ -1,4 +1,4 @@
-import module.summaryProcessor as summaryProcessor
+import module.SummaryProcessor as summaryProcessor
 from module.AutoEncoderEvaluator import AutoEncoderEvaluator
 from module.AutoEncoderTrainer import AutoEncoderTrainer
 
