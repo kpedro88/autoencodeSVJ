@@ -5,7 +5,9 @@ from module.DataProcessor import DataProcessor
 from module.DataLoader import DataLoader
 
 import os
+import numpy as np
 from collections import OrderedDict as odict
+
 
 class AutoEncoderEvaluator:
     
@@ -43,18 +45,18 @@ class AutoEncoderEvaluator:
         (self.qcd_train_data,
          self.qcd_validation_data,
          self.qcd_test_data) = data_processor.split_to_train_validate_test(data_table=self.qcd, n_skip=len(self.qcd_jets))
-        
+
         # Normalize the input
         if self.norm_type == "Custom":
-            self.data_ranges = utils.percentile_normalization_ranges(self.qcd_test_data, self.norm_percentile)
+            self.data_ranges = np.asarray(self.norm_ranges)
             
             self.qcd_train_data.name = "qcd training data"
             self.qcd_test_data.name = "qcd test data"
             self.qcd_validation_data.name = "qcd validation data"
             
             self.qcd_train_data_normalized = self.qcd_train_data.normalize_in_range(rng=self.data_ranges)
-            self.qcd_validation_data_normalized = self.qcd_validation_data.normalize(rng=self.data_ranges)
-            self.qcd_test_data_normalized = self.qcd_test_data.normalize(rng=self.data_ranges)
+            self.qcd_validation_data_normalized = self.qcd_validation_data.normalize_in_range(rng=self.data_ranges)
+            self.qcd_test_data_normalized = self.qcd_test_data.normalize_in_range(rng=self.data_ranges)
             
             for signal in self.signals:
                 setattr(self, signal + '_norm',
@@ -71,6 +73,7 @@ class AutoEncoderEvaluator:
             data.append(getattr(self, signal + '_norm'))
         
         errors, recons = utils.get_recon_errors(data, self.model)
+        
         self.qcd_err, signal_errs = errors[0], errors[1:]
         
         if self.norm_type == "Custom":
@@ -156,6 +159,7 @@ class AutoEncoderEvaluator:
         self.training_output_path = self.d['training_output_path']
         self.norm_type = self.d["norm_type"]
         self.norm_percentile = self.d["norm_percentile"]
+        self.norm_ranges = self.d["range"]
     
         self.norm_args = {"norm_type": self.norm_type, "norm_percentile": self.norm_percentile}
 
@@ -178,7 +182,7 @@ class AutoEncoderEvaluator:
         
         qcd = self.errs_dict['qcd']
         others = [self.errs_dict[n] for n in self.all_names if n != 'qcd']
-        
+   
         if show_plot:
             utils.roc_auc_plot(qcd, others, metrics=metrics, figsize=figsize, figloc=figloc, *args, **kwargs)
             return

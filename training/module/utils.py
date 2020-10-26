@@ -1,5 +1,4 @@
 from module.DataTable import DataTable
-from module.DataLoader import DataLoader
 
 from collections import OrderedDict as odict
 from sklearn.metrics import roc_curve, roc_auc_score
@@ -187,15 +186,15 @@ def get_recon_errors(data_list, autoencoder, **kwargs):
     recon = []
     errors = []
     
-    for i,d in enumerate(data_list):
+    for i, data in enumerate(data_list):
         recon.append(
             DataTable(
-                pd.DataFrame(autoencoder.predict(d.data), columns=d.columns, index=d.index),
-                name="{0} pred".format(d.name)
+                pd.DataFrame(autoencoder.predict(data.data), columns=data.columns, index=data.index),
+                name="{0} pred".format(data.name)
             )
         )
         errors.append(
-            get_errors(recon[i].data, d.data, out_name="{0} error".format(d.name), index=d.df.index, **kwargs)
+            get_errors(recon[i].data, data.data, out_name="{0} error".format(data.name), index=data.df.index, **kwargs)
         )
         
     return errors, recon
@@ -270,11 +269,7 @@ def roc_auc_plot(data_errs, signal_errs, metrics='loss', *args, **kwargs):
     
 
 def percentile_normalization_ranges(data, n):
-    
-    print("axis 0: ", data.axes[0])
-    
     return np.asarray(list(zip(np.percentile(data, n, axis=0), np.percentile(data, 100-n, axis=0))))
-
 
 def get_plot_params(
     n_plots,

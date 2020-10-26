@@ -62,7 +62,7 @@ class AucGetter(object):
                 if self.training_output_path.endswith(".h5"):
                     self.training_output_path.rstrip(".h5")
         
-        self.instance = trainer.Trainer(self.training_output_path)
+        self.trainer = trainer.Trainer(self.training_output_path)
         self.time('init')
     
     def start(self):
@@ -96,36 +96,28 @@ class AucGetter(object):
         test = self.get_test_dataset(data_holder, test_key)
         self.start()
         
-        print("AucGetter test data: ", test)
         normed = {}
-        
-        if 'rng' in self.norm_args:
-            for key in data_holder.KEYS:
-                if key != test_key:
-                    normed[key] = getattr(data_holder, key).data.normalize(**self.norm_args)
-            normed[test_key] = test.normalize(**self.norm_args)
-        else:
-            for d, elt in list(data_holder.KEYS.items()):
-                if d != test_key:
-                    normed[d] = test.normalize(elt.data, **self.norm_args)
-            
-            normed[test_key] = test.normalize(test, **self.norm_args)
+
+        for key in data_holder.KEYS:
+            if key != test_key:
+                normed[key] = getattr(data_holder, key).data.normalize_in_range(self.norm_args["rng"])
+        normed[test_key] = test.normalize_in_range(rng=self.norm_args["rng"])
         
         for key in normed:
             normed[key].name = key
-        ae = self.instance.load_model()
+        
+        auto_encoder = self.trainer.load_model()
+        
         normed = list(normed.values())
-        err, recon = utils.get_recon_errors(normed, ae, **kwargs)
+        err, recon = utils.get_recon_errors(normed, auto_encoder, **kwargs)
+        
         for i in range(len(err)):
             err[i].name = err[i].name.rstrip('error').strip()
         
-        if 'rng' in self.norm_args:
-            for i in range(len(recon)):
-                recon[i] = recon[i].inverse_normalize(out_name=recon[i].name, **self.norm_args)
-        else:
-            for i in range(len(recon)):
-                recon[i] = test.inverse_normalize(recon[i], out_name=recon[i].name, **self.norm_args)
-        del ae
+        for i in range(len(recon)):
+            recon[i] = recon[i].inverse_normalize_in_range(out_name=recon[i].name, rng=self.norm_args["rng"])
+        
+        del auto_encoder
         self.time('recon gen')
         
         return [{y.name: y for y in x} for x in [normed, err, recon]]

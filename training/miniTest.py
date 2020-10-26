@@ -7,10 +7,10 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 
-run_training = True
-run_produce_aucs = True
+run_training = False
+run_produce_aucs = False
 run_plot_ROC_curves = True
-run_plot_AUC_table = True
+run_plot_AUC_table = False
 
 output_path = "trainingResults/"
 aucs_path = output_path+"aucs/"

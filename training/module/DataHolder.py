@@ -14,9 +14,8 @@ class DataHolder(object):
             # print('loading {} from path \'{}\'...'.format(name, path))
             setattr(self, name, SignalElement(path, name))
             self.KEYS[name] = getattr(self, name)
-        
-        print(('found {} datasets'.format(len(names))))
+            self.KEYS[name] = getattr(self, name)
     
     def load(self, hlf=True, eflow=True, hlf_to_drop=['Energy', 'Flavor']):
-        for k, v in list(self.KEYS.items()):
-            v._load(hlf, eflow, hlf_to_drop)
+        for key, value in list(self.KEYS.items()):
+            value._load(hlf, eflow, hlf_to_drop)
