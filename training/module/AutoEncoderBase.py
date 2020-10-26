@@ -1,11 +1,11 @@
-from module.logger import logger
+from module.Logger import Logger
 
 import keras
 
-class AutoEncoderBase(logger):
+class AutoEncoderBase(Logger):
 
     def __init__(self, name="autoencoder", verbose=True):
-        logger.__init__(self)
+        Logger.__init__(self)
         self._LOG_PREFIX = "base_autoencoder :: "
         self.VERBOSE = verbose
         self.name = name

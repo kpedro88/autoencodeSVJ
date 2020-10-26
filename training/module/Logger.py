@@ -1,4 +1,4 @@
-class logger:
+class Logger:
     """
     good logging parent class.
     Usage:

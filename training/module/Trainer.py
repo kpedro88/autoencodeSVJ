@@ -1,5 +1,5 @@
-from module.logger import logger
-from module.pklFile import pkl_file
+from module.Logger import Logger
+from module.PklFile import PklFile
 import module.utils as utils
 
 from keras.models import model_from_json
@@ -12,7 +12,7 @@ import traceback
 import os
 import numpy as np
 
-class Trainer(logger):
+class Trainer(Logger):
     """
     Wraps training/testing/evaluation activity for a model in an h5 file saver, which keeps all
     training inputs/outputs, model performance stats, model weights, etc.
@@ -21,7 +21,7 @@ class Trainer(logger):
     ### LIFE/DEATH
 
     def __init__(self, name, verbose=True):
-        logger.__init__(self)
+        Logger.__init__(self)
 
         self._LOG_PREFIX = "train_shell :: "
         self.VERBOSE = verbose
@@ -32,7 +32,7 @@ class Trainer(logger):
         if not self.config_file.endswith(".pkl"):
             self.config_file += ".pkl"
             
-        self.config = pkl_file(self.config_file)
+        self.config = PklFile(self.config_file)
         
         defaults = {
             'name': name,

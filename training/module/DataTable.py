@@ -1,5 +1,5 @@
 import module.utils as utils
-from module.logger import logger
+from module.Logger import Logger
 
 from enum import Enum
 from sklearn.model_selection import train_test_split
@@ -10,7 +10,7 @@ import numpy as np
 import chardet
 import glob
 
-class DataTable(logger):
+class DataTable(Logger):
     """
         wrapper for the pandas data table. Allows for quick variable plotting and train/test/splitting.
     """
@@ -25,7 +25,7 @@ class DataTable(logger):
     
     def __init__(self, data, headers=None, name=None, verbose=True):
         
-        logger.__init__(self, "data_table :: ", verbose)
+        Logger.__init__(self, "data_table :: ", verbose)
         self.name = name or "untitled {}".format(DataTable.table_count)
         DataTable.table_count += 1
         

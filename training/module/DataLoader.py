@@ -1,5 +1,5 @@
 import module.utils as utils
-from module.logger import logger
+from module.Logger import Logger
 from module.DataTable import DataTable
 
 from collections import OrderedDict as odict
@@ -7,13 +7,13 @@ import os
 import h5py
 import numpy as np
 
-class DataLoader(logger):
+class DataLoader(Logger):
     """
     data loader/handler/merger for h5 files with the general format of this repository
     """
     
     def __init__(self, name, verbose=True):
-        logger.__init__(self)
+        Logger.__init__(self)
         self.name = name
         self._LOG_PREFIX = "data_loader :: "
         self.VERBOSE = verbose

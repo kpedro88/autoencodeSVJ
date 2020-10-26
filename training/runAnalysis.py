@@ -163,7 +163,7 @@ def get_training_info_dict(filepath):
     if not os.path.exists(filepath):
         print("Could not open file: ", filepath)
         raise AttributeError
-    return trainer.pkl_file(filepath).store.copy()
+    return trainer.PklFile(filepath).store.copy()
 
 def printTrainingInfo():
     print("\nRunning printTrainingInfo\n")

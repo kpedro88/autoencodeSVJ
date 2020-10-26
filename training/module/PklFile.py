@@ -3,10 +3,10 @@ import module.utils as utils
 import collections
 import os
 import pickle
-
 from pathlib import Path
 
-class pkl_file(collections.MutableMapping):
+
+class PklFile(collections.MutableMapping):
     """Dictionary which saves all attributes to a .pkl file on access/altering"""
     
     def __init__(self, path, verbose=1, *args, **kwargs):
