@@ -1,5 +1,5 @@
 from module.dataTable import data_table
-from module.dataLoader import data_loader
+from module.DataLoader import DataLoader
 
 from collections import OrderedDict as odict
 from sklearn.metrics import roc_curve, roc_auc_score
@@ -421,11 +421,12 @@ def load_all_data(globstring, name, include_hlf=True, include_eflow=True, hlf_to
     if not (include_hlf or include_eflow):
         raise AttributeError
         
-    d = data_loader(name, verbose=False)
+    data_loader = DataLoader(name, verbose=False)
     for f in files:
-        d.add_sample(f)
+        data_loader.add_sample(f)
         
     train_modify=None
+    
     if include_hlf and include_eflow:
         train_modify = lambda *args, **kwargs: all_modify(hlf_to_drop=hlf_to_drop, *args, **kwargs)
     elif include_hlf:
@@ -433,10 +434,10 @@ def load_all_data(globstring, name, include_hlf=True, include_eflow=True, hlf_to
     else:
         train_modify = eflow_modify
         
-    event = d.make_table('event_features', name + ' event features')
-    data = train_modify(d.make_tables(to_include, name, 'stack'))
-    jets = train_modify(d.make_tables(to_include, name, 'split'))
-    flavors = d.make_table('jet_features', name + ' jet flavor', 'stack').cfilter("Flavor")
+    event = data_loader.make_table('event_features', name + ' event features')
+    data = train_modify(data_loader.make_tables(to_include, name, 'stack'))
+    jets = train_modify(data_loader.make_tables(to_include, name, 'split'))
+    flavors = data_loader.make_table('jet_features', name + ' jet flavor', 'stack').cfilter("Flavor")
     
     return data, jets, event, flavors
 

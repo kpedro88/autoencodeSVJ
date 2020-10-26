@@ -149,7 +149,7 @@ def save_all_missing_AUCs(summary_path, signals_path, AUCs_path):
         
         if not os.path.exists(auc_path):
             tf.compat.v1.reset_default_graph()
-            auc_getter = AucGetter(filename=filename, summary_path=summary_path, times=True)
+            auc_getter = AucGetter(filename=filename, summary_path=summary_path, print_times=True)
 
             data_holder = DataHolder(qcd=row.qcd_path, **signalDict)
             data_holder.load()

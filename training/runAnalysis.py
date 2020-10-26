@@ -195,7 +195,7 @@ def drawROCcurve(efp_base, bottleneck_dim, version=None):
     elt.roc(xscale='log', metrics=["mae"])
 
 def addSampleAndPrintShape():
-    newData = utils.data_loader(name="data")
+    newData = utils.DataLoader(name="data")
     newData.add_sample(input_path+"qcd/base_3/data_0_data.h5")
     
     print("shape: ", newData.data['jet_features'].shape)

@@ -1,7 +1,8 @@
-from module.signalElement import signal_element
+from module.SignalElement import SignalElement
 
 class DataHolder(object):
     def __init__(self, **kwargs):
+        
         self.KEYS = {}
         names = sorted(kwargs.keys())
         
@@ -11,7 +12,7 @@ class DataHolder(object):
                 name = 'Zprime_' + name
             name = name.replace('.', '')
             # print('loading {} from path \'{}\'...'.format(name, path))
-            setattr(self, name, signal_element(path, name))
+            setattr(self, name, SignalElement(path, name))
             self.KEYS[name] = getattr(self, name)
         
         print(('found {} datasets'.format(len(names))))
@@ -19,14 +20,3 @@ class DataHolder(object):
     def load(self, hlf=True, eflow=True, hlf_to_drop=['Energy', 'Flavor']):
         for k, v in list(self.KEYS.items()):
             v._load(hlf, eflow, hlf_to_drop)
-    
-    def add_attribute(self, name, function):
-        for k, v in list(self.KEYS.items()):
-            v._add_attribute(name, function)
-    
-    def rm_attribute(self, name):
-        for k, v in list(self.KEYS.items()):
-            v._rm_attribute(name)
-    
-    def get(self, name):
-        return [getattr(v, name) for v in list(self.KEYS.values())]

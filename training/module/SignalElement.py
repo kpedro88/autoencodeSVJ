@@ -1,6 +1,6 @@
 import module.utils as utils
 
-class signal_element(object):
+class SignalElement(object):
     def __init__(self, path, name):
         self._hlf = None
         self._eflow = None
@@ -25,13 +25,7 @@ class signal_element(object):
         (self.data,
          self.jets,
          self.event,
-         self.flavor) = utils.load_all_data(
-            self._path, self._name,
-            include_hlf=self._hlf, include_eflow=self._eflow, hlf_to_drop=self._hlf_to_drop
+         self.flavor) = utils.load_all_data(self._path, self._name,
+                                            include_hlf=self._hlf, include_eflow=self._eflow,
+                                            hlf_to_drop=self._hlf_to_drop
         )
-    
-    def _add_attribute(self, name, function):
-        setattr(self, name, function(self))
-    
-    def _rm_attribute(self, name):
-        delattr(self, name)

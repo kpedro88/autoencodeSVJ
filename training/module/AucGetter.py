@@ -14,8 +14,9 @@ class AucGetter(object):
     and be able to evaluate the auc on each signal to determine a 'general auc' for all signals.
     '''
     
-    def __init__(self, filename, summary_path, qcd_path=None, times=False):
-        self.times = times
+    def __init__(self, filename, summary_path, qcd_path=None, print_times=False):
+        
+        self.print_times = print_times
         self.start()
         self.name = summaryProcessor.summary_by_name(summary_path+filename)
         self.d = summaryProcessor.load_summary(self.name)
@@ -34,6 +35,8 @@ class AucGetter(object):
                 raise AttributeError
         
         self.qcd_path = qcd_path
+        
+        self.test_split = self.d["test_split"]
         
         self.hlf = self.d['hlf']
         self.eflow = self.d['eflow']
@@ -65,7 +68,7 @@ class AucGetter(object):
     
     def time(self, info=None):
         end = time.time() - self.__TIME
-        if self.times:
+        if self.print_times:
             print((':: TIME: ' + '{}executed in {:.2f} s'.format('' if info is None else info + ' ', end)))
         return end
     
@@ -77,15 +80,18 @@ class AucGetter(object):
         self.norm_args['rng'] = rng
         return rng
     
-    def get_test_dataset(self, data, test_key='qcd'):
+    def get_test_dataset(self, data_holder, test_key='qcd'):
         self.start()
-        assert hasattr(data, test_key), 'please pass a data_holder object instance with attribute \'{}\''.format(
+        assert hasattr(data_holder, test_key), 'please pass a data_holder object instance with attribute \'{}\''.format(
             test_key)
         
         utils.set_random_seed(self.seed)
         
-        qcd = getattr(data, test_key).data
-        train, test = qcd.split_by_event(test_fraction=self.test_split, random_state=self.seed, n_skip=2)
+        qcd = getattr(data_holder, test_key).data
+        
+        train, test = qcd.split_by_event(test_fraction=self.test_split,
+                                         random_state=self.seed,
+                                         n_skip=2)
         
         self.time('test dataset')
         return test
