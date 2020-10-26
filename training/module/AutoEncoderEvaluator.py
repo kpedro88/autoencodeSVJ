@@ -1,6 +1,8 @@
 import module.utils as utils
 import module.Trainer as trainer
 import module.SummaryProcessor as summaryProcessor
+from module.DataProcessor import DataProcessor
+from module.DataLoader import DataLoader
 
 import os
 from collections import OrderedDict as odict
@@ -17,13 +19,15 @@ class AutoEncoderEvaluator:
         self.set_variables_from_summary()
         self.set_data_paths(qcd_path=qcd_path, signals=signals)
         
+        data_loader = DataLoader()
+        
         (self.qcd,
          self.qcd_jets,
          self.qcd_event,
-         self.qcd_flavor) = utils.load_all_data(self.qcd_path, "qcd background",
-                                                include_hlf=self.hlf, include_eflow=self.eflow,
-                                                hlf_to_drop=self.hlf_to_drop
-                                                )
+         self.qcd_flavor) = data_loader.load_all_data(self.qcd_path, "qcd background",
+                                                      include_hlf=self.hlf, include_eflow=self.eflow,
+                                                      hlf_to_drop=self.hlf_to_drop
+                                                      )
         
         self.find_pkl_file()
         self.trainer = trainer.Trainer(self.training_output_path)
@@ -32,13 +36,13 @@ class AutoEncoderEvaluator:
         # Set random seed to the same value as during the training
         utils.set_random_seed(self.seed)
         
-        # Split input data into training, validaiton and test samples
-        self.qcd_train_and_validation_data, self.qcd_test_data = self.qcd.split_by_event(test_fraction=self.test_split,
-                                                                                         random_state=self.seed,
-                                                                                         n_skip=len(self.qcd_jets))
-
-        self.qcd_train_data, self.qcd_validation_data = self.qcd_train_and_validation_data.train_test_split(self.val_split,
-                                                                                                            self.seed)
+        data_processor = DataProcessor(validation_fraction=self.val_split,
+                                       test_fraction=self.test_split,
+                                       seed=self.seed)
+        
+        (self.qcd_train_data,
+         self.qcd_validation_data,
+         self.qcd_test_data) = data_processor.split_to_train_validate_test(data_table=self.qcd, n_skip=len(self.qcd_jets))
         
         # Normalize the input
         if self.norm_type == "Custom":
@@ -122,16 +126,18 @@ class AutoEncoderEvaluator:
     
         self.signals = signals
     
+        data_loader = DataLoader()
+    
         for signal in self.signals:
             setattr(self, signal + '_path', self.signals[signal])
         
             (data,
              jets,
              event,
-             flavor) = utils.load_all_data(getattr(self, signal + '_path'), signal,
-                                           include_eflow=self.eflow, hlf_to_drop=self.hlf_to_drop,
-                                           include_hlf=self.hlf
-                                           )
+             flavor) = data_loader.load_all_data(getattr(self, signal + '_path'), signal,
+                                                 include_eflow=self.eflow, hlf_to_drop=self.hlf_to_drop,
+                                                 include_hlf=self.hlf
+                                                 )
             setattr(self, signal, data)
             setattr(self, signal + '_jets', jets)
             setattr(self, signal + '_event', event)

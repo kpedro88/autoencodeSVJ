@@ -158,17 +158,6 @@ class DataTable(Logger):
         
         return DataTable(t1, headers=match_list, name=self.name), DataTable(t2, headers=other, name=self.name)
 
-    def train_test_split(self, test_fraction=0.25, random_state=None):
-        dtrain, dtest = train_test_split(self, test_size=test_fraction, random_state=random_state)
-        return DataTable(dtrain, name="train"), DataTable(dtest, name="test")
-    
-    def split_by_event(self, test_fraction=0.25, random_state=None, n_skip=2):
-        # shuffle event indicies
-        train_idx, test_idx = train_test_split(self.df.index[0::n_skip], test_size=test_fraction,
-                                               random_state=random_state)
-        train, test = [np.asarray([x + i for i in range(n_skip)]).T.flatten() for x in [train_idx, test_idx]]
-        return DataTable(self.df.loc[train], name="train"), DataTable(self.df.loc[test], name="test")
-
     def cdrop(self, globstr, inplace=False):
         to_drop = list(utils.parse_globlist(globstr, list(self.df.columns)))
         

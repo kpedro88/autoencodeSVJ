@@ -7,7 +7,6 @@ from sklearn.metrics import roc_curve, roc_auc_score
 import os
 import glob
 import subprocess
-import chardet
 import random
 
 import pandas as pd
@@ -344,49 +343,7 @@ def glob_in_repo(globstring):
     return files
 
 
-def all_modify(tables, hlf_to_drop=['Energy', 'Flavor']):
-    if not isinstance(tables, list) or isinstance(tables, tuple):
-        tables = [tables]
-    for i, table in enumerate(tables):
-        tables[i].cdrop(['0'] + hlf_to_drop, inplace=True)
-        
-        newNames = dict()
-        
-        for column in table.df.columns:
-            encoding = chardet.detect(column)["encoding"]
-            if column.isdigit():
-                
-                newNames[column] = "eflow %s" % (column.decode(encoding))
-            elif type(column) is bytes:
-                newNames[column] = column.decode(encoding)
-        
-        tables[i].df.rename(columns=newNames, inplace=True)
-        tables[i].headers = list(tables[i].df.columns)
-    if len(tables) == 1:
-        return tables[0]
-    return tables
 
-
-def hlf_modify(tables, hlf_to_drop=['Energy', 'Flavor']):
-    if not isinstance(tables, list) or isinstance(tables, tuple):
-        tables = [tables] 
-    for i,table in enumerate(tables):
-        tables[i].cdrop(hlf_to_drop, inplace=True)
-    if len(tables) == 1:
-        return tables[0]
-    return tables
-
-
-def eflow_modify(tables):
-    if not isinstance(tables, list) or isinstance(tables, tuple):
-        tables = [tables] 
-    for i,table in enumerate(tables):
-        tables[i].cdrop(['0'], inplace=True)
-        tables[i].df.rename(columns=dict([(c, "eflow {}".format(c)) for c in tables[i].df.columns if c.isdigit()]), inplace=True)
-        tables[i].headers = list(tables[i].df.columns)
-    if len(tables) == 1:
-        return tables[0]
-    return tables
 
 
 def jet_flavor_split(to_split, ref=None):
@@ -395,51 +352,7 @@ def jet_flavor_split(to_split, ref=None):
     return split_table_by_column("Flavor", ref, tag_names=delphes_jet_tags_dict, df_to_write=to_split, keep_split_column=False)[0]
 
 
-def load_all_data(globstring, name, include_hlf=True, include_eflow=True, hlf_to_drop=['Energy', 'Flavor']):
-    
-    """returns...
-        - data: full data matrix wrt variables
-        - jets: list of data matricies, in order of jet order (leading, subleading, etc.)
-        - event: event-specific variable data matrix, information on MET and MT etc. 
-        - flavors: matrix of jet flavors to (later) split your data with
-    """
 
-    files = glob_in_repo(globstring)
-    
-    if len(files) == 0:
-        print("\n\nERROR -- no files found in ", globstring, "\n\n")
-        raise AttributeError
-
-    to_include = []
-    if include_hlf:
-        to_include.append("jet_features")
-    
-    if include_eflow:
-        to_include.append("jet_eflow_variables")
-        
-        
-    if not (include_hlf or include_eflow):
-        raise AttributeError
-        
-    data_loader = DataLoader(name, verbose=False)
-    for f in files:
-        data_loader.add_sample(f)
-        
-    train_modify=None
-    
-    if include_hlf and include_eflow:
-        train_modify = lambda *args, **kwargs: all_modify(hlf_to_drop=hlf_to_drop, *args, **kwargs)
-    elif include_hlf:
-        train_modify = lambda *args, **kwargs: hlf_modify(hlf_to_drop=hlf_to_drop, *args, **kwargs)
-    else:
-        train_modify = eflow_modify
-        
-    event = data_loader.make_table('event_features', name + ' event features')
-    data = train_modify(data_loader.make_tables(to_include, name, 'stack'))
-    jets = train_modify(data_loader.make_tables(to_include, name, 'split'))
-    flavors = data_loader.make_table('jet_features', name + ' jet flavor', 'stack').cfilter("Flavor")
-    
-    return data, jets, event, flavors
 
 
 def get_event_index(jet_tags):
@@ -508,8 +421,6 @@ def set_random_seed(seed_value):
     tf.random.set_seed(seed_value)
 
     # 5. Configure a new global `tensorflow` session
-    from keras import backend as K
     session_conf = tf.compat.v1.ConfigProto(intra_op_parallelism_threads=1, inter_op_parallelism_threads=1)
     sess = tf.compat.v1.Session(graph=tf.compat.v1.get_default_graph(), config=session_conf)
     tf.compat.v1.keras.backend.set_session(sess)
-#    K.set_session(sess)

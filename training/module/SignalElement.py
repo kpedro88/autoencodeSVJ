@@ -1,4 +1,4 @@
-import module.utils as utils
+from module.DataLoader import DataLoader
 
 class SignalElement(object):
     def __init__(self, path, name):
@@ -22,10 +22,12 @@ class SignalElement(object):
         self._hlf_to_drop = hlf_to_drop
         self._loaded = True
         
+        data_loader = DataLoader()
+        
         (self.data,
          self.jets,
          self.event,
-         self.flavor) = utils.load_all_data(self._path, self._name,
-                                            include_hlf=self._hlf, include_eflow=self._eflow,
-                                            hlf_to_drop=self._hlf_to_drop
+         self.flavor) = data_loader.load_all_data(self._path, self._name,
+                                                  include_hlf=self._hlf, include_eflow=self._eflow,
+                                                  hlf_to_drop=self._hlf_to_drop
         )

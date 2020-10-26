@@ -1,6 +1,7 @@
 import module.SummaryProcessor as summaryProcessor
 import module.utils as utils
 import module.Trainer as trainer
+from module.DataProcessor import DataProcessor
 
 import time
 import os
@@ -37,6 +38,7 @@ class AucGetter(object):
         self.qcd_path = qcd_path
         
         self.test_split = self.d["test_split"]
+        self.validation_split = self.d["val_split"]
         
         self.hlf = self.d['hlf']
         self.eflow = self.d['eflow']
@@ -81,9 +83,11 @@ class AucGetter(object):
         
         qcd = getattr(data_holder, test_key).data
         
-        train, test = qcd.split_by_event(test_fraction=self.test_split,
-                                         random_state=self.seed,
-                                         n_skip=2)
+        data_processor = DataProcessor(validation_fraction=self.validation_split,
+                                       test_fraction=self.test_split,
+                                       seed=self.seed)
+        
+        train, validation, test = data_processor.split_to_train_validate_test(data_table=qcd)
         
         self.time('test dataset')
         return test
@@ -92,6 +96,7 @@ class AucGetter(object):
         test = self.get_test_dataset(data_holder, test_key)
         self.start()
         
+        print("AucGetter test data: ", test)
         normed = {}
         
         if 'rng' in self.norm_args:

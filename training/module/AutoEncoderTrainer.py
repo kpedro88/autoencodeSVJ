@@ -2,6 +2,8 @@ import module.utils as utils
 import module.Trainer as trainer
 import module.AutoEncoderBase as models
 import module.SummaryProcessor as summaryProcessor
+from module.DataProcessor import DataProcessor
+from module.DataLoader import DataLoader
 import numpy as np
 import datetime
 
@@ -38,21 +40,21 @@ class AutoEncoderTrainer:
         self.test_data_fraction = test_data_fraction
         self.validation_data_fraction = validation_data_fraction
         
+        data_loader = DataLoader()
+        
         # Load QCD samples
-        (self.qcd, qcd_jets, qcd_event, qcd_flavor) = utils.load_all_data(qcd_path, "qcd background",
-                                                                     include_hlf=True, include_eflow=True,
-                                                                     hlf_to_drop=hlf_to_drop)
-        
-      
-        
-        # Split input data into training, validation and test samples
-        train_and_validation_data, test_data = self.qcd.split_by_event(test_fraction=test_data_fraction,
-                                                                  random_state=self.seed,
-                                                                  n_skip=len(qcd_jets))
-        
-        train_data, validation_data = train_and_validation_data.train_test_split(test_fraction=validation_data_fraction,
-                                                                                 random_state=self.seed)
+        (self.qcd, qcd_jets, qcd_event, qcd_flavor) = data_loader.load_all_data(qcd_path, "qcd background",
+                                                                                include_hlf=True, include_eflow=True,
+                                                                                hlf_to_drop=hlf_to_drop)
 
+        data_processor = DataProcessor(validation_fraction=self.validation_data_fraction,
+                                       test_fraction=self.test_data_fraction,
+                                       seed=self.seed)
+        
+        (train_data,
+         validation_data,
+         test_data) = data_processor.split_to_train_validate_test(data_table=self.qcd, n_skip=len(qcd_jets))
+        
         train_data.name = "qcd training data"
         validation_data.name = "qcd validation data"
         
