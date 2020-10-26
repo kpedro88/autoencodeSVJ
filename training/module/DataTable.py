@@ -7,35 +7,28 @@ from sklearn.model_selection import train_test_split
 import sklearn.preprocessing as prep
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
 import chardet
 import glob
 
-class data_table(logger):
-    class NORM_TYPES(Enum):
+class DataTable(logger):
+    """
+        wrapper for the pandas data table. Allows for quick variable plotting and train/test/splitting.
+    """
+    
+    class NormTypes(Enum):
         MinMaxScaler = 0
         StandardScaler = 1
         RobustScaler = 2
     
-    _RDICT_NORM_TYPES = dict([(x.value, x.name) for x in NORM_TYPES])
+    norm_types_dict = dict([(x.value, x.name) for x in NormTypes])
+    table_count = 0
     
-    TABLE_COUNT = 0
-    
-    """
-    wrapper for the pandas data table.
-    allows for quick variable plotting and train/test/splitting.
-    """
-    
-    def __init__(
-            self,
-            data,
-            headers=None,
-            name=None,
-            verbose=1,
-    ):
+    def __init__(self, data, headers=None, name=None, verbose=True):
+        
         logger.__init__(self, "data_table :: ", verbose)
-        self.name = name or "untitled {}".format(data_table.TABLE_COUNT)
-        data_table.TABLE_COUNT += 1
+        self.name = name or "untitled {}".format(DataTable.table_count)
+        DataTable.table_count += 1
+        
         if headers is not None:
             self.headers = headers
             data = np.asarray(data)
@@ -45,7 +38,7 @@ class data_table(logger):
         elif isinstance(data, pd.DataFrame):
             self.headers = data.columns
             self.data = data
-        elif isinstance(data, data_table):
+        elif isinstance(data, DataTable):
             self.headers = data.headers
             self.data = data.df.values
             self.name = data.name
@@ -73,11 +66,11 @@ class data_table(logger):
             return self.normalize_in_range(rng, out_name)
         
         if isinstance(norm_type, str):
-            norm_type = getattr(self.NORM_TYPES, norm_type)
+            norm_type = getattr(self.NormTypes, norm_type)
         elif isinstance(norm_type, int):
-            norm_type = getattr(self.NORM_TYPES, self._RDICT_NORM_TYPES[norm_type])
+            norm_type = getattr(self.NormTypes, self.norm_types_dict[norm_type])
         
-        assert isinstance(norm_type, self.NORM_TYPES)
+        assert isinstance(norm_type, self.NormTypes)
         
         self.scaler = getattr(prep, norm_type.name)(**scaler_args)
         self.scaler.fit(self.df)
@@ -85,24 +78,24 @@ class data_table(logger):
         if data is None:
             data = self
         
-        assert isinstance(data, data_table), "data must be data_table type"
+        assert isinstance(data, DataTable), "data must be data_table type"
         
         if out_name is None:
             out_name = "'{}' normed to '{}'".format(data.name, self.name)
         
-        ret = data_table(pd.DataFrame(self.scaler.transform(data.df), columns=data.df.columns, index=data.df.index),
-                         name=out_name)
+        ret = DataTable(pd.DataFrame(self.scaler.transform(data.df), columns=data.df.columns, index=data.df.index),
+                        name=out_name)
         return ret
     
     def inverse_normalize(self, data=None, norm_type=0, out_name=None, rng=None, **scaler_args):
         if rng is not None:
             return self.inverse_normalize_in_range(rng, out_name)
         if isinstance(norm_type, str):
-            norm_type = getattr(self.NORM_TYPES, norm_type)
+            norm_type = getattr(self.NormTypes, norm_type)
         elif isinstance(norm_type, int):
-            norm_type = getattr(self.NORM_TYPES, self._RDICT_NORM_TYPES[norm_type])
+            norm_type = getattr(self.NormTypes, self.norm_types_dict[norm_type])
         
-        assert isinstance(norm_type, self.NORM_TYPES)
+        assert isinstance(norm_type, self.NormTypes)
         
         self.scaler = getattr(prep, norm_type.name)(**scaler_args)
         self.scaler.fit(self.df)
@@ -110,12 +103,12 @@ class data_table(logger):
         if data is None:
             data = self
         
-        assert isinstance(data, data_table), "data must be data_table type"
+        assert isinstance(data, DataTable), "data must be data_table type"
         
         if out_name is None:
             out_name = "'{}' inv_normed to '{}'".format(data.name, self.name)
         
-        ret = data_table(
+        ret = DataTable(
             pd.DataFrame(self.scaler.inverse_transform(data.df), columns=data.df.columns, index=data.df.index),
             name=out_name)
         
@@ -126,7 +119,7 @@ class data_table(logger):
         if out_name is None:
             out_name = "{} norm".format(self.name)
         
-        return data_table((self.df - rng[:, 0]) / (rng[:, 1] - rng[:, 0]), name=out_name)
+        return DataTable((self.df - rng[:, 0]) / (rng[:, 1] - rng[:, 0]), name=out_name)
     
     def inverse_normalize_in_range(self, rng, out_name=None):
         if out_name is None:
@@ -135,7 +128,7 @@ class data_table(logger):
             else:
                 out_name = "{} inverse normed".format(self.name)
 
-        return data_table(self.df * (rng[:, 1] - rng[:, 0]) + rng[:, 0], name=out_name)
+        return DataTable(self.df * (rng[:, 1] - rng[:, 0]) + rng[:, 0], name=out_name)
     
     def __getattr__(self, attr):
         if hasattr(self.df, attr):
@@ -163,126 +156,26 @@ class data_table(logger):
         
         t1, t2 = self.df.drop(other, axis=1), self.df.drop(match_list, axis=1)
         
-        return data_table(t1, headers=match_list, name=self.name), data_table(t2, headers=other, name=self.name)
+        return DataTable(t1, headers=match_list, name=self.name), DataTable(t2, headers=other, name=self.name)
 
     def train_test_split(self, test_fraction=0.25, random_state=None):
         dtrain, dtest = train_test_split(self, test_size=test_fraction, random_state=random_state)
-        return data_table(dtrain, name="train"), data_table(dtest, name="test")
+        return DataTable(dtrain, name="train"), DataTable(dtest, name="test")
     
     def split_by_event(self, test_fraction=0.25, random_state=None, n_skip=2):
         # shuffle event indicies
         train_idx, test_idx = train_test_split(self.df.index[0::n_skip], test_size=test_fraction,
                                                random_state=random_state)
         train, test = [np.asarray([x + i for i in range(n_skip)]).T.flatten() for x in [train_idx, test_idx]]
-        return data_table(self.df.loc[train], name="train"), data_table(self.df.loc[test], name="test")
+        return DataTable(self.df.loc[train], name="train"), DataTable(self.df.loc[test], name="test")
 
-    
-    def plot(
-            self,
-            others=[],
-            values="*",
-            bins=32,
-            rng=None,
-            cols=4,
-            ticksize=8,
-            fontsize=10,
-            normed=0,
-            figloc="lower right",
-            figsize=16,
-            alpha=0.7,
-            xscale="linear",
-            yscale="linear",
-            histtype='step',
-            figname="Untitled",
-            savename=None,
-    ):
-        if isinstance(values, str):
-            values = [key for key in self.headers if glob.fnmatch.fnmatch(key, values)]
-        if not hasattr(values, "__iter__"):
-            values = [values]
-        for i in range(len(values)):
-            if isinstance(values[i], int):
-                values[i] = self.headers[values[i]]
-        
-        if not isinstance(others, list) or isinstance(others, tuple):
-            others = [others]
-        
-        for i in range(len(others)):
-            if not isinstance(others[i], data_table):
-                others[i] = data_table(others[i], headers=self.headers)
-        
-        n = len(values)
-        rows = self._rows(cols, n)
-        
-        if n < cols:
-            cols = n
-            rows = 1
-        
-        plot_data = [self[v] for v in values]
-        plot_others = [[other[v] for v in values] for other in others]
-        
-        if rng is None:
-            rmax = np.max([d.max().values for d in ([self] + others)], axis=0)
-            rmin = np.min([d.min().values for d in ([self] + others)], axis=0)
-            rng = np.array([rmin, rmax]).T
-        elif len(rng) == 2 and all([not hasattr(r, "__iter__") for r in rng]):
-            rng = [rng for i in range(len(plot_data))]
-        
-        weights = None
-        
-        if not isinstance(figsize, tuple):
-            figsize = (figsize, rows * float(figsize) / cols)
-        
-        self.log("plotting distrubution(s) for table(s) {}".format([self.name, ] + [o.name for o in others]))
-        plt.rcParams['figure.figsize'] = figsize
-        
-        use_weights = False
-        if normed == 'n':
-            normed = 0
-            use_weights = True
-        
-        for i in range(n):
-            ax = plt.subplot(rows, cols, i + 1)
-            if use_weights:
-                weights = np.ones_like(plot_data[i]) / float(len(plot_data[i]))
-            
-            ax.hist(plot_data[i], bins=bins, range=rng[i], histtype=histtype, normed=normed, label=self.name,
-                    weights=weights, alpha=alpha)
-            
-            for j in range(len(others)):
-                if use_weights:
-                    weights = np.ones_like(plot_others[j][i]) / float(len(plot_others[j][i]))
-                
-                # ax.hist(plot_others[j][i]/plot_data[i].shape[0], bins=bins, range=rng[i], histtype=histtype, label=others[j].name, normed=0, weights=weights, alpha=alpha)
-                ax.hist(plot_others[j][i], bins=bins, range=rng[i], histtype=histtype, label=others[j].name,
-                        normed=normed, weights=weights, alpha=alpha)
-            
-            plt.xlabel(plot_data[i].name + " {}-scaled".format(xscale), fontsize=fontsize)
-            plt.ylabel("{}-scaled".format(yscale), fontsize=fontsize)
-            plt.xticks(size=ticksize)
-            plt.yticks(size=ticksize)
-            plt.yscale(yscale)
-            plt.xscale(xscale)
-            plt.gca().spines['left']._adjust_location()
-            plt.gca().spines['bottom']._adjust_location()
-        
-        handles, labels = ax.get_legend_handles_labels()
-        plt.figlegend(handles, labels, loc=figloc)
-        plt.suptitle(figname)
-        plt.tight_layout(pad=0.01, w_pad=0.01, h_pad=0.01, rect=[0, 0.03, 1, 0.95])
-        if savename is None:
-            plt.show()
-        else:
-            plt.savefig(savename)
-    
-    
     def cdrop(self, globstr, inplace=False):
         to_drop = list(utils.parse_globlist(globstr, list(self.df.columns)))
         
         if inplace:
             modify = self
         else:
-            ret = data_table(self)
+            ret = DataTable(self)
             modify = ret
 
         first_axis_label = modify.df.axes[1][0]
@@ -318,7 +211,7 @@ class data_table(logger):
         if inplace:
             modify = self
         else:
-            ret = data_table(self)
+            ret = DataTable(self)
             modify = ret
         
         dummy = []
@@ -357,10 +250,4 @@ class data_table(logger):
     
     def cmerge(self, other, out_name):
         assert self.shape[0] == other.shape[0], 'data tables must have same number of samples'
-        return data_table(self.df.join(other.df), name=out_name)
-    
-    def _rows(self, cols, n):
-        return n / cols + bool(n % cols)
-    
-    def split_to_jets(self):
-        return utils.split_to_jets(self)
+        return DataTable(self.df.join(other.df), name=out_name)

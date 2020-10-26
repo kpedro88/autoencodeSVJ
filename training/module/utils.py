@@ -1,4 +1,4 @@
-from module.dataTable import data_table
+from module.DataTable import DataTable
 from module.DataLoader import DataLoader
 
 from collections import OrderedDict as odict
@@ -69,7 +69,7 @@ def get_errors(true, pred, out_name="errors", functions=["mse", "mae"], names=[N
     
     raw = [func(true, pred) for func in functions_keep]
     raw = np.asarray([keras.backend.eval(x) if isinstance(x, tf.Tensor) else x for x in raw]).T
-    return data_table(
+    return DataTable(
         pd.DataFrame(raw, columns=[str(f) for f in names], index=index),
         name=out_name
     )
@@ -96,9 +96,9 @@ def split_table_by_column(column_name, df, tag_names=None, keep_split_column=Fal
     
     for region, idx in list(index.items()):
         if keep_split_column or column_name not in df_to_write:
-            tagged.append(data_table(df_to_write.iloc[idx], headers=list(df_to_write.columns), name=tag_names[region]))
+            tagged.append(DataTable(df_to_write.iloc[idx], headers=list(df_to_write.columns), name=tag_names[region]))
         else:
-            tagged.append(data_table(df_to_write.iloc[idx].drop(column_name, axis=1), name=tag_names[region]))
+            tagged.append(DataTable(df_to_write.iloc[idx].drop(column_name, axis=1), name=tag_names[region]))
     return tagged, dict([(tag_names[k], v) for k,v in list(index.items())])
 
 
@@ -150,14 +150,14 @@ def split_to_jets(data):
         if to_add.shape[1] == 0:
             to_add, next = next.split_by_column_names("j{}*".format(h))
         jets.append(
-            data_table(
+            DataTable(
                 data=np.asarray(to_add),
                 headers=headers[h],
                 name="jet {}".format(h)
             )
         )
 
-    full = data_table(
+    full = DataTable(
         data=np.vstack([jt.df for jt in jets]),
         headers=jets[0].headers,
         name="all jet data"
@@ -190,7 +190,7 @@ def get_recon_errors(data_list, autoencoder, **kwargs):
     
     for i,d in enumerate(data_list):
         recon.append(
-            data_table(
+            DataTable(
                 pd.DataFrame(autoencoder.predict(d.data), columns=d.columns, index=d.index),
                 name="{0} pred".format(d.name)
             )
@@ -472,7 +472,7 @@ def event_error_tags(err_jets, error_threshold, name, error_metric="mae"):
     tag = [err[error_metric] > error_threshold for err in err_jets]
     tag_idx = get_event_index(tag)
     tag_data = [d.loc[tag_idx + i] for i,d in enumerate(tag)]
-    jet_tags = data_table(
+    jet_tags = DataTable(
         pd.DataFrame(
             np.asarray(tag_data).T,
             columns=['jet {}'.format(i) for i in range(len(tag))],

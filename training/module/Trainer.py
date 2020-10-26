@@ -2,22 +2,17 @@ from module.logger import logger
 from module.pklFile import pkl_file
 import module.utils as utils
 
-
-from keras.models import Model, model_from_json
+from keras.models import model_from_json
 from keras.callbacks import EarlyStopping, ReduceLROnPlateau, TerminateOnNaN, ModelCheckpoint
 import keras.optimizers
 
 from collections import OrderedDict as odict
 from datetime import datetime
-
 import traceback
-import glob
 import os
-
 import numpy as np
 
-
-class trainer(logger):
+class Trainer(logger):
     """
     Wraps training/testing/evaluation activity for a model in an h5 file saver, which keeps all
     training inputs/outputs, model performance stats, model weights, etc.
@@ -25,12 +20,7 @@ class trainer(logger):
 
     ### LIFE/DEATH
 
-    def __init__(
-        self,
-        name,
-        verbose=True,
-        overwrite=False,
-    ):
+    def __init__(self, name, verbose=True):
         logger.__init__(self)
 
         self._LOG_PREFIX = "train_shell :: "
@@ -57,36 +47,24 @@ class trainer(logger):
             if k not in self.config:
                 self.config[k] = v
 
-    def _throw(
-        self,
-        msg,
-        exc=AttributeError,
-    ):
+    def _throw(self, msg, exc=AttributeError):
         self.close()
         self.error(msg)
         raise exc
 
-    def close(
-        self,
-    ):
+    def close(self):
         try:
             del self.config
         except:
             pass
 
-    def __del__(
-        self,
-    ):
+    def __del__(self):
         self.close()
 
     ### ACTUAL WRAPPERS
 
-    def load_model(
-        self,
-        model=None,
-        force=False,
-        custom_objects=None,
-    ):
+    def load_model(self, model=None, force=False, custom_objects=None):
+        
         w_path = self.config_file.replace(".pkl", "_weights.h5")
         # if already trained
         if self.config['trained']:
@@ -195,13 +173,6 @@ class trainer(logger):
         if y_test is None:
             y_test = x_test.copy()
 
-
-        # assert x_test.shape[0] == y_test.shape[0]
-        # assert x_train.shape[0] == y_train.shape[0]
-        # assert x_test.shape[1] == x_train.shape[1]
-        # assert y_test.shape[1] == y_train.shape[1]
-
-
         previous_epochs = self.config['epoch_splits']
 
         master_epoch_n = sum(previous_epochs)
@@ -275,9 +246,7 @@ class trainer(logger):
         js = model.to_json()
         self.config['trained'] = True 
         self.config['model_json'] = str(js)
-        # print "saving to path " + w_path
-        # model.save_weights(w_path)
-
+    
         # load the last model
         best = self.load_model()
         hvalues = [hv[:n_epochs_finished] for hv in list(history.values())]
@@ -298,12 +267,7 @@ class trainer(logger):
         end = datetime.now()
 
         self.log("finished epoch N: {}".format(finished_epoch_n))
-        # print "prev", previous_epochs
-
-
-        
         self.log("model saved")
-
 
         self.config['time'] = str(end - start)
         self.config['epochs'] = epochs
@@ -311,50 +275,3 @@ class trainer(logger):
         self.config['epoch_splits'] = previous_epochs
     
         return model
-
-    def plot_metrics(
-        self,
-        fnmatch_criteria="*loss*",
-        *args,
-        **kwargs
-    ):
-        names = []
-        metrics = []
-
-        for mname in self.config['metrics']:
-            if glob.fnmatch.fnmatch(mname, fnmatch_criteria):
-                names.append(mname)
-                metrics.append(np.asarray(self.config['metrics'][mname]))
-                
-        # break concatenated plot arrays into individual components
-        plots = []
-        for mn,metric in enumerate(metrics):
-            splits = [0,] + list(np.where(np.diff(metric[:,0].astype(int)) > 1)[0]) + [len(metric[:,0]),]
-            plots.append([])
-            for i in range(len(splits[:-1])):
-                plots[mn].append(metric[splits[i] + 1 : splits[i+1] + 1 , :])
-
-        # plot em'
-
-        fig, ax_begin, ax_end, plt_end, colors = utils.get_plot_params(1, *args, **kwargs)
-
-        ax = ax_begin(0)
-
-        for color,plot,name in zip(colors[:len(plots)], plots, names):
-            for subplot in plot:
-                ax.plot(subplot[:,0], subplot[:,1], c=color, label=name)
-
-        ax_end("epoch number", "metric value")
-        plt_end()
-
-    def remove(
-        self,
-        sure=False,
-    ):
-        if not sure:
-            self.error("NOT DELETING: run again with keyword 'sure=True' to remove!")
-        else:
-            for f in [self.config_file, self.config_file.replace(".pkl", "_weights.h5")]:
-                if os.path.exists(f):
-                    os.remove(f)
-            self.log("removed associated data files for self!")

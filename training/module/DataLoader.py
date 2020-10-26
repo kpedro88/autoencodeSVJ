@@ -1,6 +1,6 @@
 import module.utils as utils
 from module.logger import logger
-from module.dataTable import data_table
+from module.DataTable import DataTable
 
 from collections import OrderedDict as odict
 import os
@@ -53,11 +53,11 @@ class DataLoader(logger):
         name = name or self.name
         
         if len(data.shape) == 1:
-            return data_table(np.expand_dims(data, 1), headers=labels, name=name)
+            return DataTable(np.expand_dims(data, 1), headers=labels, name=name)
         elif len(data.shape) == 2:
-            return data_table(data, headers=labels, name=name)
+            return DataTable(data, headers=labels, name=name)
         elif len(data.shape) == 3:
-            ret = data_table(
+            ret = DataTable(
                 np.vstack(data),
                 headers=labels,
                 name=name
@@ -73,7 +73,7 @@ class DataLoader(logger):
                     prefix = "var"
                 
                 return [
-                    data_table(
+                    DataTable(
                         ret.iloc[i::data.shape[1]],
                         name="{} {} {}".format(ret.name, prefix, i)
                     ) for i in range(data.shape[1])
@@ -88,7 +88,7 @@ class DataLoader(logger):
                 # ]
             else:
                 prefix = 'jet' if key.startswith('jet') else 'var'
-                return data_table(
+                return DataTable(
                     self.stack_data(data, axis=1),
                     headers=self.stack_labels(labels, data.shape[1], prefix),
                     name=name,

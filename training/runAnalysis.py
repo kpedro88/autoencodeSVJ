@@ -1,6 +1,6 @@
 import module.utils as utils
 import module.evaluate as ev
-import module.trainer as trainer
+import module.Trainer as trainer
 import module.summaryProcessor as summaryProcessor
 
 import pandas as pd

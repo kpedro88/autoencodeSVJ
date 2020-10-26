@@ -98,7 +98,7 @@ def summary(summary_path, defaults={'hlf_to_drop': ['Flavor', 'Energy']}):
         print("WARNING - no summary files found!!")
         return None
     
-    return utils.data_table(pd.DataFrame(data), name='summary')
+    return utils.DataTable(pd.DataFrame(data), name='summary')
     
 
 def summary_match(search_path, verbose=True):

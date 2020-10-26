@@ -1,6 +1,6 @@
 import module.summaryProcessor as summaryProcessor
 import module.utils as utils
-import module.trainer as trainer
+import module.Trainer as trainer
 
 import time
 import os
@@ -60,7 +60,7 @@ class AucGetter(object):
                 if self.training_output_path.endswith(".h5"):
                     self.training_output_path.rstrip(".h5")
         
-        self.instance = trainer.trainer(self.training_output_path)
+        self.instance = trainer.Trainer(self.training_output_path)
         self.time('init')
     
     def start(self):
