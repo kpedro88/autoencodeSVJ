@@ -8,8 +8,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 run_training = False
-run_produce_aucs = False
-run_plot_ROC_curves = True
+run_produce_aucs = True
+run_plot_ROC_curves = False
 run_plot_AUC_table = False
 
 output_path = "trainingResults/"

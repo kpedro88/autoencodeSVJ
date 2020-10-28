@@ -1,14 +1,12 @@
 import module.utils as utils
 from module.Logger import Logger
 
-from enum import Enum
-from sklearn.model_selection import train_test_split
-
 import sklearn.preprocessing as prep
 import pandas as pd
 import numpy as np
 import chardet
 import glob
+from enum import Enum
 
 class DataTable(Logger):
     """

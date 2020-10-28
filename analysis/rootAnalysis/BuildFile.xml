@@ -1,0 +1,19 @@
+<use   name="PhysicsTools/Utilities"/>
+<use name="DataFormats/Math"/>
+<use   name="DataFormats/PatCandidates"/>
+<use     name="rootgraphics"/>
+<use     name="rootphysics"/>
+<use     name="rootminuit"/>
+<use     name="rootminuit2"/>
+<use name="root"/>
+<use   name="roottmva"/>
+<export>
+  <lib name="1"/>
+</export>
+<flags cxxflags="-g -ggdb -O0" />
+<environment>
+<bin   file="SVJselection.cpp" name="SVJselection">
+    <!-- <use   name="autoencodeSVJ/SVJselection"/> -->
+</bin>
+</environment>
+<flags   EDM_PLUGIN="1"/>
