@@ -216,7 +216,7 @@ int main(int argc, char **argv)
       if (core.Cut(Cuts::selection)) {
         core.UpdateSelectionIndex(entry);
         core.Fill(Hists::dEta, fabs(Jets->at(0).Eta() - Jets->at(1).Eta()));
-        core.Fill(Hists::dPhi, fabs(reco::deltaPhi(Jets->at(0).Phi(), Jets->at(1).Phi())));
+        core.Fill(Hists::dPhi, fabs(deltaPhi(Jets->at(0).Phi(), Jets->at(1).Phi())));
         core.Fill(Hists::tRatio, (*metFull_Pt) / MT2);
         core.Fill(Hists::mjj, Vjj.M());
         core.Fill(Hists::met2, MT2);
