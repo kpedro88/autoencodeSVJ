@@ -137,6 +137,9 @@ def save_all_missing_AUCs(summary_path, signals_path, AUCs_path):
         signalDict[key] = path
     
     summaries = summary(summary_path=summary_path)
+
+    if not os.path.exists(AUCs_path):
+        Path(AUCs_path).mkdir(parents=True, exist_ok=False)
     
     for index, row in summaries.df.iterrows():
         path = row.training_output_path
@@ -145,6 +148,7 @@ def save_all_missing_AUCs(summary_path, signals_path, AUCs_path):
         
         if not os.path.exists(auc_path):
             tf.compat.v1.reset_default_graph()
+            
             auc_getter = AucGetter(filename=filename, summary_path=summary_path)
 
             data_holder = DataHolder(qcd=row.qcd_path, **signalDict)

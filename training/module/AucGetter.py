@@ -9,11 +9,12 @@ import os
 import pandas as pd
 import numpy as np
 
+
 class AucGetter(object):
-    '''This object basically needs to be able to load a training run into memory, including all
+    """This object basically needs to be able to load a training run into memory, including all
     training/testing fractions and random seeds. It then should take a library of signals as input
     and be able to evaluate the auc on each signal to determine a 'general auc' for all signals.
-    '''
+    """
     
     def __init__(self, filename, summary_path, qcd_path=None, print_times=False):
         
@@ -55,7 +56,7 @@ class AucGetter(object):
         if not os.path.exists(self.training_output_path + ".pkl"):
             print((self.training_output_path + ".pkl"))
             self.training_output_path = utils.path_in_repo(self.training_output_path + ".pkl")
-            print((self.training_output_path))
+            print(self.training_output_path)
             if self.training_output_path is None:
                 raise AttributeError
             else:
@@ -146,19 +147,19 @@ class AucGetter(object):
         data = [(k, v['mae']['auc']) for k, v in list(aucs.items())]
         fmt = pd.DataFrame(data, columns=['name', 'auc'])
 
-        newList = []
+        new_list = []
         
         for x in fmt.name:
-            massAndR = []
+            mass_and_r = []
             for y in x.split('_')[1:]:
                 variable = y.rstrip('GeV')
                 variable = variable.replace("p", ".")
                 
-                massAndR.append(float(variable))
+                mass_and_r.append(float(variable))
             
-            newList.append(massAndR)
+            new_list.append(mass_and_r)
         
-        mass, nu = np.asarray(newList).T
+        mass, nu = np.asarray(new_list).T
         nu /= 100
         
         fmt['mass'] = mass
