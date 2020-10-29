@@ -45,7 +45,7 @@ int main(int argc, char **argv)
 {
   if(argc != 9){
     cout<<"Usage:"<<endl;
-    cout<<"./SVJselection input_file_list sample_name output_dir debug timing save_cuts nMin nMax"<<endl;
+    cout<<"./SVJselection input_file_list sample_name output_dir debug timing save_cuts first_event last_event"<<endl;
     exit(0);
   }
   

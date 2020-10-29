@@ -9,6 +9,7 @@ import datetime
 import pandas as pd
 import tensorflow as tf
 from collections import OrderedDict
+from pathlib import Path
 
 
 def dump_summary_json(*dicts, output_path):
@@ -18,6 +19,9 @@ def dump_summary_json(*dicts, output_path):
         summary_dict.update(d)
     
     assert 'training_output_path' in summary_dict, 'NEED to include a filename arg, so we can save the dict!'
+    
+    if not os.path.exists(output_path):
+        Path(output_path).mkdir(parents=True, exist_ok=False)
     
     fpath = os.path.join(output_path, summary_dict['training_output_path'].split("/")[-1] + '.summary')
     
@@ -34,6 +38,8 @@ def dump_summary_json(*dicts, output_path):
         fpath = newpath
     
     summary_dict['summary_path'] = fpath
+
+    
     
     with open(fpath, "w+") as f:
         json.dump(summary_dict, f)
@@ -112,6 +118,12 @@ def get_last_summary_file_version(summary_path, filename):
     
     return version-1
 
+def get_latest_summary_file_path(summaries_path, file_name_base, version=None):
+    if version is None:
+        version = get_last_summary_file_version(summaries_path, file_name_base)
+
+    input_summary_path = summaries_path+"/{}v{}.summary".format(file_name_base, version)
+    return input_summary_path
 
 def save_all_missing_AUCs(summary_path, signals_path, AUCs_path):
     """

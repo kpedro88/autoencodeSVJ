@@ -16,5 +16,5 @@ cd /Users/Jeremi/Documents/Physics/ETH/autoencodeSVJ/training/ || exit
 
 TERM=xterm-color
 
-echo "Running test script"
+echo "Running script ${1}"
 python $1

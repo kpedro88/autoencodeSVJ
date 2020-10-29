@@ -128,8 +128,7 @@ public:
     nMin = std::stoi(argv[7]);
     nMax = std::stoi(argv[8]);
     
-    if (nMin < 0)
-      nMin = 0;
+    if (nMin < 0) nMin = 0;
     
     log("SVJ object created");
     end();
@@ -201,8 +200,7 @@ public:
     file = new TFile((outputdir + "/" + sample + "_output.root").c_str(), "RECREATE");
     nEvents = (Int_t)chain->GetEntries();
     
-    if (nMax < 0 || nMax > nEvents)
-      nMax = nEvents;
+    if (nMax < 0 || nMax > nEvents) nMax = nEvents;
     
     log("Success");
     end();
