@@ -46,24 +46,30 @@ class AutoEncoderEvaluator:
          self.qcd_validation_data,
          self.qcd_test_data) = data_processor.split_to_train_validate_test(data_table=self.qcd, n_skip=len(self.qcd_jets))
 
+        self.qcd_train_data.name = "qcd training data"
+        self.qcd_test_data.name = "qcd test data"
+        self.qcd_validation_data.name = "qcd validation data"
+
         # Normalize the input
-        if self.norm_type == "Custom":
-            self.data_ranges = np.asarray(self.norm_ranges)
-            
-            self.qcd_train_data.name = "qcd training data"
-            self.qcd_test_data.name = "qcd test data"
-            self.qcd_validation_data.name = "qcd validation data"
-            
-            self.qcd_train_data_normalized = self.qcd_train_data.normalize_in_range(rng=self.data_ranges)
-            self.qcd_validation_data_normalized = self.qcd_validation_data.normalize_in_range(rng=self.data_ranges)
-            self.qcd_test_data_normalized = self.qcd_test_data.normalize_in_range(rng=self.data_ranges)
-            
-            for signal in self.signals:
-                setattr(self, signal + '_norm',
-                        getattr(self, signal).normalize(out_name=signal + ' norm', rng=self.data_ranges))
-        else:
-            print("Normalization not implemented: ", self.norm_type)
+        self.qcd_train_data_normalized = data_processor.normalize(data_table=self.qcd_train_data,
+                                                                  normalization_type=self.norm_type,
+                                                                  data_ranges=self.norm_ranges)
         
+        self.qcd_validation_data_normalized = data_processor.normalize(data_table=self.qcd_validation_data,
+                                                                  normalization_type=self.norm_type,
+                                                                  data_ranges=self.norm_ranges)
+
+        self.qcd_test_data_normalized = data_processor.normalize(data_table=self.qcd_test_data,
+                                                                  normalization_type=self.norm_type,
+                                                                  data_ranges=self.norm_ranges)
+           
+        for signal in self.signals:
+            setattr(self, signal + '_norm',
+                    data_processor.normalize(data_table=getattr(self, signal),
+                                             normalization_type=self.norm_type,
+                                             out_name=signal + ' norm',
+                                             data_ranges=self.norm_ranges))
+
         # self.train_data_normalized = self.train_data.norm(out_name="qcd train norm", **self.norm_args)
         
         # Get reconstruction values and errors
@@ -75,15 +81,19 @@ class AutoEncoderEvaluator:
         errors, recons = utils.get_recon_errors(data, self.model)
         
         self.qcd_err, signal_errs = errors[0], errors[1:]
+
+        self.qcd_recon = data_processor.normalize(data_table=recons[0],
+                                                  normalization_type=self.norm_type,
+                                                  data_ranges=self.norm_ranges,
+                                                  inverse=True)
         
-        if self.norm_type == "Custom":
-            self.qcd_recon = recons[0].inverse_normalize_in_range(rng=self.data_ranges)
-            
-            for err, recon, signal in zip(signal_errs, recons[1:], self.signals):
-                setattr(self, signal + '_err', err)
-                setattr(self, signal + '_recon', recon.inverse_normalize_in_range(rng=self.data_ranges))
-        else:
-            print("Normalization not implemented: ", self.norm_type)
+        for err, recon, signal in zip(signal_errs, recons[1:], self.signals):
+            setattr(self, signal + '_err', err)
+            setattr(self, signal + '_recon',
+                    data_processor.normalize(data_table=recon,
+                                             normalization_type=self.norm_type,
+                                             data_ranges=self.norm_ranges,
+                                             inverse=True))
         
         self.qcd_reps = utils.DataTable(self.model.layers[1].predict(self.qcd_test_data_normalized.data), name='QCD reps')
         
@@ -103,8 +113,6 @@ class AutoEncoderEvaluator:
                      range(2)])
         
         self.test_flavor = self.qcd_flavor.iloc[self.qcd_test_data.index]
-        
-        
         
         names = list(self.signals.keys())
         
@@ -159,7 +167,7 @@ class AutoEncoderEvaluator:
         self.training_output_path = self.d['training_output_path']
         self.norm_type = self.d["norm_type"]
         self.norm_percentile = self.d["norm_percentile"]
-        self.norm_ranges = self.d["range"]
+        self.norm_ranges = np.asarray(self.d["range"])
     
         self.norm_args = {"norm_type": self.norm_type, "norm_percentile": self.norm_percentile}
 

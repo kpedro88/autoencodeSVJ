@@ -30,10 +30,17 @@ class DataProcessor():
         
         return train_data, validation_data, test_data
         
+    def normalize(self, data_table, normalization_type, data_ranges=None, out_name=None, inverse=False):
         
-
-
-    
-    
-    
-    
+        if normalization_type == "Custom":
+            if data_ranges is None:
+                print("Custom normalization selected, but no data ranges were provided!")
+                exit(0)
+            
+            if not inverse:
+                return data_table.normalize_in_range(rng=data_ranges, out_name=out_name)
+            else:
+                return data_table.inverse_normalize_in_range(rng=data_ranges, out_name=out_name)
+        
+        else:
+            print("Normalization not implemented: ", normalization_type)

@@ -24,6 +24,7 @@ training_params = {
 }
 
 target_dim = 8
+norm_type="Custom"
 norm_percentile = 25
 n_models = 1
 

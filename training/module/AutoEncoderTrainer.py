@@ -17,6 +17,7 @@ class AutoEncoderTrainer:
                  intermediate_architecture=(30, 30),
                  test_data_fraction=0.15,
                  validation_data_fraction=0.15,
+                 norm_type="Custom",
                  norm_percentile=1,
                  hlf_to_drop=None,
                  ):
@@ -59,12 +60,17 @@ class AutoEncoderTrainer:
         validation_data.name = "qcd validation data"
         
         # Normalize the input
-        self.norm_type = "Custom"
+        self.norm_type = norm_type
         self.norm_percentile = norm_percentile
         self.data_ranges = utils.percentile_normalization_ranges(train_data, norm_percentile)
         
-        self.train_data_normalized = train_data.normalize_in_range(rng=self.data_ranges)
-        self.validation_data_normalized = validation_data.normalize(rng=self.data_ranges)
+        self.train_data_normalized = data_processor.normalize(data_table=train_data,
+                                                              normalization_type=self.norm_type,
+                                                              data_ranges=self.data_ranges)
+        
+        self.validation_data_normalized = data_processor.normalize(data_table=validation_data,
+                                                                   normalization_type=self.norm_type,
+                                                                   data_ranges=self.data_ranges)
         
         # Build the model
         self.input_size = len(self.qcd.columns)
