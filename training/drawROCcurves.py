@@ -7,10 +7,10 @@ from module.AutoEncoderEvaluator import AutoEncoderEvaluator
 # will be used.
 # ------------------------------------------------------------------------------------------------
 
-training_version = None
+training_version = 10
 efp_base = 3
 bottleneck_dim = 8
-summaries_path = "trainingResults/summary/"
+summaries_path = "trainingResults/summary/test/"
 summary_base_name = "hlf_eflow{}_{}_".format(efp_base, bottleneck_dim)
 
 input_summary_path = summaryProcessor.get_latest_summary_file_path(summaries_path=summaries_path,
@@ -27,6 +27,8 @@ signals_base_path = "../../data/training_data/all_signals/"
 signals = {"{}, {}".format(mass, rinv) : "{}{}GeV_{:1.2f}/base_3/*.h5".format(signals_base_path, mass, rinv)
            for mass in masses
            for rinv in rinvs}
+
+print("\n\nDraing ROC curves for summary: ", input_summary_path)
 
 evaluator = AutoEncoderEvaluator(input_summary_path, signals=signals)
 evaluator.roc(xscale='log', metrics=["mae"])

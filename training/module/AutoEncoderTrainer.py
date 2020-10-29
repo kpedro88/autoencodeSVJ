@@ -17,8 +17,8 @@ class AutoEncoderTrainer:
                  intermediate_architecture=(30, 30),
                  test_data_fraction=0.15,
                  validation_data_fraction=0.15,
-                 norm_type="Custom",
-                 norm_percentile=1,
+                 norm_type="",
+                 norm_args=None,
                  hlf_to_drop=None,
                  ):
         """
@@ -61,15 +61,23 @@ class AutoEncoderTrainer:
         
         # Normalize the input
         self.norm_type = norm_type
-        self.norm_percentile = norm_percentile
-        self.data_ranges = utils.percentile_normalization_ranges(train_data, norm_percentile)
+        self.norm_args = norm_args
+        
+        self.data_ranges = np.asarray([])
+        
+        if norm_type == "Custom":
+            self.data_ranges = utils.percentile_normalization_ranges(train_data, norm_args["norm_percentile"])
+        
+        print("Trainer scaler args: ", self.norm_args)
         
         self.train_data_normalized = data_processor.normalize(data_table=train_data,
                                                               normalization_type=self.norm_type,
+                                                              norm_args=self.norm_args,
                                                               data_ranges=self.data_ranges)
         
         self.validation_data_normalized = data_processor.normalize(data_table=validation_data,
                                                                    normalization_type=self.norm_type,
+                                                                   norm_args=self.norm_args,
                                                                    data_ranges=self.data_ranges)
         
         # Build the model
@@ -129,7 +137,7 @@ class AutoEncoderTrainer:
             'test_split': self.test_data_fraction,
             'val_split': self.validation_data_fraction,
             'norm_type': self.norm_type,
-            'norm_percentile': self.norm_percentile,
+            'norm_args' : self.norm_args,
             'range': self.data_ranges.tolist(),
             'target_dim': self.bottleneck_size,
             'input_dim': self.input_size,

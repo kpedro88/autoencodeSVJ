@@ -9,11 +9,11 @@ import matplotlib.pyplot as plt
 # file stored in "AUCs_path" with version specified by "training_version".
 # ------------------------------------------------------------------------------------------------
 
-training_version = 0
+training_version = 10
 efp_base = 3
 bottleneck_dim = 8
 
-AUCs_path = "trainingResults/aucs/*"
+AUCs_path = "trainingResults/aucs/test/*"
 
 matplotlib.rcParams.update({'font.size': 16})
 plt.rc('text', usetex=True)

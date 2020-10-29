@@ -6,7 +6,7 @@ import numpy as np
 
 class DataProcessor():
     
-    def __init__(self, validation_fraction, test_fraction, seed):
+    def __init__(self, validation_fraction=None, test_fraction=None, seed=None):
         self.validation_fraction = validation_fraction
         self.test_fraction = test_fraction
         self.seed = seed
@@ -29,8 +29,8 @@ class DataProcessor():
         validation_data = DataTable(test, name="validation")
         
         return train_data, validation_data, test_data
-        
-    def normalize(self, data_table, normalization_type, data_ranges=None, out_name=None, inverse=False):
+
+    def normalize(self, data_table, normalization_type, data_ranges=None, inverse=False, norm_args=None):
         
         if normalization_type == "Custom":
             if data_ranges is None:
@@ -38,9 +38,14 @@ class DataProcessor():
                 exit(0)
             
             if not inverse:
-                return data_table.normalize_in_range(rng=data_ranges, out_name=out_name)
+                return data_table.normalize_in_range(rng=data_ranges)
             else:
-                return data_table.inverse_normalize_in_range(rng=data_ranges, out_name=out_name)
+                return data_table.inverse_normalize_in_range(rng=data_ranges)
+        
+        elif normalization_type in ["RobustScaler", "MinMaxScaler", "StandardScaler"]:
+            return data_table.normalize(norm_type=normalization_type,
+                                        scaler_args=norm_args,
+                                        inverse=inverse)
         
         else:
             print("Normalization not implemented: ", normalization_type)

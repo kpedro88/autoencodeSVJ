@@ -53,24 +53,26 @@ class AutoEncoderEvaluator:
         # Normalize the input
         self.qcd_train_data_normalized = data_processor.normalize(data_table=self.qcd_train_data,
                                                                   normalization_type=self.norm_type,
-                                                                  data_ranges=self.norm_ranges)
+                                                                  data_ranges=self.norm_ranges,
+                                                                  norm_args=self.norm_args)
         
         self.qcd_validation_data_normalized = data_processor.normalize(data_table=self.qcd_validation_data,
-                                                                  normalization_type=self.norm_type,
-                                                                  data_ranges=self.norm_ranges)
+                                                                       normalization_type=self.norm_type,
+                                                                       data_ranges=self.norm_ranges,
+                                                                       norm_args=self.norm_args)
 
         self.qcd_test_data_normalized = data_processor.normalize(data_table=self.qcd_test_data,
-                                                                  normalization_type=self.norm_type,
-                                                                  data_ranges=self.norm_ranges)
-           
+                                                                 normalization_type=self.norm_type,
+                                                                 data_ranges=self.norm_ranges,
+                                                                 norm_args=self.norm_args)
+
         for signal in self.signals:
             setattr(self, signal + '_norm',
                     data_processor.normalize(data_table=getattr(self, signal),
                                              normalization_type=self.norm_type,
-                                             out_name=signal + ' norm',
-                                             data_ranges=self.norm_ranges))
+                                             data_ranges=self.norm_ranges,
+                                             norm_args=self.norm_args))
 
-        # self.train_data_normalized = self.train_data.norm(out_name="qcd train norm", **self.norm_args)
         
         # Get reconstruction values and errors
         data = [self.qcd_test_data_normalized]
@@ -85,6 +87,7 @@ class AutoEncoderEvaluator:
         self.qcd_recon = data_processor.normalize(data_table=recons[0],
                                                   normalization_type=self.norm_type,
                                                   data_ranges=self.norm_ranges,
+                                                  norm_args=self.norm_args,
                                                   inverse=True)
         
         for err, recon, signal in zip(signal_errs, recons[1:], self.signals):
@@ -93,6 +96,7 @@ class AutoEncoderEvaluator:
                     data_processor.normalize(data_table=recon,
                                              normalization_type=self.norm_type,
                                              data_ranges=self.norm_ranges,
+                                             norm_args=self.norm_args,
                                              inverse=True))
         
         self.qcd_reps = utils.DataTable(self.model.layers[1].predict(self.qcd_test_data_normalized.data), name='QCD reps')
@@ -166,10 +170,11 @@ class AutoEncoderEvaluator:
         self.val_split = self.d['val_split']
         self.training_output_path = self.d['training_output_path']
         self.norm_type = self.d["norm_type"]
-        self.norm_percentile = self.d["norm_percentile"]
         self.norm_ranges = np.asarray(self.d["range"])
+        self.norm_args = self.d['norm_args']
     
-        self.norm_args = {"norm_type": self.norm_type, "norm_percentile": self.norm_percentile}
+        print("norm type:", self.norm_type)
+        print("norm args: ", self.norm_args)
 
     def find_pkl_file(self):
         # try to find training pkl file and load 'er up

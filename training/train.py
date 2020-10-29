@@ -12,6 +12,10 @@ results_path = output_path+"trainingRuns/test/"
 
 qcd_path = "../../data/training_data/qcd/base_3/*.h5"
 
+
+# ---------------------------------------------
+# Training parameters
+
 training_params = {
     'batch_size': 32,
     'loss': 'mse',
@@ -24,16 +28,49 @@ training_params = {
 }
 
 target_dim = 8
-norm_type="Custom"
-norm_percentile = 25
 n_models = 1
+
+
+# ---------------------------------------------
+# Pick normalization type:
+
+# This is a custom implementation of scaling
+# norm_type="Custom"
+# norm_args = {"norm_percentile" : 25 }
+
+
+# https://scikit-learn.org/stable/modules/generated/sklearn.preprocessing.RobustScaler.html#sklearn.preprocessing.RobustScaler
+# norm_type="RobustScaler"
+# norm_args = {"quantile_range" : (0.25, 0.75),
+#              "with_centering" : True,
+#              "with_scaling"   : True,
+#              "copy"           : True,
+#              }
+
+# https://scikit-learn.org/stable/modules/generated/sklearn.preprocessing.MinMaxScaler.html#sklearn.preprocessing.MinMaxScaler
+# norm_type="MinMaxScaler"
+# norm_args = {"feature_range" : (0, 1),
+#              "copy"             : True,
+#              }
+
+# https://scikit-learn.org/stable/modules/generated/sklearn.preprocessing.StandardScaler.html#sklearn.preprocessing.StandardScaler
+norm_type="StandardScaler"
+norm_args = {"with_mean"    : True,
+             "copy"         : True,
+             "with_std"     : True,
+             }
+
+
+# ---------------------------------------------
+# Run the training
 
 for i in range(n_models):
         
     trainer = AutoEncoderTrainer(qcd_path=qcd_path,
                                  bottleneck_size=target_dim,
                                  training_params=training_params,
-                                 norm_percentile=norm_percentile
+                                 norm_type=norm_type,
+                                 norm_args=norm_args
                                  )
     
     trainer.run_training(training_output_path=results_path,

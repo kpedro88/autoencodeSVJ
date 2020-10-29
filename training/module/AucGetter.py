@@ -16,42 +16,15 @@ class AucGetter(object):
     and be able to evaluate the auc on each signal to determine a 'general auc' for all signals.
     """
     
-    def __init__(self, filename, summary_path, qcd_path=None, print_times=False):
+    def __init__(self, filename, summary_path, print_times=False):
         
         self.print_times = print_times
         self.start()
+        
         self.name = summaryProcessor.summary_by_name(summary_path+filename)
         self.d = summaryProcessor.load_summary(self.name)
-        self.norm_args = {}
         
-        if 'norm_type' in self.d:
-            self.norm_args["norm_type"] = str(self.d["norm_type"])
-        
-        if 'range' in self.d:
-            self.norm_args['rng'] = np.asarray(self.d['range'])
-        
-        if qcd_path is None:
-            if 'qcd_path' in self.d:
-                qcd_path = self.d['qcd_path']
-            else:
-                raise AttributeError
-        
-        self.qcd_path = qcd_path
-        
-        self.test_split = self.d["test_split"]
-        self.validation_split = self.d["val_split"]
-        
-        self.hlf = self.d['hlf']
-        self.eflow = self.d['eflow']
-        self.eflow_base = self.d['eflow_base']
-        self.hlf_to_drop = list(map(str, self.d['hlf_to_drop']))
-        
-        # get and set random seed for reproductions
-        self.seed = self.d['seed']
-        
-        # manually set a bunch of parameters from the summary dict
-        for param in ['target_dim', 'input_dim', 'test_split', 'val_split', 'training_output_path']:
-            setattr(self, param, self.d[param])
+        self.set_variables_from_summary()
         
         if not os.path.exists(self.training_output_path + ".pkl"):
             print((self.training_output_path + ".pkl"))
@@ -65,6 +38,22 @@ class AucGetter(object):
         
         self.trainer = trainer.Trainer(self.training_output_path)
         self.time('init')
+    
+    def set_variables_from_summary(self):
+        self.hlf = self.d['hlf']
+        self.eflow = self.d['eflow']
+        self.eflow_base = self.d['eflow_base']
+        self.hlf_to_drop = list(map(str, self.d['hlf_to_drop']))
+        self.seed = self.d['seed']
+        self.test_split = self.d['test_split']
+        self.validation_split = self.d['val_split']
+        self.qcd_path = self.d['qcd_path']
+        self.target_dim = self.d['target_dim']
+        self.input_dim = self.d['input_dim']
+        self.training_output_path = self.d['training_output_path']
+        self.norm_type = self.d["norm_type"]
+        self.norm_ranges = np.asarray(self.d["range"])
+        self.norm_args = self.d['norm_args']
     
     def start(self):
         self.__TIME = time.time()
@@ -94,15 +83,27 @@ class AucGetter(object):
         return test
     
     def get_errs_recon(self, data_holder, test_key='qcd', **kwargs):
-        test = self.get_test_dataset(data_holder, test_key)
+        
         self.start()
         
+        data_processor = DataProcessor(seed=self.seed)
         normed = {}
+
+        test = self.get_test_dataset(data_holder, test_key)
+        normed[test_key]= data_processor.normalize(data_table=test,
+                                                   normalization_type=self.norm_type,
+                                                   data_ranges=self.norm_ranges,
+                                                   norm_args=self.norm_args
+                                                   )
 
         for key in data_holder.KEYS:
             if key != test_key:
-                normed[key] = getattr(data_holder, key).data.normalize_in_range(self.norm_args["rng"])
-        normed[test_key] = test.normalize_in_range(rng=self.norm_args["rng"])
+                data = getattr(data_holder, key).data
+                normed[key] = data_processor.normalize(data_table=data,
+                                                       normalization_type=self.norm_type,
+                                                       data_ranges=self.norm_ranges,
+                                                       norm_args=self.norm_args
+                                                       )
         
         for key in normed:
             normed[key].name = key
@@ -116,8 +117,12 @@ class AucGetter(object):
             err[i].name = err[i].name.rstrip('error').strip()
         
         for i in range(len(recon)):
-            recon[i] = recon[i].inverse_normalize_in_range(out_name=recon[i].name, rng=self.norm_args["rng"])
-        
+            recon[i] = data_processor.normalize(data_table=recon[i],
+                                                normalization_type=self.norm_type,data_ranges=self.norm_ranges,
+                                                norm_args=self.norm_args,
+                                                inverse=True
+                                                )
+
         del auto_encoder
         self.time('recon gen')
         

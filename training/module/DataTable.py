@@ -58,60 +58,22 @@ class DataTable(Logger):
         else:
             self.df = pd.DataFrame(self.data, columns=self.headers)
     
-    def normalize(self, data=None, norm_type=0, out_name=None, rng=None, **scaler_args):
+    def normalize(self, norm_type, scaler_args, inverse=False):
         
-        if rng is not None:
-            return self.normalize_in_range(rng, out_name)
-        
-        if isinstance(norm_type, str):
-            norm_type = getattr(self.NormTypes, norm_type)
-        elif isinstance(norm_type, int):
-            norm_type = getattr(self.NormTypes, self.norm_types_dict[norm_type])
-        
-        assert isinstance(norm_type, self.NormTypes)
+        norm_type = getattr(self.NormTypes, norm_type)
         
         self.scaler = getattr(prep, norm_type.name)(**scaler_args)
         self.scaler.fit(self.df)
         
-        if data is None:
-            data = self
-        
-        assert isinstance(data, DataTable), "data must be data_table type"
-        
-        if out_name is None:
-            out_name = "'{}' normed to '{}'".format(data.name, self.name)
-        
-        ret = DataTable(pd.DataFrame(self.scaler.transform(data.df), columns=data.df.columns, index=data.df.index),
-                        name=out_name)
-        return ret
-    
-    def inverse_normalize(self, data=None, norm_type=0, out_name=None, rng=None, **scaler_args):
-        if rng is not None:
-            return self.inverse_normalize_in_range(rng, out_name)
-        if isinstance(norm_type, str):
-            norm_type = getattr(self.NormTypes, norm_type)
-        elif isinstance(norm_type, int):
-            norm_type = getattr(self.NormTypes, self.norm_types_dict[norm_type])
-        
-        assert isinstance(norm_type, self.NormTypes)
-        
-        self.scaler = getattr(prep, norm_type.name)(**scaler_args)
-        self.scaler.fit(self.df)
-        
-        if data is None:
-            data = self
-        
-        assert isinstance(data, DataTable), "data must be data_table type"
-        
-        if out_name is None:
-            out_name = "'{}' inv_normed to '{}'".format(data.name, self.name)
-        
-        ret = DataTable(
-            pd.DataFrame(self.scaler.inverse_transform(data.df), columns=data.df.columns, index=data.df.index),
-            name=out_name)
-        
-        # ret = data_table(self.scaler.inverse_transform(data.df), headers=self.headers, name=out_name)
-        return ret
+        if not inverse:
+            return DataTable(
+                pd.DataFrame(self.scaler.transform(self.df), columns=self.df.columns, index=self.df.index),
+                name="{} norm".format(self.name))
+        else:
+            return DataTable(
+                pd.DataFrame(self.scaler.inverse_transform(self.df), columns=self.df.columns, index=self.df.index),
+                name="{} inverse normed".format(self.name))
+            
     
     def normalize_in_range(self, rng, out_name=None):
         if out_name is None:
