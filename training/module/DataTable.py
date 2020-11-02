@@ -17,6 +17,7 @@ class DataTable(Logger):
         MinMaxScaler = 0
         StandardScaler = 1
         RobustScaler = 2
+        MaxAbsScaler = 3
     
     norm_types_dict = dict([(x.value, x.name) for x in NormTypes])
     table_count = 0

@@ -3,7 +3,7 @@ from module.PklFile import PklFile
 import module.utils as utils
 
 from keras.models import model_from_json
-from keras.callbacks import EarlyStopping, ReduceLROnPlateau, TerminateOnNaN, ModelCheckpoint
+from keras.callbacks import EarlyStopping, ReduceLROnPlateau, TerminateOnNaN, ModelCheckpoint, CSVLogger
 import keras.optimizers
 
 from collections import OrderedDict as odict
@@ -117,14 +117,19 @@ class Trainer(Logger):
         es_patience=10,
         lr_patience=9,
         lr_factor=0.5,
+            output_path=None
     ):
         callbacks = None
 
         w_path = self.config_file.replace(".pkl", "_weights.h5")
         if use_callbacks:
+            
+            print("Saving training history in: ", (output_path+".csv"))
+            
             callbacks = [
                 EarlyStopping(monitor='val_loss', patience=es_patience, verbose=0),
                 ReduceLROnPlateau(monitor='val_loss', factor=lr_factor, patience=lr_patience, verbose=0),
+                CSVLogger((output_path+".csv"), append=True),
                 TerminateOnNaN(),
                 ModelCheckpoint(w_path, monitor='val_loss', verbose=self.VERBOSE, save_best_only=True, save_weights_only=True, mode='min')
             ]
@@ -184,6 +189,7 @@ class Trainer(Logger):
             try:
                 for epoch in range(epochs):
                     self.log("TRAINING EPOCH {}/{}".format(master_epoch_n, finished_epoch_n))
+                    
                     nhistory = model.fit(
                         x=x_train,
                         y=y_train,

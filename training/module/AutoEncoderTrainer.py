@@ -117,7 +117,8 @@ class AutoEncoderTrainer:
             force=True,
             use_callbacks=True,
             verbose=int(verbose),
-            **self.training_params
+            **self.training_params,
+            output_path=self.training_output_path
         )
         
         self.end_timestamp = datetime.datetime.now()

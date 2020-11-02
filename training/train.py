@@ -7,8 +7,8 @@ from module.AutoEncoderTrainer import AutoEncoderTrainer
 # ------------------------------------------------------------------------------------------------
 
 output_path = "trainingResults/"
-summary_path = output_path+"summary/test/"
-results_path = output_path+"trainingRuns/test/"
+summary_path = output_path+"summary/maxAbsScaler/"
+results_path = output_path+"trainingRuns/maxAbsScaler/"
 
 qcd_path = "../../data/training_data/qcd/base_3/*.h5"
 
@@ -20,7 +20,7 @@ training_params = {
     'batch_size': 32,
     'loss': 'mse',
     'optimizer': 'adam',
-    'epochs': 2,
+    'epochs': 200,
     'learning_rate': 0.00051,
     'es_patience': 12,
     'lr_patience': 9,
@@ -28,7 +28,7 @@ training_params = {
 }
 
 target_dim = 8
-n_models = 1
+n_models = 100
 
 
 # ---------------------------------------------
@@ -54,12 +54,16 @@ n_models = 1
 #              }
 
 # https://scikit-learn.org/stable/modules/generated/sklearn.preprocessing.StandardScaler.html#sklearn.preprocessing.StandardScaler
-norm_type="StandardScaler"
-norm_args = {"with_mean"    : True,
-             "copy"         : True,
-             "with_std"     : True,
-             }
+# norm_type="StandardScaler"
+# norm_args = {"with_mean"    : True,
+#              "copy"         : True,
+#              "with_std"     : True,
+#              }
 
+# https://scikit-learn.org/stable/modules/generated/sklearn.preprocessing.StandardScaler.html#sklearn.preprocessing.StandardScaler
+norm_type="MaxAbsScaler"
+norm_args = {"copy"         : True,
+             }
 
 # ---------------------------------------------
 # Run the training
