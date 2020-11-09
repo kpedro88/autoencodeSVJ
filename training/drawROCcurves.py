@@ -7,10 +7,10 @@ from module.AutoEncoderEvaluator import AutoEncoderEvaluator
 # will be used.
 # ------------------------------------------------------------------------------------------------
 
-training_version = 10
+training_version = 47
 efp_base = 3
 bottleneck_dim = 8
-summaries_path = "trainingResults/summary/test/"
+summaries_path = "trainingResults/summary/customScaler/"
 summary_base_name = "hlf_eflow{}_{}_".format(efp_base, bottleneck_dim)
 
 input_summary_path = summaryProcessor.get_latest_summary_file_path(summaries_path=summaries_path,

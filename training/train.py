@@ -60,7 +60,7 @@ n_models = 100
 #              "with_std"     : True,
 #              }
 
-# https://scikit-learn.org/stable/modules/generated/sklearn.preprocessing.StandardScaler.html#sklearn.preprocessing.StandardScaler
+# https://scikit-learn.org/stable/modules/generated/sklearn.preprocessing.MaxAbsScaler.html#sklearn.preprocessing.MaxAbsScaler
 norm_type="MaxAbsScaler"
 norm_args = {"copy"         : True,
              }
