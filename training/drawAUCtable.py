@@ -4,6 +4,8 @@ import numpy as np
 import matplotlib
 import matplotlib.pyplot as plt
 
+import module.SummaryProcessor as summaryProcessor
+
 # ------------------------------------------------------------------------------------------------
 # This script will draw a table with AUCs (areas under ROC curve) values based on the CSV
 # file stored in "AUCs_path" with version specified by "training_version".
@@ -13,7 +15,8 @@ training_version = 10
 efp_base = 3
 bottleneck_dim = 8
 
-AUCs_path = "trainingResults/aucs/test/*"
+AUCs_path = "trainingResults/aucs/customScaler/*"
+summaries_path = "trainingResults/summary/customScaler/"
 
 matplotlib.rcParams.update({'font.size': 16})
 plt.rc('text', usetex=True)
@@ -68,14 +71,13 @@ aucs = pd.concat(auc_dict)
 aucs['mass_nu_ratio'] = list(zip(aucs.mass, aucs.nu))
 aucs = aucs.pivot('mass_nu_ratio', 'name', 'auc')
 
-# res = summaryProcessor.summary(summary_path=summary_path)
-#     res = res.sort_values('start_time').tail(n_models)
+summaries = summaryProcessor.summary(summary_path=summaries_path)
 
-# model_acceptance_fraction = 10  # take top N best performing models
+model_acceptance_fraction = 10  # take top N best performing models
 # take lowest 10% losses of all trainings
-# n_best = int(0.01 * model_acceptance_fraction * n_models)
-# best_ = res.sort_values('total_loss').head(n_best)
-# best_name = str(best_.filename.values[0])
+n_best = int(0.01 * model_acceptance_fraction * summaries.data.size)
+best_ = summaries.sort_values('total_loss').head(n_best)
+best_name = str(best_.filename.values[0])
 #
 # print("N best: ", n_best)
 # print("Best models: ", best_)
