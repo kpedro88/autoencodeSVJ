@@ -11,12 +11,15 @@ class DataProcessor():
         self.test_fraction = test_fraction
         self.seed = seed
 
-    def split_to_train_validate_test(self, data_table, n_skip=2):
-        train_idx, test_idx = train_test_split(data_table.df.index[0::n_skip],
-                                               test_size=self.test_fraction,
-                                               random_state=self.seed)
+    def split_to_train_validate_test(self, data_table, n_skip=2, train_idx=None, test_idx=None):
         
-        train, test = [np.asarray([x + i for i in range(n_skip)]).T.flatten() for x in [train_idx, test_idx]]
+        if train_idx is None or test_idx is None:
+            train_idx, test_idx = train_test_split(data_table.df.index,
+                                                   test_size=self.test_fraction,
+                                                   random_state=self.seed)
+
+        train = np.asarray([train_idx]).T.flatten()
+        test = np.asarray([test_idx]).T.flatten()
         
         train_and_validation_data = DataTable(data_table.df.loc[train])
         test_data = DataTable(data_table.df.loc[test], name="test")
@@ -28,7 +31,7 @@ class DataProcessor():
         train_data =  DataTable(train, name="train")
         validation_data = DataTable(test, name="validation")
         
-        return train_data, validation_data, test_data
+        return train_data, validation_data, test_data, train_idx, test_idx
 
     def normalize(self, data_table, normalization_type, data_ranges=None, inverse=False, norm_args=None):
         

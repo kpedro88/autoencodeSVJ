@@ -6,6 +6,7 @@ from module.DataLoader import DataLoader
 
 import os
 import numpy as np
+import pandas as pd
 from collections import OrderedDict as odict
 
 
@@ -42,10 +43,34 @@ class AutoEncoderEvaluator:
                                        test_fraction=self.test_split,
                                        seed=self.seed)
         
+
+
+        (self.qcd_train_event,
+         self.qcd_validation_event,
+         self.qcd_test_event,
+         train_idx, test_idx) = data_processor.split_to_train_validate_test(data_table=self.qcd_event,
+                                                                                  n_skip=len(self.qcd_jets))
+        new_train_indices = []
+        for index in train_idx:
+            new_train_indices.append(2 * index)
+            new_train_indices.append(2 * index + 1)
+        new_train_indices = pd.Int64Index(new_train_indices)
+    
+
+        new_test_indices = []
+        for index in test_idx:
+            new_test_indices.append(2 * index)
+            new_test_indices.append(2 * index + 1)
+        new_test_indices = pd.Int64Index(new_test_indices)
+        
         (self.qcd_train_data,
          self.qcd_validation_data,
-         self.qcd_test_data) = data_processor.split_to_train_validate_test(data_table=self.qcd, n_skip=len(self.qcd_jets))
-
+         self.qcd_test_data,
+         _, _) = data_processor.split_to_train_validate_test(data_table=self.qcd,
+                                                             n_skip=len(self.qcd_jets),
+                                                             train_idx=new_train_indices,
+                                                             test_idx=new_test_indices)
+    
         self.qcd_train_data.name = "qcd training data"
         self.qcd_test_data.name = "qcd test data"
         self.qcd_validation_data.name = "qcd validation data"

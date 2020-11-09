@@ -62,6 +62,17 @@ class DataLoader(Logger):
             train_modify = self.eflow_modify
     
         event = data_loader.make_table('event_features', name + ' event features')
+
+        newNames = dict()
+
+        for column in event.df.columns:
+            if type(column) is bytes:
+                encoding = chardet.detect(column)["encoding"]
+                newNames[column] = column.decode(encoding)
+
+        event.df.rename(columns=newNames, inplace=True)
+        event.headers = list(event.df.columns)
+        
         data = train_modify(data_loader.make_tables(to_include, name, 'stack'))
         jets = train_modify(data_loader.make_tables(to_include, name, 'split'))
         flavors = data_loader.make_table('jet_features', name + ' jet flavor', 'stack').cfilter("Flavor")
