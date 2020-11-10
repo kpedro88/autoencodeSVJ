@@ -106,14 +106,14 @@ class AutoEncoderEvaluator:
             data.append(getattr(self, signal + '_norm'))
         
         errors, recons = utils.get_recon_errors(data, self.model)
-        
-        self.qcd_err, signal_errs = errors[0], errors[1:]
 
         self.qcd_recon = data_processor.normalize(data_table=recons[0],
                                                   normalization_type=self.norm_type,
                                                   data_ranges=self.norm_ranges,
                                                   norm_args=self.norm_args,
                                                   inverse=True)
+
+        self.qcd_err, signal_errs = errors[0], errors[1:]
         
         for err, recon, signal in zip(signal_errs, recons[1:], self.signals):
             setattr(self, signal + '_err', err)

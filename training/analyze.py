@@ -36,56 +36,11 @@ print("\n\nDraing ROC curves for summary: ", input_summary_path)
 
 evaluator = AutoEncoderEvaluator(input_summary_path, signals=signals)
 
-
 n_columns = 3
 n_rows = 3
-
-canvas = plt.figure()
-
 i_plot = 1
 
-eta_hist = canvas.add_subplot(n_rows, n_columns, i_plot)
-i_plot += 1
-
-input_qcd_jet_eta = evaluator.qcd_test_data.Eta
-reco_qcd_jet_eta = evaluator.qcd_recon.Eta
-eta_hist.hist(input_qcd_jet_eta, bins=numpy.linspace(-4, 4, 100), alpha=0.5, label='input', histtype="step")
-eta_hist.hist(reco_qcd_jet_eta, bins=numpy.linspace(-4, 4, 100), alpha=0.5, label='reconstruction', histtype="step")
-eta_hist.title.set_text("Eta")
-eta_hist.legend(loc='upper right')
-
-
-phi_hist = canvas.add_subplot(n_rows, n_columns, i_plot)
-i_plot += 1
-
-input_qcd_jet_phi = evaluator.qcd_test_data.Phi
-reco_qcd_jet_phi = evaluator.qcd_recon.Phi
-phi_hist.hist(input_qcd_jet_phi, bins=numpy.linspace(-4, 4, 100), alpha=0.5, label='input', histtype="step")
-phi_hist.hist(reco_qcd_jet_phi, bins=numpy.linspace(-4, 4, 100), alpha=0.5, label='reconstruction', histtype="step")
-phi_hist.title.set_text("Phi")
-phi_hist.legend(loc='upper right')
-
-loss_hist = canvas.add_subplot(n_rows, n_columns, i_plot)
-i_plot += 1
-
-loss_qcd = evaluator.qcd_err.mae
-
-loss_signal = []
-
-for signal in signals:
-    signal_mae_array = getattr(evaluator, "{}_err".format(signal)).mae
-    # print("\n\nSignal mae type: ", type(signal_mae_array))
-    # print("\n\nSignal mae: ", signal_mae_array)
-    loss_signal.append(getattr(evaluator, "{}_err".format(signal)).mae)
-
-loss_signal = pd.concat(loss_signal)
-
-# print("\n\nQCD loss: ", loss_qcd)
-
-loss_hist.hist(loss_qcd, bins=numpy.linspace(0, 0.4, 100), label="qcd", histtype="step", density=True)
-loss_hist.hist(loss_signal, bins=numpy.linspace(0, 0.4, 100), label="signal", histtype="step", density=True)
-loss_hist.set_yscale("log")
-loss_hist.legend(loc='upper right')
+canvas = plt.figure()
 
 
 # --------------------------------------------------------------------------------------------------
@@ -156,16 +111,10 @@ signal_mt_gt2_svj_hist_data = []
 
 print("\n\nFilling signal histograms")
 
-
-
 for signal in signals:
     print("\tprocessing ", signal)
     
     signal_mae_array = getattr(evaluator, "{}_err".format(signal)).mae
-    # print("\n\nSignal mae type: ", type(signal_mae_array))
-    # print("\n\nSignal mae: ", signal_mae_array)
-    loss_signal.append(getattr(evaluator, "{}_err".format(signal)).mae)
-    
     signal_event_indices = getattr(evaluator, "{}_event".format(signal)).index
 
     qcd_errors = getattr(evaluator, "{}_err".format(signal)).df
@@ -210,8 +159,6 @@ for signal in signals:
         signals_n_svj_hist_data.append(n_svj_jets)
 
 
-
-
 n_svj_jets_hist = canvas.add_subplot(n_rows, n_columns, i_plot)
 i_plot += 1
 
@@ -219,7 +166,6 @@ n_svj_jets_hist.hist(qcd_n_svj_hist_data, bins=numpy.linspace(0, 5, 6), label="q
 n_svj_jets_hist.hist(signals_n_svj_hist_data, bins=numpy.linspace(0, 5, 6), label="signals", histtype="step", density=True)
 n_svj_jets_hist.title.set_text("N SV Jets")
 n_svj_jets_hist.legend(loc='upper right')
-
 
 
 mt_0_svj_hist = canvas.add_subplot(n_rows, n_columns, i_plot)
