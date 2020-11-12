@@ -11,7 +11,8 @@ import pandas as pd
 
 scalers_and_best_training_versions = {"standardScaler": 8,
                                       "customScaler": 47,
-                                      "robustScaler": 63
+                                      "robustScaler": 63,
+                                      "customStandardScaler": 86
                                       }
 
 signals_base_path = "../../data/training_data/all_signals/"
@@ -75,6 +76,7 @@ for scaler_type, training_version in scalers_and_best_training_versions.items():
     loss_hist.hist(loss_qcd, bins=numpy.linspace(0, 0.4, 100), label="qcd", histtype="step", density=True)
     loss_hist.hist(loss_signal, bins=numpy.linspace(0, 0.4, 100), label="signal", histtype="step", density=True)
     loss_hist.set_yscale("log")
+    loss_hist.set_ylim(bottom=1E-2, top=1E2)
     loss_hist.title.set_text(scaler_type)
     loss_hist.legend(loc='upper right')
 

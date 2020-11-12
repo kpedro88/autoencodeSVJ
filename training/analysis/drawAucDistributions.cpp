@@ -3,10 +3,10 @@
 #include "Result.hpp"
 #include "ResultsProcessor.hpp"
 
-string aucsPath =  "../trainingResults/aucs/standardScaler/";
-string resultsPath =  "../trainingResults/trainingRuns/standardScaler/";
+string aucsPath =  "../trainingResults/aucs/customStandardScaler/";
+string resultsPath =  "../trainingResults/trainingRuns/customStandardScaler/";
 string filePattern = "hlf_eflow3_8_v";
-string plotsTitle = "StandardScaler";
+string plotsTitle = "customStandardScaler";
 
 vector<double> r_invs = {0.15, 0.30, 0.45, 0.60, 0.75};
 vector<double> masses = {1500, 2000, 2500, 3000, 3500, 4000};

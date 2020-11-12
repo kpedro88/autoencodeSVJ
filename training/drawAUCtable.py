@@ -11,12 +11,19 @@ import module.SummaryProcessor as summaryProcessor
 # file stored in "AUCs_path" with version specified by "training_version".
 # ------------------------------------------------------------------------------------------------
 
-training_version = 47
+scaler_type = "customStandardScaler"
+
+training_version = {"standardScaler": 8,
+                    "customScaler": 47,
+                    "robustScaler": 63,
+                    "customStandardScaler": 86
+                    }
+
 efp_base = 3
 bottleneck_dim = 8
 
-AUCs_path = "trainingResults/aucs/customScaler/*"
-summaries_path = "trainingResults/summary/customScaler/"
+AUCs_path = "trainingResults/aucs/{}/*".format(scaler_type)
+summaries_path = "trainingResults/summary/{}/".format(scaler_type)
 
 matplotlib.rcParams.update({'font.size': 16})
 plt.rc('text', usetex=True)
@@ -83,7 +90,7 @@ model_acceptance_fraction = 10  # take top N best performing models
 # print("Best models: ", best_)
 # print("The best model: ", best_name)
 
-AUC_file_name = "hlf_eflow{}_{}_v{}".format(efp_base, bottleneck_dim, training_version)
+AUC_file_name = "hlf_eflow{}_{}_v{}".format(efp_base, bottleneck_dim, training_version[scaler_type])
 best, ax = plot_signal_aucs(aucs[AUC_file_name].to_frame(), title='Autoencoder AUCs (Best AE)')
 
 plt.show()

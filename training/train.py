@@ -7,8 +7,8 @@ from module.AutoEncoderTrainer import AutoEncoderTrainer
 # ------------------------------------------------------------------------------------------------
 
 output_path = "trainingResults/"
-summary_path = output_path+"summary/maxAbsScaler/"
-results_path = output_path+"trainingRuns/maxAbsScaler/"
+summary_path = output_path+"summary/customStandardScaler/"
+results_path = output_path+"trainingRuns/customStandardScaler/"
 
 qcd_path = "../../data/training_data/qcd/base_3/*.h5"
 
@@ -61,9 +61,16 @@ n_models = 100
 #              }
 
 # https://scikit-learn.org/stable/modules/generated/sklearn.preprocessing.MaxAbsScaler.html#sklearn.preprocessing.MaxAbsScaler
-norm_type="MaxAbsScaler"
-norm_args = {"copy"         : True,
-             }
+# norm_type="MaxAbsScaler"
+# norm_args = {"copy"         : True,}
+
+# Custom implementation of the StandardScaler
+norm_type="CustomStandard"
+norm_args = {}
+
+# Or don't apply any scaling at all
+# norm_type="None"
+# norm_args = {}
 
 # ---------------------------------------------
 # Run the training

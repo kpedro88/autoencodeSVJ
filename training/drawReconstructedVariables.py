@@ -9,22 +9,27 @@ import pandas as pd
 # "signals_base_path" and background as specified in the training summary.
 # ------------------------------------------------------------------------------------------------
 
-scaler_type = "standardScaler"
+scaler_type = "customStandardScaler"
 
 training_version = {"standardScaler": 8,
                     "customScaler": 47,
-                    "robustScaler": 63
+                    "robustScaler": 63,
+                    "customStandardScaler": 86,
+                    "": None
                     }
+
+summaries_path = "trainingResults/summary/{}/".format(scaler_type)
+
 
 efp_base = 3
 bottleneck_dim = 8
-summaries_path = "trainingResults/summary/{}/".format(scaler_type)
 summary_base_name = "hlf_eflow{}_{}_".format(efp_base, bottleneck_dim)
 
 input_summary_path = summaryProcessor.get_latest_summary_file_path(summaries_path=summaries_path,
                                                                    file_name_base=summary_base_name,
                                                                    version=training_version[scaler_type])
-
+    
+print("Loading summary: ",          input_summary_path             )
 
 # masses = [1500, 2000, 2500, 3000, 3500, 4000]
 masses = [2500]
