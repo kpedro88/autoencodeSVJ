@@ -62,30 +62,44 @@ class AutoEncoderEvaluator:
         
         (self.qcd_train_data,
          self.qcd_validation_data,
-         self.qcd_test_data,
-         _, _) = data_processor.split_to_train_validate_test(data_table=self.qcd,
-                                                             train_idx=new_train_indices,
-                                                             test_idx=new_test_indices)
+         self.qcd_test_data, _, _) = data_processor.split_to_train_validate_test(data_table=self.qcd,
+                                                                                 train_idx=new_train_indices,
+                                                                                 test_idx=new_test_indices)
     
         self.qcd_test_data.name = "qcd test data"
 
+        # Calculate means and stds if needed
+        
+        means_qcd = None
+        stds_qcd = None
+        
+        if self.norm_type == "CustomStandard":
+            means_qcd, stds_qcd = self.qcd_test_data.get_means_and_stds()
+            
+
         # Normalize the input
- 
         self.qcd_test_data_normalized = data_processor.normalize(data_table=self.qcd_test_data,
                                                                  normalization_type=self.norm_type,
                                                                  data_ranges=self.norm_ranges,
                                                                  norm_args=self.norm_args,
-                                                                 means=self.means_test,
-                                                                 stds=self.stds_test)
+                                                                 means=means_qcd,
+                                                                 stds=stds_qcd)
+
+        means_signal = {}
+        stds_signal = {}
 
         for signal in self.signals:
+    
+            if self.norm_type == "CustomStandard":
+                means_signal[signal], stds_signal[signal] = getattr(self, signal).get_means_and_stds()
+            
             setattr(self, signal + '_norm',
                     data_processor.normalize(data_table=getattr(self, signal),
                                              normalization_type=self.norm_type,
                                              data_ranges=self.norm_ranges,
                                              norm_args=self.norm_args,
-                                             means=self.means_test,
-                                             stds=self.stds_test))
+                                             means=means_signal[signal],
+                                             stds=stds_signal[signal]))
 
         # Get reconstruction values and errors
         data = [self.qcd_test_data_normalized]
@@ -100,12 +114,20 @@ class AutoEncoderEvaluator:
                                                   data_ranges=self.norm_ranges,
                                                   norm_args=self.norm_args,
                                                   inverse=True,
-                                                  means=self.means_test,
-                                                  stds=self.stds_test)
+                                                  means=means_qcd,
+                                                  stds=stds_qcd)
 
         self.qcd_err, signal_errs = errors[0], errors[1:]
         
         for err, recon, signal in zip(signal_errs, recons[1:], self.signals):
+            
+            means = None
+            stds = None
+            
+            if signal in means_signal:
+                means = means_signal[signal]
+                stds = stds_signal[signal]
+            
             setattr(self, signal + '_err', err)
             setattr(self, signal + '_recon',
                     data_processor.normalize(data_table=recon,
@@ -113,8 +135,8 @@ class AutoEncoderEvaluator:
                                              data_ranges=self.norm_ranges,
                                              norm_args=self.norm_args,
                                              inverse=True,
-                                             means=self.means_test,
-                                             stds=self.stds_test))
+                                             means=means,
+                                             stds=stds))
         
         self.qcd_reps = utils.DataTable(self.model.layers[1].predict(self.qcd_test_data_normalized.data), name='QCD reps')
         

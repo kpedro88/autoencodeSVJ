@@ -91,50 +91,59 @@ class AucGetter(object):
         data_processor = DataProcessor(seed=self.seed)
         normed = {}
 
+        
+        means = {}
+        stds = {}
+
         test = self.get_test_dataset(data_holder, test_key)
+        
+        if self.norm_type == "CustomStandard":
+            means[test_key], stds[test_key] = test.get_means_and_stds()
+
+        
         normed[test_key]= data_processor.normalize(data_table=test,
                                                    normalization_type=self.norm_type,
                                                    data_ranges=self.norm_ranges,
                                                    norm_args=self.norm_args,
-                                                   means=self.means_test,
-                                                   stds=self.stds_test
-                                                   )
+                                                   means=means[test_key],
+                                                   stds=stds[test_key])
 
         for key in data_holder.KEYS:
             if key != test_key:
                 data = getattr(data_holder, key).data
+
+                if self.norm_type == "CustomStandard":
+                    means[key], stds[key] = data.get_means_and_stds()
+                
                 normed[key] = data_processor.normalize(data_table=data,
                                                        normalization_type=self.norm_type,
                                                        data_ranges=self.norm_ranges,
                                                        norm_args=self.norm_args,
-                                                       means=self.means_test,
-                                                       stds=self.stds_test
-                                                       )
+                                                       means=means[key],
+                                                       stds=stds[key])
         
         for key in normed:
             normed[key].name = key
         
         auto_encoder = self.trainer.load_model()
         
-        normed = list(normed.values())
         err, recon = utils.get_recon_errors(normed, auto_encoder, **kwargs)
         
-        for i in range(len(err)):
-            err[i].name = err[i].name.rstrip('error').strip()
+        for key, value in err.items():
+            err[key].name = value.name.rstrip('error').strip()
         
-        for i in range(len(recon)):
-            recon[i] = data_processor.normalize(data_table=recon[i],
-                                                normalization_type=self.norm_type,data_ranges=self.norm_ranges,
-                                                norm_args=self.norm_args,
-                                                inverse=True,
-                                                means=self.means_test,
-                                                stds=self.stds_test
-                                                )
+        for key, value in recon.items():
+            recon[key] = data_processor.normalize(data_table=value,
+                                                  normalization_type=self.norm_type,data_ranges=self.norm_ranges,
+                                                  norm_args=self.norm_args,
+                                                  inverse=True,
+                                                  means=means[key],
+                                                  stds=stds[key])
 
         del auto_encoder
         self.time('recon gen')
         
-        return [{y.name: y for y in x} for x in [normed, err, recon]]
+        return [{z.name: z for y, z in x.items()} for x in [normed, err, recon]]
     
     def get_aucs(self, errors, qcd_key='qcd', metrics=None):
         self.start()

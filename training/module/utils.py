@@ -180,22 +180,18 @@ def split_by_tag(data, tag_column="jetFlavor", printout=True):
 
 def get_recon_errors(data_list, autoencoder, **kwargs):
 
-    if not isinstance(data_list, list):
-        data_list = [data_list]
+    if not isinstance(data_list, dict):
+        print("ERROR -- get_recon_errors expects a dictionary!!")
+        exit(0)
     
-    recon = []
-    errors = []
+    recon = {}
+    errors = {}
     
-    for i, data in enumerate(data_list):
-        recon.append(
-            DataTable(
-                pd.DataFrame(autoencoder.predict(data.data), columns=data.columns, index=data.index),
-                name="{0} pred".format(data.name)
-            )
-        )
-        errors.append(
-            get_errors(recon[i].data, data.data, out_name="{0} error".format(data.name), index=data.df.index, **kwargs)
-        )
+    for key, data in data_list.items():
+        recon[key] = DataTable(pd.DataFrame(autoencoder.predict(data.data), columns=data.columns, index=data.index),
+                               name="{0} pred".format(data.name))
+        
+        errors[key] = get_errors(recon[key].data, data.data, out_name="{0} error".format(data.name), index=data.df.index, **kwargs)
         
     return errors, recon
 
