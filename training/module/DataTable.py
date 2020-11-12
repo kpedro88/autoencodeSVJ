@@ -52,7 +52,7 @@ class DataTable(Logger):
         assert len(self.data.shape) == 2, "data must be matrix!"
         assert len(self.headers) == self.data.shape[1], "n columns must be equal to n column headers"
         assert len(self.data) > 0, "n samples must be greater than zero"
-        self.scaler = None
+        
         if isinstance(self.data, pd.DataFrame):
             self.df = self.data
             self.data = self.df.values
@@ -62,19 +62,49 @@ class DataTable(Logger):
     def normalize(self, norm_type, scaler_args, inverse=False):
         
         norm_type = getattr(self.NormTypes, norm_type)
-        
-        self.scaler = getattr(prep, norm_type.name)(**scaler_args)
-        self.scaler.fit(self.df)
+
+        scaler = getattr(prep, norm_type.name)(**scaler_args)
+        scaler.fit(self.df)
         
         if not inverse:
             return DataTable(
-                pd.DataFrame(self.scaler.transform(self.df), columns=self.df.columns, index=self.df.index),
+                pd.DataFrame(scaler.transform(self.df), columns=self.df.columns, index=self.df.index),
                 name="{} norm".format(self.name))
         else:
             return DataTable(
-                pd.DataFrame(self.scaler.inverse_transform(self.df), columns=self.df.columns, index=self.df.index),
+                pd.DataFrame(scaler.inverse_transform(self.df), columns=self.df.columns, index=self.df.index),
                 name="{} inverse normed".format(self.name))
+    
+    def get_means_and_stds(self):
+        means = {}
+        stds = {}
+    
+        for column_name, data in self.df.iteritems():
+            mean = self.df[column_name].mean()
+            std = self.df[column_name].std()
+        
+            means[column_name] = mean
+            stds[column_name] = std
+
+        return means, stds
+
+    def custom_standard_normalize(self, means, stds, inverse=False):
+    
+        normalized_data = pd.DataFrame()
+        
+        if inverse:
+            name = "{} norm".format(self.name)
             
+            for column_name, data in self.df.iteritems():
+                normalized_data[column_name] = (self.df[column_name] * stds[column_name] + means[column_name])
+        else:
+            name = "{} norm inverse".format(self.name)
+            
+            for column_name, data in self.df.iteritems():
+                normalized_data[column_name] = (self.df[column_name] - means[column_name]) / (stds[column_name])
+    
+        return DataTable(normalized_data, name=name)
+        
     
     def normalize_in_range(self, rng, out_name=None):
         if out_name is None:

@@ -54,7 +54,7 @@ class AutoEncoderTrainer:
         
         (train_data,
          validation_data,
-         test_data) = data_processor.split_to_train_validate_test(data_table=self.qcd, n_skip=len(qcd_jets))
+         test_data, _, _) = data_processor.split_to_train_validate_test(data_table=self.qcd)
         
         train_data.name = "qcd training data"
         validation_data.name = "qcd validation data"
@@ -67,18 +67,26 @@ class AutoEncoderTrainer:
         
         if norm_type == "Custom":
             self.data_ranges = utils.percentile_normalization_ranges(train_data, norm_args["norm_percentile"])
+        elif norm_type == "CustomStandard":
+            self.means_train, self.stds_train = train_data.get_means_and_stds()
+            self.means_validation, self.stds_validation = validation_data.get_means_and_stds()
+            self.means_test, self.stds_test = test_data.get_means_and_stds()
         
         print("Trainer scaler args: ", self.norm_args)
         
         self.train_data_normalized = data_processor.normalize(data_table=train_data,
                                                               normalization_type=self.norm_type,
                                                               norm_args=self.norm_args,
-                                                              data_ranges=self.data_ranges)
+                                                              data_ranges=self.data_ranges,
+                                                              means=self.means_train,
+                                                              stds=self.stds_train)
         
         self.validation_data_normalized = data_processor.normalize(data_table=validation_data,
                                                                    normalization_type=self.norm_type,
                                                                    norm_args=self.norm_args,
-                                                                   data_ranges=self.data_ranges)
+                                                                   data_ranges=self.data_ranges,
+                                                                   means=self.means_validation,
+                                                                   stds=self.stds_validation)
         
         # Build the model
         self.input_size = len(self.qcd.columns)
@@ -139,6 +147,12 @@ class AutoEncoderTrainer:
             'val_split': self.validation_data_fraction,
             'norm_type': self.norm_type,
             'norm_args' : self.norm_args,
+            'norm_means_train' : self.means_train,
+            'norm_stds_train': self.stds_train,
+            'norm_means_validation': self.means_validation,
+            'norm_stds_validation': self.stds_validation,
+            'norm_means_test': self.means_test,
+            'norm_stds_test': self.stds_test,
             'range': self.data_ranges.tolist(),
             'target_dim': self.bottleneck_size,
             'input_dim': self.input_size,

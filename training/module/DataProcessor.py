@@ -11,7 +11,7 @@ class DataProcessor():
         self.test_fraction = test_fraction
         self.seed = seed
 
-    def split_to_train_validate_test(self, data_table, n_skip=2, train_idx=None, test_idx=None):
+    def split_to_train_validate_test(self, data_table, train_idx=None, test_idx=None):
         
         if train_idx is None or test_idx is None:
             train_idx, test_idx = train_test_split(data_table.df.index,
@@ -33,7 +33,8 @@ class DataProcessor():
         
         return train_data, validation_data, test_data, train_idx, test_idx
 
-    def normalize(self, data_table, normalization_type, data_ranges=None, inverse=False, norm_args=None):
+    def normalize(self, data_table, normalization_type, inverse=False,
+                  data_ranges=None, norm_args=None, means=None, stds=None):
         
         if normalization_type == "Custom":
             if data_ranges is None:
@@ -49,7 +50,13 @@ class DataProcessor():
             return data_table.normalize(norm_type=normalization_type,
                                         scaler_args=norm_args,
                                         inverse=inverse)
-        
+        elif normalization_type == "CustomStandard":
+            if means is None or stds is None:
+                print("Custom standard normalization selected, but means or stds not provided!")
+                exit(0)
+            return data_table.custom_standard_normalize(means=means, stds=stds, inverse=inverse)
+        elif normalization_type == "None":
+            return data_table
         else:
             print("ERROR -- Normalization not implemented: ", normalization_type)
             exit(0)

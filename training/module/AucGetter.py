@@ -54,6 +54,8 @@ class AucGetter(object):
         self.norm_type = self.d["norm_type"]
         self.norm_ranges = np.asarray(self.d["range"])
         self.norm_args = self.d['norm_args']
+        self.means_test = self.d['norm_means_test']
+        self.stds_test = self.d['norm_stds_test']
     
     def start(self):
         self.__TIME = time.time()
@@ -77,7 +79,7 @@ class AucGetter(object):
                                        test_fraction=self.test_split,
                                        seed=self.seed)
         
-        train, validation, test = data_processor.split_to_train_validate_test(data_table=qcd)
+        train, validation, test, _, _ = data_processor.split_to_train_validate_test(data_table=qcd)
         
         self.time('test dataset')
         return test
@@ -93,7 +95,9 @@ class AucGetter(object):
         normed[test_key]= data_processor.normalize(data_table=test,
                                                    normalization_type=self.norm_type,
                                                    data_ranges=self.norm_ranges,
-                                                   norm_args=self.norm_args
+                                                   norm_args=self.norm_args,
+                                                   means=self.means_test,
+                                                   stds=self.stds_test
                                                    )
 
         for key in data_holder.KEYS:
@@ -102,7 +106,9 @@ class AucGetter(object):
                 normed[key] = data_processor.normalize(data_table=data,
                                                        normalization_type=self.norm_type,
                                                        data_ranges=self.norm_ranges,
-                                                       norm_args=self.norm_args
+                                                       norm_args=self.norm_args,
+                                                       means=self.means_test,
+                                                       stds=self.stds_test
                                                        )
         
         for key in normed:
@@ -120,7 +126,9 @@ class AucGetter(object):
             recon[i] = data_processor.normalize(data_table=recon[i],
                                                 normalization_type=self.norm_type,data_ranges=self.norm_ranges,
                                                 norm_args=self.norm_args,
-                                                inverse=True
+                                                inverse=True,
+                                                means=self.means_test,
+                                                stds=self.stds_test
                                                 )
 
         del auto_encoder
