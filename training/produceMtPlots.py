@@ -2,7 +2,7 @@ import module.SummaryProcessor as summaryProcessor
 from module.AutoEncoderEvaluator import AutoEncoderEvaluator
 import matplotlib.pyplot as plt
 import numpy
-import pandas as pd
+import ROOT
 
 # ------------------------------------------------------------------------------------------------
 # This script will draw ROC curves for a specified model against all signals found in the
@@ -10,11 +10,12 @@ import pandas as pd
 # will be used.
 # ------------------------------------------------------------------------------------------------
 
-scaler_type = "customScaler"
+scaler_type = "customStandardScaler"
 
 training_version = {"standardScaler": 8,
                     "customScaler": 47,
-                    "robustScaler": 63
+                    "robustScaler": 63,
+                    "customStandardScaler": 86
                     }
 
 efp_base = 3
@@ -104,6 +105,11 @@ n_svj_hist.title.set_text("N SV Jets")
 
 mt_svj_hist = {}
 
+output_file = ROOT.TFile("stat_hists.root", "recreate")
+output_file.cd()
+
+
+
 for n_svj in qcd_mt_svj_hist_data:
     mt_svj_hist[n_svj] = canvas.add_subplot(n_rows, n_columns, i_plot)
     i_plot += 1
@@ -111,6 +117,28 @@ for n_svj in qcd_mt_svj_hist_data:
     mt_svj_hist[n_svj].hist(qcd_mt_svj_hist_data[n_svj],
                             bins=numpy.linspace(0, 5000, 100), label="qcd", histtype="step")
     mt_svj_hist[n_svj].title.set_text("M_T ({} SVJ)".format(n_svj))
+
+    mt_svj_root_hist = ROOT.TH1D("QCD", "QCD", 750, 0, 7500)
+    
+    for data in qcd_mt_svj_hist_data[n_svj]:
+        mt_svj_root_hist.Fill(data)
+        
+    output_file.mkdir("SVJ{}_2018".format(n_svj))
+    output_file.cd("SVJ{}_2018".format(n_svj))
+    mt_svj_root_hist.Write()
+
+    mt_svj_root_hist = mt_svj_root_hist.Clone()
+    mt_svj_root_hist.SetName("Bkg")
+    mt_svj_root_hist.Write()
+
+    mt_svj_root_hist = mt_svj_root_hist.Clone()
+    mt_svj_root_hist.SetName("data_obs")
+    mt_svj_root_hist.Write()
+    
+    
+
+
+
     
 
 # --------------------------------------------------------------------------------------------------
@@ -141,6 +169,15 @@ for signal in signals:
     for n_svj, data in signal_mt_svj_hist_data.items():
         signals_mt_svj_hist_data[n_svj].append(data)
 
+        name = "SVJ_"+signal
+        mt_svj_root_hist = ROOT.TH1D(name, name, 750, 0, 7500)
+    
+        for value in data:
+            mt_svj_root_hist.Fill(value)
+    
+        output_file.cd("SVJ{}_2018".format(n_svj))
+        mt_svj_root_hist.Write()
+
 
 n_svj_hist.hist(signals_n_svj_hist_data, bins=numpy.linspace(0, 5, 6), label="signals", histtype="step", density=True)
 n_svj_hist.legend(loc='upper right')
@@ -149,6 +186,9 @@ for n_svj, data in signals_mt_svj_hist_data.items():
     mt_svj_hist[n_svj].hist(data, bins=numpy.linspace(0, 5000, 100), label="signal", histtype="step")
     mt_svj_hist[n_svj].legend(loc='upper right')
 
-plt.show()
+
+output_file.Close()
+
+# plt.show()
 
 
