@@ -54,8 +54,6 @@ class AucGetter(object):
         self.norm_type = self.d["norm_type"]
         self.norm_ranges = np.asarray(self.d["range"])
         self.norm_args = self.d['norm_args']
-        self.means_test = self.d['norm_means_test']
-        self.stds_test = self.d['norm_stds_test']
     
     def start(self):
         self.__TIME = time.time()
@@ -99,6 +97,8 @@ class AucGetter(object):
         
         if self.norm_type == "CustomStandard":
             means[test_key], stds[test_key] = test.get_means_and_stds()
+        else:
+            means[test_key], stds[test_key] = None, None
 
         
         normed[test_key]= data_processor.normalize(data_table=test,
@@ -108,19 +108,25 @@ class AucGetter(object):
                                                    means=means[test_key],
                                                    stds=stds[test_key])
 
+
+        qcd_scaler = test.scaler
+
         for key in data_holder.KEYS:
             if key != test_key:
                 data = getattr(data_holder, key).data
 
                 if self.norm_type == "CustomStandard":
                     means[key], stds[key] = data.get_means_and_stds()
+                else:
+                    means[key], stds[key] = None, None
                 
                 normed[key] = data_processor.normalize(data_table=data,
                                                        normalization_type=self.norm_type,
                                                        data_ranges=self.norm_ranges,
                                                        norm_args=self.norm_args,
                                                        means=means[key],
-                                                       stds=stds[key])
+                                                       stds=stds[key],
+                                                       scaler=qcd_scaler)
         
         for key in normed:
             normed[key].name = key
@@ -138,7 +144,8 @@ class AucGetter(object):
                                                   norm_args=self.norm_args,
                                                   inverse=True,
                                                   means=means[key],
-                                                  stds=stds[key])
+                                                  stds=stds[key],
+                                                  scaler=qcd_scaler)
 
         del auto_encoder
         self.time('recon gen')

@@ -64,13 +64,15 @@ class AutoEncoderTrainer:
         self.norm_args = norm_args
         
         self.data_ranges = np.asarray([])
+
+        self.means_train, self.stds_train = None, None
+        self.means_validation, self.stds_validation = None, None
         
         if norm_type == "Custom":
             self.data_ranges = utils.percentile_normalization_ranges(train_data, norm_args["norm_percentile"])
         elif norm_type == "CustomStandard":
             self.means_train, self.stds_train = train_data.get_means_and_stds()
             self.means_validation, self.stds_validation = validation_data.get_means_and_stds()
-            self.means_test, self.stds_test = test_data.get_means_and_stds()
         
         print("Trainer scaler args: ", self.norm_args)
         
@@ -151,8 +153,6 @@ class AutoEncoderTrainer:
             'norm_stds_train': self.stds_train,
             'norm_means_validation': self.means_validation,
             'norm_stds_validation': self.stds_validation,
-            'norm_means_test': self.means_test,
-            'norm_stds_test': self.stds_test,
             'range': self.data_ranges.tolist(),
             'target_dim': self.bottleneck_size,
             'input_dim': self.input_size,

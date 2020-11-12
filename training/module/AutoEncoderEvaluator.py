@@ -85,6 +85,8 @@ class AutoEncoderEvaluator:
                                                                  means=means_qcd,
                                                                  stds=stds_qcd)
 
+        qcd_scaler = self.qcd_test_data.scaler
+
         means_signal = {}
         stds_signal = {}
 
@@ -101,7 +103,8 @@ class AutoEncoderEvaluator:
                                              data_ranges=self.norm_ranges,
                                              norm_args=self.norm_args,
                                              means=means_signal[signal],
-                                             stds=stds_signal[signal]))
+                                             stds=stds_signal[signal],
+                                             scaler=qcd_scaler))
 
         # Get reconstruction values and errors
         qcd_key = "qcd"
@@ -120,7 +123,8 @@ class AutoEncoderEvaluator:
                                                   norm_args=self.norm_args,
                                                   inverse=True,
                                                   means=means_qcd,
-                                                  stds=stds_qcd)
+                                                  stds=stds_qcd,
+                                                  scaler=qcd_scaler)
 
         for signal in self.signals:
             means = None
@@ -138,7 +142,8 @@ class AutoEncoderEvaluator:
                                              norm_args=self.norm_args,
                                              inverse=True,
                                              means=means,
-                                             stds=stds))
+                                             stds=stds,
+                                             scaler=qcd_scaler))
         
         self.qcd_reps = utils.DataTable(self.model.layers[1].predict(self.qcd_test_data_normalized.data), name='QCD reps')
         
@@ -213,13 +218,6 @@ class AutoEncoderEvaluator:
         self.norm_type = self.d["norm_type"]
         self.norm_ranges = np.asarray(self.d["range"])
         self.norm_args = self.d['norm_args']
-        
-        if 'norm_means_test' in self.d and 'norm_stds_test' in self.d:
-            self.means_test = self.d['norm_means_test']
-            self.stds_test = self.d['norm_stds_test']
-        else:
-            self.means_test = None
-            self.stds_test = None
     
         print("norm type:", self.norm_type)
         print("norm args: ", self.norm_args)

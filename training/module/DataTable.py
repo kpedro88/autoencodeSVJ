@@ -26,6 +26,7 @@ class DataTable(Logger):
         
         Logger.__init__(self, "data_table :: ", verbose)
         self.name = name or "untitled {}".format(DataTable.table_count)
+        self.scaler = None
         DataTable.table_count += 1
         
         if headers is not None:
@@ -59,13 +60,18 @@ class DataTable(Logger):
         else:
             self.df = pd.DataFrame(self.data, columns=self.headers)
     
-    def normalize(self, norm_type, scaler_args, inverse=False):
-        
+    def setup_scaler(self, norm_type, scaler_args):
         norm_type = getattr(self.NormTypes, norm_type)
-
-        scaler = getattr(prep, norm_type.name)(**scaler_args)
-        scaler.fit(self.df)
-        
+        self.scaler = getattr(prep, norm_type.name)(**scaler_args)
+        self.scaler.fit(self.df)
+    
+    def normalize(self, inverse=False, scaler=None):
+        if scaler is None:
+            if self.scaler is None:
+                print("ERROR -- Scaler was not set up before using!!")
+                exit(0)
+            scaler = self.scaler
+            
         if not inverse:
             return DataTable(
                 pd.DataFrame(scaler.transform(self.df), columns=self.df.columns, index=self.df.index),

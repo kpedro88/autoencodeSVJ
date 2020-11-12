@@ -34,7 +34,8 @@ class DataProcessor():
         return train_data, validation_data, test_data, train_idx, test_idx
 
     def normalize(self, data_table, normalization_type, inverse=False,
-                  data_ranges=None, norm_args=None, means=None, stds=None):
+                  data_ranges=None, norm_args=None, means=None, stds=None,
+                  scaler=None):
         
         if normalization_type == "Custom":
             if data_ranges is None:
@@ -47,9 +48,11 @@ class DataProcessor():
                 return data_table.inverse_normalize_in_range(rng=data_ranges)
         
         elif normalization_type in ["RobustScaler", "MinMaxScaler", "StandardScaler", "MaxAbsScaler"]:
-            return data_table.normalize(norm_type=normalization_type,
-                                        scaler_args=norm_args,
-                                        inverse=inverse)
+            if scaler is None:
+                data_table.setup_scaler(norm_type=normalization_type, scaler_args=norm_args)
+                return data_table.normalize(inverse=inverse)
+            else:
+                return data_table.normalize(inverse=inverse, scaler=scaler)
         elif normalization_type == "CustomStandard":
             if means is None or stds is None:
                 print("Custom standard normalization selected, but means or stds not provided!")
