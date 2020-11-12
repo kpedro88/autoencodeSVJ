@@ -92,6 +92,8 @@ class AutoEncoderEvaluator:
     
             if self.norm_type == "CustomStandard":
                 means_signal[signal], stds_signal[signal] = getattr(self, signal).get_means_and_stds()
+            else:
+                means_signal[signal], stds_signal[signal] = None, None
             
             setattr(self, signal + '_norm',
                     data_processor.normalize(data_table=getattr(self, signal),
@@ -102,14 +104,17 @@ class AutoEncoderEvaluator:
                                              stds=stds_signal[signal]))
 
         # Get reconstruction values and errors
-        data = [self.qcd_test_data_normalized]
+        qcd_key = "qcd"
+        
+        data = {qcd_key : self.qcd_test_data_normalized}
         
         for signal in self.signals:
-            data.append(getattr(self, signal + '_norm'))
+            data[signal] = getattr(self, signal + '_norm')
         
         errors, recons = utils.get_recon_errors(data, self.model)
 
-        self.qcd_recon = data_processor.normalize(data_table=recons[0],
+        self.qcd_err = errors[qcd_key]
+        self.qcd_recon = data_processor.normalize(data_table=recons[qcd_key],
                                                   normalization_type=self.norm_type,
                                                   data_ranges=self.norm_ranges,
                                                   norm_args=self.norm_args,
@@ -117,10 +122,7 @@ class AutoEncoderEvaluator:
                                                   means=means_qcd,
                                                   stds=stds_qcd)
 
-        self.qcd_err, signal_errs = errors[0], errors[1:]
-        
-        for err, recon, signal in zip(signal_errs, recons[1:], self.signals):
-            
+        for signal in self.signals:
             means = None
             stds = None
             
@@ -128,9 +130,9 @@ class AutoEncoderEvaluator:
                 means = means_signal[signal]
                 stds = stds_signal[signal]
             
-            setattr(self, signal + '_err', err)
+            setattr(self, signal + '_err', errors[signal])
             setattr(self, signal + '_recon',
-                    data_processor.normalize(data_table=recon,
+                    data_processor.normalize(data_table=recons[signal],
                                              normalization_type=self.norm_type,
                                              data_ranges=self.norm_ranges,
                                              norm_args=self.norm_args,
