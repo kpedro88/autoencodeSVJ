@@ -3,6 +3,8 @@ training/trainingResults/aucs/*
 training/trainingResults/summary/*
 training/trainingResults/trainingRuns/*
 
+training/analysis/drawAucDistributions
+
 # CUSTOM
 #
 *outfull/

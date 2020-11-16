@@ -11,12 +11,14 @@ import module.SummaryProcessor as summaryProcessor
 # file stored in "AUCs_path" with version specified by "training_version".
 # ------------------------------------------------------------------------------------------------
 
-scaler_type = "customStandardScaler"
+scaler_type = "customScaler"
 
-training_version = {"standardScaler": 8,
-                    "customScaler": 47,
-                    "robustScaler": 63,
-                    "customStandardScaler": 86
+training_version = {"standardScaler": 56,
+                    "customScaler": 12,
+                    "robustScaler": 47,
+                    "minMaxScaler": 57,
+                    "maxAbsScaler": 76,
+                    "customStandardScaler": 86,
                     }
 
 efp_base = 3

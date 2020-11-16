@@ -9,11 +9,13 @@ import pandas as pd
 # "signals_base_path" and background as specified in the training summary.
 # ------------------------------------------------------------------------------------------------
 
-scaler_type = "customStandardScaler"
+scaler_type = "customScaler"
 
-training_version = {"standardScaler": 8,
-                    "customScaler": 47,
-                    "robustScaler": 63,
+training_version = {"standardScaler": 56,
+                    "customScaler": 12,
+                    "robustScaler": 47,
+                    "minMaxScaler": 57,
+                    "maxAbsScaler": 76,
                     "customStandardScaler": 86,
                     "": None
                     }

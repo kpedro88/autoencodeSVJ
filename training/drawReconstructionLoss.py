@@ -9,10 +9,12 @@ import pandas as pd
 # "signals_base_path" and backgrounds as specified in the training summary file.
 # ------------------------------------------------------------------------------------------------
 
-scalers_and_best_training_versions = {"standardScaler": 8,
-                                      "customScaler": 47,
-                                      "robustScaler": 63,
-                                      "customStandardScaler": 86
+scalers_and_best_training_versions = {"standardScaler": 56,
+                                      "customScaler": 12,
+                                      "robustScaler": 47,
+                                      "minMaxScaler": 57,
+                                      "maxAbsScaler": 76,
+                                      "customStandardScaler": 86,
                                       }
 
 signals_base_path = "../../data/training_data/all_signals/"

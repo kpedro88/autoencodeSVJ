@@ -12,7 +12,7 @@ import ROOT
 
 scaler_type = "customStandardScaler"
 
-training_version = {"standardScaler": 8,
+training_version = {"standardScaler": 56,
                     "customScaler": 47,
                     "robustScaler": 63,
                     "customStandardScaler": 86
