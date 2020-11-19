@@ -31,14 +31,14 @@ input_summary_path = summaryProcessor.get_latest_summary_file_path(summaries_pat
                                                                    version=training_version[scaler_type])
 
 
-# masses = [1500, 2000, 2500, 3000, 3500, 4000]
-masses = [2500]
-# rinvs = [0.15, 0.30, 0.45, 0.60, 0.75]
-rinvs = [0.45]
+masses = [1500, 2000, 2500, 3000, 3500, 4000]
+# masses = [2500]
+rinvs = [0.15, 0.30, 0.45, 0.60, 0.75]
+# rinvs = [0.45]
 
 signals_base_path = "../../data/training_data/all_signals/"
 
-signals = {"signal_{}_{}".format(mass, rinv).replace(".", "p") : "{}{}GeV_{:1.2f}/base_3/*.h5".format(signals_base_path, mass, rinv)
+signals = {"mZprime{}_mDark20_rinv{}_alphapeak".format(mass, rinv).replace(".", "") : "{}{}GeV_{:1.2f}/base_3/*.h5".format(signals_base_path, mass, rinv)
            for mass in masses
            for rinv in rinvs}
 
