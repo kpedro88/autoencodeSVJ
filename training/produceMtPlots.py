@@ -12,11 +12,14 @@ import ROOT
 
 scaler_type = "customStandardScaler"
 
-training_version = {"standardScaler": 56,
-                    "customScaler": 47,
-                    "robustScaler": 63,
-                    "customStandardScaler": 86
-                    }
+training_version = {
+    "standardScaler": 56,
+    "customScaler": 47,
+    "robustScaler": 63,
+    "customStandardScaler": 86
+}
+
+output_file_name = "stat_hists_test.root"
 
 efp_base = 3
 bottleneck_dim = 8
@@ -31,16 +34,17 @@ input_summary_path = summaryProcessor.get_latest_summary_file_path(summaries_pat
                                                                    version=training_version[scaler_type])
 
 
-masses = [1500, 2000, 2500, 3000, 3500, 4000]
-# masses = [2500]
-rinvs = [0.15, 0.30, 0.45, 0.60, 0.75]
-# rinvs = [0.45]
+# masses = [1500, 2000, 2500, 3000, 3500, 4000]
+masses = [2500]
+# rinvs = [0.15, 0.30, 0.45, 0.60, 0.75]
+rinvs = [0.45]
 
 signals_base_path = "../../data/training_data/all_signals/"
 
-signals = {"mZprime{}_mDark20_rinv{}_alphapeak".format(mass, rinv).replace(".", "") : "{}{}GeV_{:1.2f}/base_3/*.h5".format(signals_base_path, mass, rinv)
+signals = {"mZprime{}_mDark20_rinv{}_alphapeak".format(mass, rinv).replace(".", ""): "{}{}GeV_{:1.2f}/base_3/*.h5".format(signals_base_path, mass, rinv)
            for mass in masses
            for rinv in rinvs}
+
 
 def get_hist_data(events, event_indices, jets, errors):
     n_events = 0
@@ -105,24 +109,19 @@ n_svj_hist.title.set_text("N SV Jets")
 
 mt_svj_hist = {}
 
-output_file = ROOT.TFile("stat_hists.root", "recreate")
+output_file = ROOT.TFile(output_file_name, "recreate")
 output_file.cd()
-
 
 
 for n_svj in qcd_mt_svj_hist_data:
     mt_svj_hist[n_svj] = canvas.add_subplot(n_rows, n_columns, i_plot)
     i_plot += 1
     
-    mt_svj_hist[n_svj].hist(qcd_mt_svj_hist_data[n_svj],
-                            bins=numpy.linspace(0, 5000, 100), label="qcd", histtype="step")
-    mt_svj_hist[n_svj].title.set_text("M_T ({} SVJ)".format(n_svj))
-
     mt_svj_root_hist = ROOT.TH1D("QCD", "QCD", 750, 0, 7500)
     
     for data in qcd_mt_svj_hist_data[n_svj]:
         mt_svj_root_hist.Fill(data)
-        
+    
     output_file.mkdir("SVJ{}_2018".format(n_svj))
     output_file.cd("SVJ{}_2018".format(n_svj))
     mt_svj_root_hist.Write()
@@ -174,7 +173,7 @@ for signal in signals:
     
         for value in data:
             mt_svj_root_hist.Fill(value)
-    
+        
         output_file.cd("SVJ{}_2018".format(n_svj))
         mt_svj_root_hist.Write()
 
