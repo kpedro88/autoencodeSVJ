@@ -13,13 +13,14 @@ import module.SummaryProcessor as summaryProcessor
 
 scaler_type = "customScaler"
 
-training_version = {"standardScaler": 56,
-                    "customScaler": 12,
-                    "robustScaler": 47,
-                    "minMaxScaler": 57,
-                    "maxAbsScaler": 76,
-                    "customStandardScaler": 86,
-                    }
+training_version = {
+    "standardScaler": 56,
+    "customScaler": 12,
+    "robustScaler": 47,
+    "minMaxScaler": 57,
+    "maxAbsScaler": 76,
+    "customStandardScaler": 86,
+}
 
 efp_base = 3
 bottleneck_dim = 8
