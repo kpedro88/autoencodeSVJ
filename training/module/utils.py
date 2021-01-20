@@ -189,9 +189,9 @@ def get_recon_errors(data_list, autoencoder, **kwargs):
     
     for key, data in data_list.items():
         recon[key] = DataTable(pd.DataFrame(autoencoder.predict(data.data), columns=data.columns, index=data.index),
-                               name="{0} pred".format(data.name))
+                               name="{0} pred".format(data.output_file_prefix))
         
-        errors[key] = get_errors(recon[key].data, data.data, out_name="{0} error".format(data.name), index=data.df.index, **kwargs)
+        errors[key] = get_errors(recon[key].data, data.data, out_name="{0} error".format(data.output_file_prefix), index=data.df.index, **kwargs)
         
     return errors, recon
 
@@ -214,18 +214,18 @@ def roc_auc_dict(data_errs, signal_errs, metrics=['mse', 'mae']):
     
     for i,(data_err,signal_err) in enumerate(zip(data_errs, signal_errs)):
         
-        ret[signal_err.name] = {}
+        ret[signal_err.output_file_prefix] = {}
         
         for j,metric in enumerate(metrics):
-            ret[signal_err.name][metric] = {} 
+            ret[signal_err.output_file_prefix][metric] = {}
             pred = np.hstack([signal_err[metric].values, data_err[metric].values])
             true = np.hstack([np.ones(signal_err.shape[0]), np.zeros(data_err.shape[0])])
 
             roc = roc_curve(true, pred)
             auc = roc_auc_score(true, pred)
             
-            ret[signal_err.name][metric]['roc'] = roc
-            ret[signal_err.name][metric]['auc'] = auc
+            ret[signal_err.output_file_prefix][metric]['roc'] = roc
+            ret[signal_err.output_file_prefix][metric]['auc'] = auc
 
     return ret
 
@@ -256,7 +256,7 @@ def roc_auc_plot(data_errs, signal_errs, metrics='loss', *args, **kwargs):
             roc = roc_curve(true, pred)
             auc = roc_auc_score(true, pred)
         
-            ax.plot(roc[0], roc[1], styles[j%len(styles)], c=colors[i%len(colors)], label='{} {}, AUC {:.4f}'.format(signal_err.name, metric, auc))
+            ax.plot(roc[0], roc[1], styles[j%len(styles)], c=colors[i%len(colors)], label='{} {}, AUC {:.4f}'.format(signal_err.output_file_prefix, metric, auc))
 
     ax.plot(roc[0], roc[0], '--', c='black')
     ax_end("false positive rate", "true positive rate")

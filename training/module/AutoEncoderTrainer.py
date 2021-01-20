@@ -56,8 +56,8 @@ class AutoEncoderTrainer:
          validation_data,
          test_data, _, _) = data_processor.split_to_train_validate_test(data_table=self.qcd)
         
-        train_data.name = "qcd training data"
-        validation_data.name = "qcd validation data"
+        train_data.output_file_prefix = "qcd training data"
+        validation_data.output_file_prefix = "qcd validation data"
         
         # Normalize the input
         self.norm_type = norm_type

@@ -66,6 +66,10 @@ def plot_signal_aucs(aucs, title=None):
     
     lp = lp.drop('mass_nu_ratio', axis=1).pivot('mass', 'nu', 'auc')
     
+    print("lp type:" , type(lp))
+    print("lp: ", lp)
+    
+    
     return lp, plot_signal_aucs_from_lp(lp, title)
 
 
@@ -77,9 +81,13 @@ for f in glob.glob(AUCs_path):
     data_elt['name'] = file_elt
     auc_dict[file_elt] = data_elt
     
+print("AUC dict: ", auc_dict)
+
 aucs = pd.concat(auc_dict)
 aucs['mass_nu_ratio'] = list(zip(aucs.mass, aucs.nu))
 aucs = aucs.pivot('mass_nu_ratio', 'name', 'auc')
+
+
 
 summaries = summaryProcessor.summary(summary_path=summaries_path)
 
@@ -93,7 +101,12 @@ model_acceptance_fraction = 10  # take top N best performing models
 # print("Best models: ", best_)
 # print("The best model: ", best_name)
 
+
+
 AUC_file_name = "hlf_eflow{}_{}_v{}".format(efp_base, bottleneck_dim, training_version[scaler_type])
+
+print("AUCs: ", aucs[AUC_file_name].to_frame())
+
 best, ax = plot_signal_aucs(aucs[AUC_file_name].to_frame(), title='Autoencoder AUCs (Best AE)')
 
 plt.show()

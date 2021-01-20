@@ -66,7 +66,7 @@ class AutoEncoderEvaluator:
                                                                                  train_idx=new_train_indices,
                                                                                  test_idx=new_test_indices)
     
-        self.qcd_test_data.name = "qcd test data"
+        self.qcd_test_data.output_file_prefix = "qcd test data"
 
         # Calculate means and stds if needed
         
@@ -153,13 +153,13 @@ class AutoEncoderEvaluator:
                                     name=signal + ' reps'))
         
         self.qcd_err_jets = [
-            utils.DataTable(self.qcd_err.loc[self.qcd_err.index % 2 == i], name=self.qcd_err.name + " jet " + str(i))
+            utils.DataTable(self.qcd_err.loc[self.qcd_err.index % 2 == i], name=self.qcd_err.output_file_prefix + " jet " + str(i))
             for i in range(2)]
         
         for signal in self.signals:
             serr = getattr(self, signal + '_err')
             setattr(self, signal + '_err_jets',
-                    [utils.DataTable(serr.loc[serr.index % 2 == i], name=serr.name + " jet " + str(i)) for i in
+                    [utils.DataTable(serr.loc[serr.index % 2 == i], name=serr.output_file_prefix + " jet " + str(i)) for i in
                      range(2)])
         
         self.test_flavor = self.qcd_flavor.iloc[self.qcd_test_data.index]
