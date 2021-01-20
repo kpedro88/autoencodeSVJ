@@ -175,7 +175,7 @@ class Converter:
         jet_raw,
         constituentp4s
     ):
-        j = jet_raw.P4()
+        j = jet_raw.get_four_vector()
         nc, nn = list(map(float, [jet_raw.NCharged, jet_raw.NNeutrals]))
         n_total = nc + nn
         jet_cfrac = nc / n_total if n_total > 0 else -1
@@ -204,7 +204,7 @@ class Converter:
         metphi = tree.MissingET[0].Phi
         meteta = tree.MissingET[0].Eta
 
-        Vjj = tree.Jet[0].P4() + tree.Jet[1].P4()
+        Vjj = tree.Jet[0].get_four_vector() + tree.Jet[1].get_four_vector()
         met_py = met*np.sin(metphi)
         met_px = met*np.cos(metphi)
 
@@ -250,7 +250,7 @@ class Converter:
         constituents = [[] for i in range(len(jets))]
         for i,c in enumerate(tree.EFlowTrack): # .1
             if c.PT > 0.1:
-                vec = c.P4()
+                vec = c.get_four_vector()
                 for j,jet in enumerate(jets):
                     deta = vec.Eta() - jet.Eta()
                     dphi = jet.DeltaPhi(vec)
@@ -259,7 +259,7 @@ class Converter:
             
         for i,c in enumerate(tree.EFlowNeutralHadron): #.5
             if c.ET > 0.5:
-                vec = c.P4()
+                vec = c.get_four_vector()
                 for j,jet in enumerate(jets):
                     deta = vec.Eta() - jet.Eta()
                     dphi = jet.DeltaPhi(vec)
@@ -268,7 +268,7 @@ class Converter:
             
         for i,c in enumerate(tree.EFlowPhoton): #.2
             if c.ET > 0.2:
-                vec = c.P4()
+                vec = c.get_four_vector()
                 for j,jet in enumerate(jets):
                     deta = vec.Eta() - jet.Eta()
                     dphi = jet.DeltaPhi(vec)
@@ -355,7 +355,7 @@ class Converter:
 
                 # jets
                 jets_raw = [tree.Jet[i] for i in range(min([self.n_jets, tree.Jet_size]))]
-                jets = [j.P4() for j in jets_raw]
+                jets = [j.get_four_vector() for j in jets_raw]
                
                 # constituent 4-vectors per jet
                 constituents_by_jet = self.get_constituent_p4s(tree, jets, self.jetDR)
