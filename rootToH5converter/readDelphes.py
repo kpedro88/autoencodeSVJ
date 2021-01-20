@@ -3,7 +3,14 @@ from Converter import Converter
 
 file = uproot.open("/Users/Jeremi/Documents/Physics/ETH/data/s_channel_delphes/qcd/qcd_sqrtshatTeV_13TeV_PU20_9.root")
 
-converter = Converter(input_paths = ["test_selections.txt"],
+# input_path = "test_selections_delphes.txt"
+# output_path = "test_delphes.h5"
+
+input_path = "test_selections_nanoAOD.txt"
+output_path = "test_nanoAOD.h5"
+
+
+converter = Converter(input_paths = [input_path],
                       output_path= "./",
                       output_file_prefix= "qcd",
                       save_constituents=False,
@@ -12,7 +19,7 @@ converter = Converter(input_paths = ["test_selections.txt"],
                       )
 
 converter.convert((0,100))
-converter.save("test.h5")
+converter.save(output_path)
 
 # print("File keys:", file.keys())
 # print("File values:", file.values())

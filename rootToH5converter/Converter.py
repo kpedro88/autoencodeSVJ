@@ -26,7 +26,28 @@ class Converter:
 
         # core tree, add files, add all trees
         self.files = {path: uproot.open(path) for path in self.input_file_paths}
-        self.trees = {path: file["Delphes"] for path, file in self.files.items()}
+
+        self.trees = {}
+        self.input_types = {}
+        
+        for path, file in self.files.items():
+            
+            for key in file.keys():
+                if key.startswith("Delphes"):
+                    self.trees[path] = file["Delphes"]
+                    self.input_types[path] = "Delphes"
+                    print("Adding Delphes tree")
+                elif key.startswith("Events"):
+                    self.trees[path] = file[key]
+                    self.input_types[path] = "nanoAOD"
+                    print("Adding nanoAOD tree: ", key)
+                else:
+                    print("Unknown tree type: ", key, ". Skipping...")
+        
+        
+        print("Loaded trees: ", self.trees)
+        print("Corresponding types: ", self.input_types)
+        
         self.sizes = [tree.num_entries for tree in self.trees.values()]
         self.nEvents = sum(self.sizes)
 
@@ -136,19 +157,48 @@ class Converter:
     
     
         for file_name, tree in self.trees.items():
+            print("Loading events from file: ", file_name)
+            input_type = self.input_types[file_name]
+            print("Input type was recognised to be ", input_type)
+    
     
             for iEvent in self.selections[file_name]:
                 
-                nJets = tree["Jet_size"].array()[iEvent]
+                nJets = 0
+                
+                if input_type == "Delphes":
+                    nJets = tree["Jet_size"].array()[iEvent]
+                elif input_type == "nanoAOD":
+                    nJets = tree["nJet"].array()[iEvent]
+                else:
+                    print("\n\nERROR -- unknown input type!\n\n")
+                    exit(0)
+                
+                if nJets < 2:
+                    print("WARNING -- event has less than 2 jets! Skipping...")
+                    continue
+                
                 jets = []
                 
                 for iJet in range(0, nJets):
                     jet = Jet()
+
+                    if input_type == "Delphes":
+                        jet.eta = tree["Jet/Jet.Eta"].array()[iEvent][iJet]
+                        jet.phi = tree["Jet/Jet.Phi"].array()[iEvent][iJet]
+                        jet.pt = tree["Jet/Jet.PT"].array()[iEvent][iJet]
+                        jet.mass = tree["Jet/Jet.Mass"].array()[iEvent][iJet]
+                        jet.nCharged = tree["Jet/Jet.NCharged"].array()[iEvent][iJet]
+                        jet.nNeutral = tree["Jet/Jet.NNeutrals"].array()[iEvent][iJet]
+                    elif input_type == "nanoAOD":
+                        jet.eta = tree["Jet_eta"].array()[iEvent][iJet]
+                        jet.phi = tree["Jet_phi"].array()[iEvent][iJet]
+                        jet.pt = tree["Jet_pt"].array()[iEvent][iJet]
+                        jet.mass = tree["Jet_mass"].array()[iEvent][iJet]
+                      
+                        jet.chargedHadronEnergyFraction = tree["Jet_chHEF"].array()[iEvent][iJet]
+                        jet.chargedHadronEnergyFraction = tree["Jet_neHEF"].array()[iEvent][iJet]
                     
-                    jet.eta = tree["Jet/Jet.Eta"].array()[iEvent][iJet]
-                    jet.phi = tree["Jet/Jet.Phi"].array()[iEvent][iJet]
-                    jet.pt  = tree["Jet/Jet.PT"].array()[iEvent][iJet]
-                    jet.mass = tree["Jet/Jet.Mass"].array()[iEvent][iJet]
                 
                     jets.append(jet)
                 
@@ -161,18 +211,38 @@ class Converter:
                 event = Event()
                 event.jets = jets
 
-                event.met = tree["MissingET.MET"].array()[iEvent][0]
-                event.metPhi = tree["MissingET.Phi"].array()[iEvent][0]
-                event.metEta = tree["MissingET.Eta"].array()[iEvent][0]
+                if input_type == "Delphes":
+                    event.met = tree["MissingET.MET"].array()[iEvent][0]
+                    event.metPhi = tree["MissingET.Phi"].array()[iEvent][0]
+                    event.metEta = tree["MissingET.Eta"].array()[iEvent][0]
+                elif input_type == "nanoAOD":
+                    event.met = tree["MET_pt"].array()[iEvent]
+                    event.metPhi = tree["MET_phi"].array()[iEvent]
+                    event.metEta = 0
+
+                
                 
                 event.calculate_internals()
 
-                print("Event features: ", event.get_features())
+                event_features = event.get_features()
+
+                print("Event features: ", event_features)
+                print("Event features (asarray): ", np.asarray(event_features))
+                self.event_features[total_count, :] = np.asarray(event_features)
+                
+                
                 print("\n\nCurrent event features: ", self.event_features, "\n\n")
 
-                self.event_features[total_count, :] = np.asarray(event.get_features())
+                
 
                 total_count += 1
+
+        
+        for i in range(0, total_size-total_count):
+            self.event_features = np.delete(self.event_features, -1, axis=0)
+        
+        
+        
         
         # selection is implicit: looping only through total selectinos
         # for tree_n, tree_name in enumerate(self.input_file_paths):

@@ -12,7 +12,8 @@ class Event:
     
     def calculate_internals(self):
         
-        assert len(self.jets) > 1
+        if len(self.jets) <= 1:
+            print("ERROR -- events has less than 2 jets, which should never happen!")
         
         if len(self.jets) != 2:
             print("ERROR -- expected two jets in the event, but there are ", len(self.jets))
