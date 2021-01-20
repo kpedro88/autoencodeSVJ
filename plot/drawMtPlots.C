@@ -21,9 +21,21 @@ map<string, double> svjCrossSections = { // fb (?)
   {"3000", 0.0155},
   {"3500", 0.005036},
   {"4000", 0.001688},
+  
+//  {"1500", 2.658e-10 * 1e12 }, // mb -> fb
+//  {"2000", 5.150e-11 * 1e15 }, // b -> fb
+//
+//  {"2500", 5.150e-11 * 1e15 }, // b -> fb
+//  {"3000", 5.150e-11 * 1e15 }, // b -> fb
+//  {"3500", 5.150e-11 * 1e15 }, // b -> fb
+//  {"4000", 5.150e-11 * 1e15 }, // b -> fb
 };
 
-double qcdCrossSection = 3358729;
+double qcdNgenEvents = 3500000;
+//double qcdCrossSection = 3358729;
+double qcdCrossSection = 1918063.6;
+
+//double qcdCrossSection = 96 * 1e12; // mb -> fb
 
 double lumi2018 = 59.8; // fb^-1
 
@@ -57,8 +69,12 @@ tuple<map<string, THStack*>, TLegend*> prepareStack(TH1D *_background, map<strin
     for(auto &[key, hist] : signals) hist->Scale(1./hist->GetEntries());
   }
   else if(normalize == kNormToCrossSection){
-    background->Scale(qcdCrossSection/background->GetEntries());
-    for(auto &[key, hist] : signals) hist->Scale(svjCrossSections[key]/hist->GetEntries());
+    
+//    cout<<"scale: "<<qcdCrossSection*lumi2018<<endl;
+//    cout<<"scale2: "<<background->GetEntries()/qcdNgenEvents<<endl;
+    
+    background->Scale(qcdCrossSection * background->GetEntries()/qcdNgenEvents);
+    for(auto &[key, hist] : signals) hist->Scale(svjCrossSections[key] * hist->GetEntries()/hist->GetEntries());
   }
   
   map<string, THStack*> stacks;
@@ -67,10 +83,11 @@ tuple<map<string, THStack*>, TLegend*> prepareStack(TH1D *_background, map<strin
   background->Rebin(rebin);
   background->Scale(1./rebin);
   background->SetLineColor(kBlack);
+  if(normalize != kNormToOne) background->SetFillColorAlpha(kBlack, 0.3);
   background->Sumw2(false);
   background->GetXaxis()->SetTitle("m_{t} (GeV)");
   
-  legend->AddEntry(background, "QCD", "l");
+  legend->AddEntry(background, "QCD", "lf");
   
   for(auto &[key, hist] : signals){
     
@@ -88,7 +105,8 @@ tuple<map<string, THStack*>, TLegend*> prepareStack(TH1D *_background, map<strin
     stacks[key]->Draw();
     stacks[key]->GetXaxis()->SetTitle("m_{t} (GeV)");
     stacks[key]->GetXaxis()->SetRangeUser(minMt, maxMt);
-    stacks[key]->SetMaximum(normalize==kNormToOne ? 0.1 : 300);
+    stacks[key]->SetMinimum(normalize==kNormToOne ? 0.0 : (normalize==kNormToCrossSection ? 1e2 : 0));
+    stacks[key]->SetMaximum(normalize==kNormToOne ? 0.1 : (normalize==kNormToCrossSection ? 1e8 : 300));
   }
   
   return {stacks, legend};
@@ -142,6 +160,9 @@ void drawMtPlots()
           first = false;
         }
         legend->Draw();
+        
+        if(normType == kNormToCrossSection) gPad->SetLogy();
+        
       }
     }
   }
@@ -152,4 +173,3 @@ void drawMtPlots()
     canvases[normType]->SaveAs(outFileName.c_str());
   }
 }
-
