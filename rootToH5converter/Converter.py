@@ -60,14 +60,6 @@ class Converter:
         self.jet_delta_r = jet_delta_r
         self.n_jets = 2
 
-        self.jet_constituent_names = [
-            'Eta',
-            'Phi',
-            'PT',
-            'Rapidity',
-            'Energy',
-        ]
-
         self.n_constituent_particles = n_constituent_particles
         self.event_features = None
         self.jet_features = None
@@ -131,7 +123,7 @@ class Converter:
         print("jet feature shapes: {}".format(self.event_features.shape))
 
         self.jet_constituents = np.empty(
-            (total_size, self.n_jets, self.n_constituent_particles, len(self.jet_constituent_names)))
+            (total_size, self.n_jets, self.n_constituent_particles, len(Jet.get_constituent_feature_names())))
         print("jet constituent shapes: {}".format(self.jet_constituents.shape))
 
         self.energy_flow_bases = np.empty((total_size, self.n_jets, self.efp_size))
@@ -207,9 +199,6 @@ class Converter:
                 print("Event: ", iEvent)
                 event.print()
                 
-                constituents_by_jet = [jet.constituents for jet in event.jets]
-                constituents_by_jet = list(map(np.asarray, constituents_by_jet))
-
                 self.event_features[total_count, :] = np.asarray(event.get_features())
 
                 for iJet, jet in enumerate(event.jets):
@@ -218,18 +207,31 @@ class Converter:
 
                     self.jet_features[total_count, iJet, :] = event.jets[iJet].get_features()
 
-                    # if self.save_constituents:
-                    #     self.jet_constituents[total_count, iJet, :] = self.get_jet_constituents(constituents)
-                    #
-                    # if self.save_eflow:
-                    #     self.energy_flow_bases[total_count, iJet, :] = self.get_eflow_variables(constituents)
+                    if self.save_constituents:
+                        self.jet_constituents[total_count, iJet, :] = self.get_jet_constituents(jet.constituents)
+
+                    if self.save_eflow:
+                        self.energy_flow_bases[total_count, iJet, :] = jet.get_EFPs(self.efpset)
                 
                 total_count += 1
 
         # remove redundant rows for events that didn't meet some criteria
         for i in range(0, total_size-total_count):
             self.event_features = np.delete(self.event_features, -1, axis=0)
-        
+            self.jet_features = np.delete(self.jet_features, -1, axis=0)
+
+    def pad_to_n(self, data, n, sort_index):
+        data = data[np.argsort(data[:,sort_index]),:][::-1][:n,:]
+        data = np.pad(data, ((0,n-data.shape[0]), (0,0)), 'constant')
+        return data
+
+    def get_jet_constituents(self, constituentp4s):
+    
+        ret = -np.ones((len(constituentp4s), len(Jet.get_constituent_feature_names())))
+        for i, c in enumerate(constituentp4s):
+            ret[i, :] = [c.Eta(), c.Phi(), c.Pt(), c.Rapidity(), c.E()]
+    
+        return self.pad_to_n(ret, self.n_constituent_particles, 2)
 
     def save(self, output_file_name=None):
     
@@ -250,25 +252,25 @@ class Converter:
         features.create_dataset('labels', data=Event.get_features_names())
     
         jet_features = f.create_group("jet_features")
-        assert self.jet_features.shape[-1] == len(Jet.get_feature_names())
+        # assert self.jet_features.shape[-1] == len(Jet.get_feature_names())
         print("creating feature 'jet_features'")
         jet_features.create_dataset('data', data=self.jet_features)
         jet_features.create_dataset('labels', data=Jet.get_feature_names())
     
-        # if self.save_constituents:
-        #     jet_constituents = f.create_group("jet_constituents")
-        #     assert self.jet_constituents.shape[-2] == self.n_constituent_particles
-        #     assert self.jet_constituents.shape[-1] == len(self.jet_constituent_names)
-        #     print("creating feature 'jet_constituents'")
-        #     jet_constituents.create_dataset('data', data=self.jet_constituents)
-        #     jet_constituents.create_dataset('labels', data=self.jet_constituent_names)
+        if self.save_constituents:
+            jet_constituents = f.create_group("jet_constituents")
+            assert self.jet_constituents.shape[-2] == self.n_constituent_particles
+            assert self.jet_constituents.shape[-1] == len(Jet.get_constituent_feature_names())
+            print("creating feature 'jet_constituents'")
+            jet_constituents.create_dataset('data', data=self.jet_constituents)
+            jet_constituents.create_dataset('labels', data=Jet.get_constituent_feature_names())
     
-        # if self.save_eflow:
-        #     eflow = f.create_group("jet_eflow_variables")
-        #     assert self.energy_flow_bases.shape[-1] == self.efp_size
-        #     print("creating feature 'jet_eflow_variables'")
-        #     eflow.create_dataset('data', data=self.energy_flow_bases)
-        #     eflow.create_dataset('labels', data=[str(i) for i in range(self.efp_size)])
+        if self.save_eflow:
+            eflow = f.create_group("jet_eflow_variables")
+            assert self.energy_flow_bases.shape[-1] == self.efp_size
+            print("creating feature 'jet_eflow_variables'")
+            eflow.create_dataset('data', data=self.energy_flow_bases)
+            eflow.create_dataset('labels', data=[str(i) for i in range(self.efp_size)])
     
         print("Successfully saved!")
         f.close()

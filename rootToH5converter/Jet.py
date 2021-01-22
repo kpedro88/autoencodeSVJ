@@ -1,5 +1,6 @@
 import ROOT
 import numpy as np
+import energyflow as ef
 
 class Jet:
     
@@ -13,6 +14,11 @@ class Jet:
             self.nCharged = tree["Jet/Jet.NCharged"].array()[iEvent][iJet]
             self.nNeutral = tree["Jet/Jet.NNeutrals"].array()[iEvent][iJet]
             self.flavor = tree["Jet/Jet.Flavor"].array()[iEvent][iJet]
+
+            n_total = self.nCharged + self.nNeutral
+            self.chargedHadronEnergyFraction = self.nCharged / n_total if n_total > 0 else -1
+            self.neutralHadronEnergyFraction = self.nNeutral / n_total if n_total > 0 else -1
+            
         elif input_type == "nanoAOD":
             self.eta = tree["Jet_eta"].array()[iEvent][iJet]
             self.phi = tree["Jet_phi"].array()[iEvent][iJet]
@@ -48,55 +54,64 @@ class Jet:
         ]
 
     def get_features(self):
-
-        charged_fraction = 99999
-
-        if hasattr(self, "nCharged"):
-            n_total = self.nCharged + self.nNeutral
-            charged_fraction = self.nCharged / n_total if n_total > 0 else -1
-        elif hasattr(self, "chargedHadronEnergyFraction"):
-            charged_fraction = self.chargedHadronEnergyFraction
-        
-        ptd, axis2 = self.jet_axis2_pt2()
-
         return [
             self.eta,
             self.phi,
             self.pt,
             self.mass,
-            charged_fraction,
-            ptd,
-            axis2,
+            self.chargedHadronEnergyFraction,
+            self.get_ptD(),
+            self.get_axis2(),
             self.flavor,
             self.get_four_vector().E(),
         ]
 
-    def jet_axis2_pt2(self):
+    @staticmethod
+    def get_constituent_feature_names():
+        return [
+            'Eta',
+            'Phi',
+            'PT',
+            'Rapidity',
+            'Energy',
+        ]
+
+    def get_ptD(self):
 
         sum_weight = 0
         sum_pt = 0
+        
+        for i, c in enumerate(self.constituents):
+            sum_weight += c.Pt() ** 2
+            sum_pt += c.Pt()
+            
+        ptD = np.sqrt(sum_weight) / sum_pt if sum_weight > 0 else 0
+
+        return ptD
+
+    def get_axis2(self):
+    
+        sum_weight = 0
         sum_deta = 0
         sum_dphi = 0
         sum_deta2 = 0
         sum_detadphi = 0
         sum_dphi2 = 0
-
+    
         for i, c in enumerate(self.constituents):
             deta = c.Eta() - self.eta
             dphi = c.DeltaPhi(self.get_four_vector())
-            cpt = c.Pt()
-            weight = cpt * cpt
-
+            weight = c.Pt() ** 2
+        
             sum_weight += weight
-            sum_pt += cpt
             sum_deta += deta * weight
             sum_dphi += dphi * weight
             sum_deta2 += deta * deta * weight
             sum_detadphi += deta * dphi * weight
             sum_dphi2 += dphi * dphi * weight
-
+    
         a, b, c, ave_deta, ave_dphi, ave_deta2, ave_dphi2 = 0, 0, 0, 0, 0, 0, 0
-
+    
         if sum_weight > 0.:
             ave_deta = sum_deta / sum_weight
             ave_dphi = sum_dphi / sum_weight
@@ -105,12 +120,11 @@ class Jet:
             a = ave_deta2 - ave_deta * ave_deta
             b = ave_dphi2 - ave_dphi * ave_dphi
             c = -(sum_detadphi / sum_weight - ave_deta * ave_dphi)
-
+    
         delta = np.sqrt(np.abs((a - b) * (a - b) + 4 * c * c))
         axis2 = np.sqrt(0.5 * (a + b - delta)) if a + b - delta > 0 else 0
-        ptD = np.sqrt(sum_weight) / sum_pt if sum_weight > 0 else 0
-
-        return ptD, axis2
+    
+        return axis2
 
     def get_constituents(self, physObjects, pt_cut, delta_r):
         constituents = []
@@ -131,4 +145,10 @@ class Jet:
         self.constituents.extend(self.get_constituents(neutral_hadrons, 0.5, delta_r))
         self.constituents.extend(self.get_constituents(photons, 0.2, delta_r))
 
-        # return list(map(np.asarray, constituents))
+
+    def get_EFPs(self, EFP_set):
+        return EFP_set.compute(
+            ef.utils.ptyphims_from_p4s(
+                [(c.E(), c.Px(), c.Py(), c.Pz()) for c in self.constituents]
+            )
+        )
