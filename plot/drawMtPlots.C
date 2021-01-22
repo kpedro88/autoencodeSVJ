@@ -14,6 +14,7 @@ map<string, int> massColors = {
   { "4000", kRed },
 };
 
+/*
 map<string, double> svjCrossSections = { // fb (?)
   {"1500", 0.77},
   {"2000", 0.1849},
@@ -30,10 +31,55 @@ map<string, double> svjCrossSections = { // fb (?)
 //  {"3500", 5.150e-11 * 1e15 }, // b -> fb
 //  {"4000", 5.150e-11 * 1e15 }, // b -> fb
 };
+*/
+ 
+// from Maurizio
+map<string, double> svjCrossSections = { // mb
+  {"1500" , 2.631e-10 * 1e12 }, // mb -> fb
+//  {"1500GeV_0.15" , 2.631e-10 * 1e12 }, // mb -> fb
+//  {"1500GeV_0.30" , 2.615e-10 * 1e12 }, // mb -> fb
+//  {"1500GeV_0.45" , 2.692e-10 * 1e12 }, // mb -> fb
+//  {"1500GeV_0.60" , 2.567e-10 * 1e12 }, // mb -> fb
+//  {"1500GeV_0.75" , 2.527e-10 * 1e12 }, // mb -> fb
+  {"2000" , 5.168e-11 * 1e12 }, // mb -> fb
+//  {"2000GeV_0.15" , 5.168e-11 * 1e12 }, // mb -> fb
+//  {"2000GeV_0.30" , 5.237e-11 * 1e12 }, // mb -> fb
+//  {"2000GeV_0.45" , 5.124e-11 * 1e12 }, // mb -> fb
+//  {"2000GeV_0.60" , 5.112e-11 * 1e12 }, // mb -> fb
+//  {"2000GeV_0.75" , 5.119e-11 * 1e12 }, // mb -> fb
+  {"2500GeV" , 1.366e-11 * 1e12 }, // mb -> fb
+//  {"2500GeV_0.15" , 1.366e-11 * 1e12 }, // mb -> fb
+//  {"2500GeV_0.30" , 1.345e-11 * 1e12 }, // mb -> fb
+//  {"2500GeV_0.45" , 1.397e-11 * 1e12 }, // mb -> fb
+//  {"2500GeV_0.60" , 1.415e-11 * 1e12 }, // mb -> fb
+//  {"2500GeV_0.75" , 1.396e-11 * 1e12 }, // mb -> fb
+  {"3000" , 4.544e-12 * 1e12 }, // mb -> fb
+//  {"3000GeV_0.15" , 4.544e-12 * 1e12 }, // mb -> fb
+//  {"3000GeV_0.30" , 4.620e-12 * 1e12 }, // mb -> fb
+//  {"3000GeV_0.45" , 4.468e-12 * 1e12 }, // mb -> fb
+//  {"3000GeV_0.60" , 4.562e-12 * 1e12 }, // mb -> fb
+//  {"3000GeV_0.75" , 4.572e-12 * 1e12 }, // mb -> fb
+  {"3500" , 1.816e-12 * 1e12 }, // mb -> fb
+//  {"3500GeV_0.15" , 1.816e-12 * 1e12 }, // mb -> fb
+//  {"3500GeV_0.30" , 1.855e-12 * 1e12 }, // mb -> fb
+//  {"3500GeV_0.45" , 1.790e-12 * 1e12 }, // mb -> fb
+//  {"3500GeV_0.60" , 1.822e-12 * 1e12 }, // mb -> fb
+//  {"3500GeV_0.75" , 1.845e-12 * 1e12 }, // mb -> fb
+  {"4000" , 8.700e-13 * 1e12 }, // mb -> fb
+//  {"4000GeV_0.15" , 8.700e-13 * 1e12 }, // mb -> fb
+//  {"4000GeV_0.30" , 8.658e-13 * 1e12 }, // mb -> fb
+//  {"4000GeV_0.45" , 8.558e-13 * 1e12 }, // mb -> fb
+//  {"4000GeV_0.60" , 8.560e-13 * 1e12 }, // mb -> fb
+//  {"4000GeV_0.75" , 8.698e-13 * 1e12 }, // mb -> fb
+};
+
 
 double qcdNgenEvents = 3500000;
 //double qcdCrossSection = 3358729;
-double qcdCrossSection = 1918063.6;
+//double qcdCrossSection = 1918063.6;
+
+// from Maurizio
+double qcdCrossSection = 1.015e-08 * 1e12; // mb -> fb
 
 //double qcdCrossSection = 96 * 1e12; // mb -> fb
 
@@ -73,8 +119,8 @@ tuple<map<string, THStack*>, TLegend*> prepareStack(TH1D *_background, map<strin
 //    cout<<"scale: "<<qcdCrossSection*lumi2018<<endl;
 //    cout<<"scale2: "<<background->GetEntries()/qcdNgenEvents<<endl;
     
-    background->Scale(qcdCrossSection * background->GetEntries()/qcdNgenEvents);
-    for(auto &[key, hist] : signals) hist->Scale(svjCrossSections[key] * hist->GetEntries()/hist->GetEntries());
+    background->Scale(qcdCrossSection * lumi2018 * background->GetEntries()/qcdNgenEvents);
+    for(auto &[key, hist] : signals) hist->Scale(svjCrossSections[key] * lumi2018 * hist->GetEntries()/100000);
   }
   
   map<string, THStack*> stacks;
@@ -173,3 +219,7 @@ void drawMtPlots()
     canvases[normType]->SaveAs(outFileName.c_str());
   }
 }
+
+The process proceeds though a loop of charged SM particles. It could also go through a loop containing new charged particles (SUSY) or through the s-channel with spin-even resonances (axions, monopoles).
+
+
