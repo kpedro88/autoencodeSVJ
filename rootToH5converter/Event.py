@@ -43,7 +43,7 @@ class Event:
         self.MT = 99999
     
         
-        print("Reading tracks (", self.nTracks, ")")
+        
         self.tracks = []
         for iTrack in range(0, self.nTracks):
             mass = track_mass[iEvent][iTrack] if hasattr(track_mass, "__getitem__") else 0
@@ -52,7 +52,7 @@ class Event:
                                           pt = track_pt[iEvent][iTrack],
                                           mass = mass))
 
-        print("Reading netural hardons")
+        
         self.neutral_hadrons = []
         for iNeutralHadron in range(0, self.nNeutralHadrons):
             mass = neutral_hadron_mass[iEvent][iNeutralHadron] if hasattr(neutral_hadron_mass, "__getitem__") else 0
@@ -61,7 +61,7 @@ class Event:
                                           pt = neutral_hadron_pt[iEvent][iNeutralHadron],
                                           mass = mass))
 
-        print("Reading photons")
+        
         self.photons = []
         for iPhoton in range(0, self.nPhotons):
             mass = photon_mass[iEvent][iPhoton] if hasattr(photon_mass, "__getitem__") else 0
@@ -70,7 +70,7 @@ class Event:
                                           pt = photon_pt[iEvent][iPhoton],
                                           mass = mass))
 
-        print("Reading jets")
+        
         self.jets = []
         for iJet in range(0, self.nJets):
             self.jets.append(Jet(tree, input_type, iEvent, iJet))

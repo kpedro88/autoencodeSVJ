@@ -16,7 +16,7 @@ class Converter:
         output_path,
         output_file_prefix,
         jet_delta_r=0.5,
-        n_constituent_particles=100,
+        max_n_constituents=100,
         save_constituents=False,
         energyflow_basis_degree=-1,
     ):
@@ -60,7 +60,7 @@ class Converter:
         self.jet_delta_r = jet_delta_r
         self.n_jets = 2
 
-        self.n_constituent_particles = n_constituent_particles
+        self.max_n_constituents = max_n_constituents
         self.event_features = None
         self.jet_features = None
         self.jet_constituents = None
@@ -94,28 +94,11 @@ class Converter:
                 self.selections[file_name] = list(map(int, selections.split()))
 
 
-    def convert(self, rng=(-1, -1)):
-        rng = list(rng)
-
-        gmin, gmax = min(self.sizes), max(self.sizes)
-
-        if rng[0] < 0 or rng[0] > gmax:
-            rng[0] = 0
-
-        if rng[1] > gmax or rng[1] < 0:
-            rng[1] = gmax
-
-        nmin, nmax = rng
-        selections_iter = self.selections.copy()
-
-        for k, v in list(selections_iter.items()):
-            v = np.asarray(v).astype(int)
-            selections_iter[k] = v[(v > nmin) & (v < nmax)]
-
-        total_size = sum(map(len, list(selections_iter.values()))) + 1
+    def convert(self):
+        
+        total_size = sum(map(len, list(self.selections.values()))) + 1
         total_count = 0
 
-        print("selecting on range {0}".format(rng))
         self.event_features = np.empty((total_size, len(Event.get_features_names())))
         print("event feature shapes: {}".format(self.event_features.shape))
 
@@ -123,7 +106,7 @@ class Converter:
         print("jet feature shapes: {}".format(self.event_features.shape))
 
         self.jet_constituents = np.empty(
-            (total_size, self.n_jets, self.n_constituent_particles, len(Jet.get_constituent_feature_names())))
+            (total_size, self.n_jets, self.max_n_constituents, len(Jet.get_constituent_feature_names())))
         print("jet constituent shapes: {}".format(self.jet_constituents.shape))
 
         self.energy_flow_bases = np.empty((total_size, self.n_jets, self.efp_size))
@@ -182,13 +165,13 @@ class Converter:
 
             for iEvent in self.selections[file_name]:
     
-                print("Creating event...")
+                
                 event = Event(tree, input_type, iEvent,
                               track_eta, track_phi, track_pt, track_mass,
                               neutral_hadron_eta, neutral_hadron_phi, neutral_hadron_pt, neutral_hadron_mass,
                               photon_eta, photon_phi, photon_pt, photon_mass, self.jet_delta_r
                               )
-                print("done")
+                
                 
                 if event.nJets < 2:
                     print("WARNING -- event has less than 2 jets! Skipping...")
@@ -197,7 +180,7 @@ class Converter:
                 event.calculate_internals()
                 
                 print("Event: ", iEvent)
-                event.print()
+                # event.print()
                 
                 self.event_features[total_count, :] = np.asarray(event.get_features())
 
@@ -231,7 +214,7 @@ class Converter:
         for i, c in enumerate(constituentp4s):
             ret[i, :] = [c.Eta(), c.Phi(), c.Pt(), c.Rapidity(), c.E()]
     
-        return self.pad_to_n(ret, self.n_constituent_particles, 2)
+        return self.pad_to_n(ret, self.max_n_constituents, 2)
 
     def save(self, output_file_name=None):
     
@@ -259,7 +242,7 @@ class Converter:
     
         if self.save_constituents:
             jet_constituents = f.create_group("jet_constituents")
-            assert self.jet_constituents.shape[-2] == self.n_constituent_particles
+            assert self.jet_constituents.shape[-2] == self.max_n_constituents
             assert self.jet_constituents.shape[-1] == len(Jet.get_constituent_feature_names())
             print("creating feature 'jet_constituents'")
             jet_constituents.create_dataset('data', data=self.jet_constituents)
