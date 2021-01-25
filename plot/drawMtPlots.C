@@ -220,6 +220,4 @@ void drawMtPlots()
   }
 }
 
-The process proceeds though a loop of charged SM particles. It could also go through a loop containing new charged particles (SUSY) or through the s-channel with spin-even resonances (axions, monopoles).
-
 
