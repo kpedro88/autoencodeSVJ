@@ -135,4 +135,24 @@ inline std::chrono::time_point<std::chrono::steady_clock> now()
   return std::chrono::steady_clock::now();
 }
 
+
+template<typename t>
+void WriteVector(ostream & out, vector<t> & vec, string delimiter=", ")
+{
+  for (size_t i = 0; i < vec.size() - 1; ++i) {
+    out << vec[i] << delimiter;
+  }
+  out << vec.back() << endl;
+}
+
+inline string lastWord(string s)
+{
+  std::replace(s.begin(), s.end(), '.', ' ');
+  vector<string> ret;
+  stringstream ss(s);
+  string temp;
+  while(ss >> temp) ret.push_back(temp);
+  return ret.back();
+}
+
 #endif /* Helpers_h */

@@ -34,9 +34,9 @@ size_t leptonCount(vector<LorentzMock>* leptons, vector<double>* isos) {
 
 int main(int argc, char **argv)
 {
-  if(argc != 9){
+  if(argc != 6){
     cout<<"Usage:"<<endl;
-    cout<<"./SVJselection input_file_list sample_name output_dir debug timing save_cuts first_event last_event"<<endl;
+    cout<<"./SVJselection input_file_list sample_name output_dir first_event last_event"<<endl;
     exit(0);
   }
   
@@ -79,9 +79,6 @@ int main(int argc, char **argv)
   vector<double>* ElectronIsolation = core.AddVectorVar("ElectronIsolation", "Electron.IsolationVarRhoCorr");
   double* metFull_Pt = core.AddVar("metMET", "MissingET.MET");
   double* metFull_Phi = core.AddVar("metPhi", "MissingET.Phi");
-  
-  // disable debug
-  core.Debug(false);
   
   // loop over the first nEntries (debug)
   // start loop timer
@@ -219,11 +216,8 @@ int main(int argc, char **argv)
     core.UpdateCutFlow();
   }
   
-  core.Debug(true);
-  
   cout<<"Time elapsed: "<<duration(start, now())<<endl;
   
-  core.logt();
   core.WriteHists();
   core.WriteSelectionIndex();
   core.SaveCutFlow();
