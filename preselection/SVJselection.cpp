@@ -1,9 +1,5 @@
-#include "TLorentzMock.h"
 #include "SVJFinder.h"
-#include "deltaPhi.h"
-
-#include <math.h>
-
+#include "LorentzMock.h"
 
 using std::sin;
 using std::cos;
@@ -11,7 +7,7 @@ using std::sqrt;
 using std::abs; 
 
 namespace Vetos {
-bool LeptonVeto(TLorentzMock& lepton) {
+bool LeptonVeto(LorentzMock& lepton) {
   return fabs(lepton.Pt()) > 10 && fabs(lepton.Eta()) < 2.4;
 }
 
@@ -32,7 +28,7 @@ bool JetPtVeto(TLorentzVector& jet) {
 }
 }
 
-size_t leptonCount(vector<TLorentzMock>* leptons, vector<double>* isos) {
+size_t leptonCount(vector<LorentzMock>* leptons, vector<double>* isos) {
   size_t n = 0;
   // size_t lepton_size = std::min(leptons->size(), isos->size());
   for (size_t i = 0; i < leptons->size(); ++i)
@@ -82,8 +78,8 @@ int main(int argc, char **argv)
   // add componenets for jets (tlorentz)
   
   vector<TLorentzVector>* Jets = core.AddLorentz("Jet", {"Jet.PT","Jet.Eta","Jet.Phi","Jet.Mass"});
-  vector<TLorentzMock>* Electrons = core.AddLorentzMock("Electron", {"Electron.PT","Electron.Eta"});
-  vector<TLorentzMock>* Muons = core.AddLorentzMock("Muon", {"MuonLoose.PT", "MuonLoose.Eta"});
+  vector<LorentzMock>* Electrons = core.AddLorentzMock("Electron", {"Electron.PT","Electron.Eta"});
+  vector<LorentzMock>* Muons = core.AddLorentzMock("Muon", {"MuonLoose.PT", "MuonLoose.Eta"});
   vector<double>* MuonIsolation = core.AddVectorVar("MuonIsolation", "MuonLoose.IsolationVarRhoCorr");
   vector<double>* ElectronIsolation = core.AddVectorVar("ElectronIsolation", "Electron.IsolationVarRhoCorr");
   double* metFull_Pt = core.AddVar("metMET", "MissingET.MET");

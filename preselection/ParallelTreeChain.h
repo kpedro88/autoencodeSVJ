@@ -1,16 +1,5 @@
-#include "TTree.h"
-#include "TLeaf.h"
-#include "TFile.h"
-#include <string>
-#include <iostream>
-#include <fstream> 
-#include <vector>
 
-using std::string;
-using std::vector;
-using std::cout; 
-using std::endl; 
-
+#include "Helpers.hpp"
 
 class ParallelTreeChain{
     public:

@@ -1,22 +1,24 @@
-#include <math.h> 
-#include "Rtypes.h"
+#include "Helpers.hpp"
 
-class TLorentzMock{
+#ifndef LorentzMock_h
+#define LorentzMock_h
+
+class LorentzMock{
     public:
-        TLorentzMock() = delete; 
+        LorentzMock() = delete; 
 
-        TLorentzMock(Float_t Pt_, Float_t Eta_) {
+        LorentzMock(Float_t Pt_, Float_t Eta_) {
             this->Eta_ = Eta_;
             this->Pt_ = Pt_; 
         }
 
-        TLorentzMock(Float_t Pt_, Float_t Eta_, Float_t Isolation_) {
+        LorentzMock(Float_t Pt_, Float_t Eta_, Float_t Isolation_) {
             this->Eta_ = Eta_;
             this->Pt_ = Pt_; 
             this->Isolation_ = Isolation_;
         }
         
-        TLorentzMock(Float_t Pt_, Float_t Eta_, Float_t Isolation_, Float_t EhadOverEem_) {
+        LorentzMock(Float_t Pt_, Float_t Eta_, Float_t Isolation_, Float_t EhadOverEem_) {
             this->Eta_ = Eta_;
             this->Pt_ = Pt_; 
             this->Isolation_ = Isolation_;
@@ -39,3 +41,5 @@ class TLorentzMock{
     private:
         Float_t Eta_, Pt_, Isolation_, EhadOverEem_;
 };
+
+#endif /* LorentzMock_h */

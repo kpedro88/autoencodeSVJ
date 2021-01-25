@@ -1,25 +1,6 @@
-#include "TLeaf.h"
-#include "TLorentzVector.h"
-#include "TFile.h"
-#include "TH1F.h"
-#include <vector>
-#include <algorithm>
-#include <iostream>
-#include <string>
-#include <cmath>
-#include <cassert>
-#include <string>
-#include "THashList.h"
-#include "TBenchmark.h"
-#include <sstream>
-#include <fstream>
-#include <utility>
-#include <map>
-#include <cassert>
-#include <chrono>
+#include "Helpers.hpp"
 #include "ParallelTreeChain.h"
-#include "TMath.h"
-#include <stdexcept> 
+#include "LorentzMock.h"
 
 using std::fabs;
 using std::chrono::microseconds;  
@@ -228,13 +209,13 @@ public:
   }
   
   // creates, assigns, and returns mock tlorentz vector pointer to be updated on GetEntry
-  vector<TLorentzMock>* AddLorentzMock(string vectorName, vector<string> components) {
+  vector<LorentzMock>* AddLorentzMock(string vectorName, vector<string> components) {
     start();
     assert(components.size() > 1 && components.size() < 5);
     AddCompsBase(vectorName, components);
     size_t i = MockVectors.size();
     subIndex.push_back(std::make_pair(i, vectorType::Mock));
-    vector<TLorentzMock>* ret = new vector<TLorentzMock>;
+    vector<LorentzMock>* ret = new vector<LorentzMock>;
     MockVectors.push_back(ret);
     logr("Success");
     end();
@@ -654,7 +635,7 @@ private:
   
   void SetMock(size_t leafIndex, size_t mvIndex, size_t treeIndex) {
     vector<vector<TLeaf*>> & v = compVectors[leafIndex];
-    vector<TLorentzMock>* ret = MockVectors[mvIndex];
+    vector<LorentzMock>* ret = MockVectors[mvIndex];
     ret->clear();
     
     size_t n = v[0][treeIndex]->GetLen(), size = v.size();
@@ -662,15 +643,15 @@ private:
     for(size_t i = 0; i < n; ++i) {
       switch(size) {
         case 2: {
-          ret->push_back(TLorentzMock(v[0][treeIndex]->GetValue(i), v[1][treeIndex]->GetValue(i)));
+          ret->push_back(LorentzMock(v[0][treeIndex]->GetValue(i), v[1][treeIndex]->GetValue(i)));
           break;
         }
         case 3: {
-          ret->push_back(TLorentzMock(v[0][treeIndex]->GetValue(i), v[1][treeIndex]->GetValue(i), v[2][treeIndex]->GetValue(i)));
+          ret->push_back(LorentzMock(v[0][treeIndex]->GetValue(i), v[1][treeIndex]->GetValue(i), v[2][treeIndex]->GetValue(i)));
           break;
         }
         case 4: {
-          ret->push_back(TLorentzMock(v[0][treeIndex]->GetValue(i), v[1][treeIndex]->GetValue(i), v[2][treeIndex]->GetValue(i), v[3][treeIndex]->GetValue(i)));
+          ret->push_back(LorentzMock(v[0][treeIndex]->GetValue(i), v[1][treeIndex]->GetValue(i), v[2][treeIndex]->GetValue(i), v[3][treeIndex]->GetValue(i)));
           break;
         }
         default: {
@@ -805,7 +786,7 @@ private:
     }
   }
   
-  void print(vector<TLorentzMock>* var, int level=0) {
+  void print(vector<LorentzMock>* var, int level=0) {
     for (size_t i = 0; i < var->size(); ++i) {
       auto elt = var->at(i);
       indent(level); cout << "(Pt,Eta)=(" << elt.Pt() << "," << elt.Eta() << "}" << endl;
@@ -884,7 +865,7 @@ private:
   vector<vector<string>> compNames;
   //   values
   vector< vector< TLorentzVector >*> LorentzVectors;
-  vector< vector< TLorentzMock >*> MockVectors;
+  vector< vector< LorentzMock >*> MockVectors;
   vector<vector<vector<double>>*> MapVectors;
   
   // cut variables
