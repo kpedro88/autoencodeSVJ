@@ -17,7 +17,7 @@ const double minMetRatio = 0.25;
 int leptonCount(vector<LorentzMock>* leptons)
 {
   int n = 0;
-  for (int i = 0; i < leptons->size(); ++i){
+  for(int i=0; i<leptons->size(); i++) {
     if(fabs(leptons->at(i).Pt()) >= minLeptonPt &&
        fabs(leptons->at(i).Eta()) <= maxLeptonEta &&
        leptons->at(i).Isolation() >= minLeptonIsolation) n++;
@@ -94,8 +94,6 @@ int main(int argc, char **argv)
     }
     
     core.Fill(HistType::post_lep, Muons->size() + Electrons->size());
-    
-    
     
     bool passesNjets = Jets->size() >= minNjets;
     

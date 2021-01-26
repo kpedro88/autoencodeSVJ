@@ -6,6 +6,12 @@ analysis/h5analysis/h5parser
 preselection/SVJselection
 training/analysis/drawAucDistributions
 
+bdt/trainingResults/aucs.txt
+analysis/h5analysis/test_data.txt
+rootToH5converter/data_0_selection.txt
+rootToH5converter/test_selections_delphes.txt
+rootToH5converter/test_selections_nanoAOD.txt
+
 *CMakeFiles*
 *cmake_install.cmake
 *Makefile
@@ -16,7 +22,6 @@ training/analysis/drawAucDistributions
 *.h5
 *.root
 *.ROOT
-*.txt
 *.err
 *.log
 *.out
