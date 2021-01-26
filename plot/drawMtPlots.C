@@ -73,6 +73,7 @@ map<string, double> svjCrossSections = { // mb
 //  {"4000GeV_0.75" , 8.698e-13 * 1e12 }, // mb -> fb
 };
 
+double svjNgenEventsPerMass = 100 * 10000 * 5; // n files * n samples per file * n r_inv points per mass
 
 double qcdNgenEvents = 3500000;
 //double qcdCrossSection = 3358729;
@@ -84,6 +85,8 @@ double qcdCrossSection = 1.015e-08 * 1e12; // mb -> fb
 //double qcdCrossSection = 96 * 1e12; // mb -> fb
 
 double lumi2018 = 59.8; // fb^-1
+
+double lumi = lumi2018;
 
 vector<string> rInvs = { "015", "03", "045", "06", "075" };
 vector<string> rInvTitles = { "0.15", "0.30", "0.45", "0.60", "0.75" };
@@ -119,8 +122,8 @@ tuple<map<string, THStack*>, TLegend*> prepareStack(TH1D *_background, map<strin
 //    cout<<"scale: "<<qcdCrossSection*lumi2018<<endl;
 //    cout<<"scale2: "<<background->GetEntries()/qcdNgenEvents<<endl;
     
-    background->Scale(qcdCrossSection * lumi2018 * background->GetEntries()/qcdNgenEvents);
-    for(auto &[key, hist] : signals) hist->Scale(svjCrossSections[key] * lumi2018 * hist->GetEntries()/100000);
+    background->Scale(qcdCrossSection * lumi * background->GetEntries()/qcdNgenEvents);
+    for(auto &[key, hist] : signals) hist->Scale(svjCrossSections[key] * lumi * hist->GetEntries()/svjNgenEventsPerMass);
   }
   
   map<string, THStack*> stacks;
