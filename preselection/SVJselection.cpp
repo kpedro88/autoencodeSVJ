@@ -1,34 +1,27 @@
 #include "SVJFinder.hpp"
 #include "LorentzMock.h"
 
-namespace Vetos {
-bool LeptonVeto(LorentzMock& lepton) {
-  return fabs(lepton.Pt()) > 10 && fabs(lepton.Eta()) < 2.4;
-}
+const int maxNleptons = 0;
+const double minLeptonPt = 10; // GeV
+const double maxLeptonEta = 2.4;
+const double minLeptonIsolation = 0.4;
 
-bool IsolationVeto(double &iso) {
-  return iso >= 0.4;
-}
+const int minNjets = 2;
+const double maxJetEta = 2.4;
+const double minJetPt = 200; //GeV
+const double maxJetDeltaEta = 1.5;
+const double minJetMt = 1500; //GeV
+const double minMetRatio = 0.25;
 
-bool JetEtaVeto(TLorentzVector& jet) {
-  return abs(jet.Eta()) < 2.4;
-}
 
-bool JetDeltaEtaVeto(TLorentzVector& jet1, TLorentzVector& jet2) {
-  return abs(jet1.Eta() - jet2.Eta()) < 1.5;
-}
-
-bool JetPtVeto(TLorentzVector& jet) {
-  return jet.Pt() > 200.;
-}
-}
-
-size_t leptonCount(vector<LorentzMock>* leptons, vector<double>* isos) {
-  size_t n = 0;
-  // size_t lepton_size = std::min(leptons->size(), isos->size());
-  for (size_t i = 0; i < leptons->size(); ++i)
-  if (Vetos::LeptonVeto(leptons->at(i)) && Vetos::IsolationVeto(isos->at(i)))
-    n++;
+int leptonCount(vector<LorentzMock>* leptons)
+{
+  int n = 0;
+  for (int i = 0; i < leptons->size(); ++i){
+    if(fabs(leptons->at(i).Pt()) >= minLeptonPt &&
+       fabs(leptons->at(i).Eta()) <= maxLeptonEta &&
+       leptons->at(i).Isolation() >= minLeptonIsolation) n++;
+  }
   return n;
 }
 
@@ -45,7 +38,6 @@ int main(int argc, char **argv)
   SVJFinder core(argv);
   
   // make file collection and chain
-  // core.MakeFileCollection();
   core.MakeChain();
   
   // add histogram tracking
@@ -73,10 +65,8 @@ int main(int argc, char **argv)
   // add componenets for jets (tlorentz)
   
   vector<TLorentzVector>* Jets = core.AddLorentz("Jet", {"Jet.PT","Jet.Eta","Jet.Phi","Jet.Mass"});
-  vector<LorentzMock>* Electrons = core.AddLorentzMock("Electron", {"Electron.PT","Electron.Eta"});
-  vector<LorentzMock>* Muons = core.AddLorentzMock("Muon", {"MuonLoose.PT", "MuonLoose.Eta"});
-  vector<double>* MuonIsolation = core.AddVectorVar("MuonIsolation", "MuonLoose.IsolationVarRhoCorr");
-  vector<double>* ElectronIsolation = core.AddVectorVar("ElectronIsolation", "Electron.IsolationVarRhoCorr");
+  vector<LorentzMock>* Electrons = core.AddLorentzMock("Electron", {"Electron.PT","Electron.Eta", "Electron.IsolationVarRhoCorr"});
+  vector<LorentzMock>* Muons = core.AddLorentzMock("Muon", {"MuonLoose.PT", "MuonLoose.Eta", "MuonLoose.IsolationVarRhoCorr"});
   double* metFull_Pt = core.AddVar("metMET", "MissingET.MET");
   double* metFull_Phi = core.AddVar("metPhi", "MissingET.Phi");
   
@@ -88,9 +78,6 @@ int main(int argc, char **argv)
   
   for (Int_t entry = core.nMin; entry < core.nMax; ++entry) {
     
-    // init
-    core.InitCuts();
-    
     core.GetEntry(entry);
     
     // require zero leptons which pass cuts
@@ -98,121 +85,101 @@ int main(int argc, char **argv)
     core.Fill(HistType::pre_lep, Muons->size() + Electrons->size());
     
     // made it here
+    bool passesNleptons = (leptonCount(Muons) + leptonCount(Electrons)) <= maxNleptons;
+    core.SetCutValue(passesNleptons, CutType::leptonCounts);
     
-    core.Cut(
-             (leptonCount(Muons, MuonIsolation) + leptonCount(Electrons, ElectronIsolation)) < 1,
-             CutType::leptonCounts
-             );
-    
-    // didn't make it here
-    
-    
-    
-    if (!core.Cut(CutType::leptonCounts)) {
+    if (!passesNleptons){
       core.UpdateCutFlow();
       continue;
     }
     
-    
     core.Fill(HistType::post_lep, Muons->size() + Electrons->size());
     
     
-    // require more than 1 jet
-    core.Cut(
-             Jets->size() > 1,
-             CutType::jetCounts
-             );
     
+    bool passesNjets = Jets->size() >= minNjets;
     
+    for(int iJet=1; iJet<Jets->size(); iJet++){
+      if(Jets->at(iJet).Pt() > Jets->at(iJet-1).Pt()){
+        cout<<"ERROR -- jets don't seem to be ordered by pt!!"<<endl;
+        exit(1);
+      }
+    }
+    
+    core.SetCutValue(passesNjets, CutType::jetCounts);
     
     // rest of cuts, dependent on jetcount
-    if (core.Cut(CutType::jetCounts)) {
-      
-      TLorentzVector Vjj = Jets->at(0) + Jets->at(1);
-      double metFull_Py = (*metFull_Pt)*sin(*metFull_Phi);
-      double metFull_Px = (*metFull_Pt)*cos(*metFull_Phi);
-      double Mjj = Vjj.M(); // SAVE
-      double Mjj2 = Mjj*Mjj;
-      double ptjj = Vjj.Pt();
-      double ptjj2 = ptjj*ptjj;
-      double ptMet = Vjj.Px()*metFull_Px + Vjj.Py()*metFull_Py;
-      double MT2 = sqrt(Mjj2 + 2*(sqrt(Mjj2 + ptjj2)*(*metFull_Pt) - ptMet)); // SAVE
-      
-      // fill pre-cut MT2 histogram
-      core.Fill(HistType::pre_MT, MT2);
-      core.Fill(HistType::pre_mjj, Mjj);
-      
-      // leading jet etas both meet eta veto
-      core.Cut(
-               Vetos::JetEtaVeto(Jets->at(0)) && Vetos::JetEtaVeto(Jets->at(1)),
-               CutType::jetEtas
-               );
-      
-      // leading jets meet delta eta veto
-      core.Cut(
-               Vetos::JetDeltaEtaVeto(Jets->at(0), Jets->at(1)),
-               CutType::jetDeltaEtas
-               );
-      
-      // ratio between calculated mt2 of dijet system and missing momentum is not negligible
-      core.Cut(
-               ((*metFull_Pt) / MT2) > 0.15,
-               CutType::metRatio
-               );
-      
-      // require both leading jets to have transverse momentum greater than 200
-      core.Fill(HistType::pre_1pt, Jets->at(0).Pt());
-      core.Fill(HistType::pre_2pt, Jets->at(1).Pt());
-      
-      core.Cut(
-               Vetos::JetPtVeto(Jets->at(0)) && Vetos::JetPtVeto(Jets->at(1)),
-               CutType::jetPt
-               );
-      if (!core.Cut(CutType::jetPt)) {
-        core.UpdateCutFlow();
-        continue;
-      }
-      
-      core.Fill(HistType::post_1pt, Jets->at(0).Pt());
-      core.Fill(HistType::post_2pt, Jets->at(1).Pt());
-      
-      // conglomerate cut, whether jet is a dijet
-      core.Cut(
-               core.Cut(CutType::jetEtas) && core.Cut(CutType::jetPt),
-               CutType::jetDiJet
-               );
-      
-      // magnitude of MT > 1500
-      core.Cut(
-               MT2 > 1500,
-               CutType::metValue
-               );
-      
-      // tighter MET/MT ratio
-      core.Cut(
-               ((*metFull_Pt) / MT2) > 0.25,
-               CutType::metRatioTight
-               );
-      
-      // final selection cut
-      core.Cut(
-               core.CutsRange(0, int(CutType::selection)) && core.Cut(CutType::metRatioTight),
-               CutType::selection
-               );
-      
-      // save histograms, if passing
-      if (core.Cut(CutType::selection)) {
-        core.UpdateSelectionIndex(entry);
-        core.Fill(HistType::dEta, fabs(Jets->at(0).Eta() - Jets->at(1).Eta()));
-        core.Fill(HistType::dPhi, fabs(deltaPhi(Jets->at(0).Phi(), Jets->at(1).Phi())));
-        core.Fill(HistType::tRatio, (*metFull_Pt) / MT2);
-        core.Fill(HistType::mjj, Vjj.M());
-        core.Fill(HistType::met2, MT2);
-        core.Fill(HistType::metPt, *metFull_Pt);
-        
-      }
+    if(!passesNjets) {
+      core.UpdateCutFlow();
+      continue;;
+    }
+    
+    if(Jets->size() < 2){
+      cout<<"WARNING -- less than 2 jets in the event -> this wasn't implemented yet... skipping."<<endl;
+      continue;
+    }
+    
+    TLorentzVector Vjj = Jets->at(0) + Jets->at(1);
+    double metFull_Py = (*metFull_Pt)*sin(*metFull_Phi);
+    double metFull_Px = (*metFull_Pt)*cos(*metFull_Phi);
+    double Mjj = Vjj.M(); // SAVE
+    double Mjj2 = Mjj*Mjj;
+    double ptjj = Vjj.Pt();
+    double ptjj2 = ptjj*ptjj;
+    double ptMet = Vjj.Px()*metFull_Px + Vjj.Py()*metFull_Py;
+    double MT2 = sqrt(Mjj2 + 2*(sqrt(Mjj2 + ptjj2)*(*metFull_Pt) - ptMet)); // SAVE
+    
+    // fill pre-cut MT2 histogram
+    core.Fill(HistType::pre_MT, MT2);
+    core.Fill(HistType::pre_mjj, Mjj);
+    
+    // leading jet etas both meet eta veto
+    bool passesJetEta = fabs(Jets->at(0).Eta()) <= maxJetEta && fabs(Jets->at(0).Eta()) <= maxJetEta;
+    core.SetCutValue(passesJetEta, CutType::jetEtas);
+    
+    // leading jets meet delta eta veto
+    bool passesJetDeltaEta = fabs(Jets->at(0).Eta() - Jets->at(1).Eta()) <= maxJetDeltaEta;
+    core.SetCutValue(passesJetDeltaEta, CutType::jetDeltaEtas);
+    
+    // ratio between calculated mt2 of dijet system and missing momentum is not negligible
+    bool passesMetRatio = ((*metFull_Pt) / MT2) >= minMetRatio;
+    core.SetCutValue(passesMetRatio, CutType::metRatio);
+    
+    // require both leading jets to have transverse momentum greater than 200
+    core.Fill(HistType::pre_1pt, Jets->at(0).Pt());
+    core.Fill(HistType::pre_2pt, Jets->at(1).Pt());
+    
+    
+    bool passesJetPt = Jets->at(0).Pt() >= minJetPt && Jets->at(1).Pt() >= minJetPt;
+    core.SetCutValue(passesJetPt, CutType::jetPt);
+    
+    if(!passesJetPt || !passesJetEta){
+      core.UpdateCutFlow();
+      continue;
+    }
+    
+    core.Fill(HistType::post_1pt, Jets->at(0).Pt());
+    core.Fill(HistType::post_2pt, Jets->at(1).Pt());
+    
+    bool passesMt = MT2 >= minJetMt;
+    core.SetCutValue(passesMt, CutType::metValue);
+    
+    // final selection cut
+    bool passesAllSelections = core.PassesAllSelections();
+    core.SetCutValue(passesAllSelections, CutType::selection);
+    
+    // save histograms, if passing
+    if(passesAllSelections) {
+      core.UpdateSelectionIndex(entry);
+      core.Fill(HistType::dEta, fabs(Jets->at(0).Eta() - Jets->at(1).Eta()));
+      core.Fill(HistType::dPhi, fabs(deltaPhi(Jets->at(0).Phi(), Jets->at(1).Phi())));
+      core.Fill(HistType::tRatio, (*metFull_Pt) / MT2);
+      core.Fill(HistType::mjj, Vjj.M());
+      core.Fill(HistType::met2, MT2);
+      core.Fill(HistType::metPt, *metFull_Pt);
       
     }
+    
     core.UpdateCutFlow();
   }
   
