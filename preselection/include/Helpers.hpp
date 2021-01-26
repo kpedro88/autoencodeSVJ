@@ -62,13 +62,21 @@ enum class CutType {
   jetCounts = 1,
   jetEtas,
   jetDeltaEtas,
-  metRatio,
   jetPt,
-  jetDiJet,
   metValue,
-  metRatioTight,
+  metRatio,
   selection,
-  COUNT
+};
+
+const vector<CutType> cutTypes = {
+  CutType::leptonCounts,
+  CutType::jetCounts,
+  CutType::jetEtas,
+  CutType::jetDeltaEtas,
+  CutType::jetPt,
+  CutType::metValue,
+  CutType::metRatio,
+  CutType::selection,
 };
 
 const map<CutType, string> CutName {
@@ -76,11 +84,9 @@ const map<CutType, string> CutName {
   {CutType::jetCounts, "n Jets > 1"},
   {CutType::jetEtas, "abs jet Etas < 2.4"},
   {CutType::jetDeltaEtas, "abs DeltaEta < 1.5"},
-  {CutType::metRatio,"MET/M_T > 0.15"},
   {CutType::jetPt, "Jet PT > 200"},
-  {CutType::jetDiJet, "Dijet veto"},
   {CutType::metValue, "M_T > 1500"},
-  {CutType::metRatioTight, "MET/M_T > 0.25"},
+  {CutType::metRatio, "MET/M_T > 0.25"},
   {CutType::selection, "final selection"}
 };
 

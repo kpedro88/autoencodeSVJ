@@ -19,12 +19,6 @@ public:
   // creates, assigns, and returns mock tlorentz vector pointer to be updated on GetEntry
   vector<LorentzMock>* AddLorentzMock(string vectorName, vector<string> components);
   
-  // creates, assigns, and returns general double vector pointer to be updated on GetEntry
-  vector<vector<double>>* AddComps(string vectorName, vector<string> components);
-  
-  // creates, assigns, and returns a vectorized single variable pointer to be updates on GetEntry
-  vector<double>* AddVectorVar(string vectorVarName, string component);
-  
   // creates, assigns, and returns a singular double variable pointer to update on GetEntry
   double* AddVar(string varName, string component);
   
@@ -32,12 +26,9 @@ public:
   void GetEntry(int entry = 0);
   
 
-  bool Cut(bool expression, CutType cutName);
-  inline bool Cut(CutType cutName) { return cutValues[int(cutName)]; }
+  void SetCutValue(bool expression, CutType cutName);
   
-  bool CutsRange(int start, int end);
-  
-  inline void InitCuts() { std::fill(cutValues.begin(), cutValues.end(), -1); }
+  bool PassesAllSelections();
   
   void UpdateCutFlow();
   
@@ -67,48 +58,24 @@ public:
   // number of events
   Int_t nEvents, nMin, nMax;
   
-  vector<int> CutFlow = vector<int>(int(CutType::COUNT) + 1, 0);
+  vector<int> CutFlow = vector<int>(cutTypes.size() + 1, 0);
   int last = 1;
   
 private:
-  /// CON/DESTRUCTOR HELPERS
-  ///
-  template<typename t>
-  void DelVector(vector<vector<t*>> &v);
-  
-  template<typename t>
-  void DelVector(vector<t*> &v);
-  
-  /// VARIABLE TRACKER HELPERS
-  ///
-  
   void AddCompsBase(string& vectorName, vector<string>& components);
-  
-  /// ENTRY LOADER HELPERS
-  ///
-  
   void SetLorentz(size_t leafIndex, size_t lvIndex, size_t treeIndex);
-  
   void SetMock(size_t leafIndex, size_t mvIndex, size_t treeIndex);
-  
   void SetMap(size_t leafIndex, size_t mIndex, size_t treeIndex);
-  
   void SetVar(size_t leafIndex, size_t treeIndex);
   
   void SetVectorVar(size_t leafIndex, size_t treeIndex);
+
   
-  /// SWITCH, TIMING, AND LOGGING HELPERS
-  ///
-  
-  /// PRIVATE DATA
-  ///
-  // general entry
-  int currentEntry;
+  int currentEntry; // general entry
   
   // histogram data
   vector<TH1F*> hists;
   vector<size_t> histIndex = vector<size_t>(size_t(HistType::COUNT));
-  
   
   // file data
   ParallelTreeChain *chain=nullptr;
@@ -140,6 +107,6 @@ private:
   vector<vector<vector<double>>*> MapVectors;
   
   // cut variables
-  vector<int> cutValues = vector<int>(int(CutType::COUNT), -1);
+  map<CutType, bool> cutValues;
   vector<vector<size_t>> selectionIndex;
 };

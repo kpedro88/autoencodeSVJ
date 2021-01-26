@@ -22,27 +22,19 @@ SVJFinder::SVJFinder(char **argv)
   nMax = std::stoi(argv[5]);
   
   if (nMin < 0) nMin = 0;
+  
+  MakeChain();
+  
+  for(CutType type : cutTypes) cutValues[type] = false;
 }
 
 SVJFinder::~SVJFinder()
 {
-  cout << "Quitting; cleaning up class variables...  ";
-  
-  DelVector(varValues);
-  DelVector(vectorVarValues);
-  DelVector(LorentzVectors);
-  DelVector(MockVectors);
-  DelVector(MapVectors);
-  DelVector(hists);
-  delete chain;
-  chain = nullptr;
   file->Close();
-  file = nullptr;
-  cout << "Success" << endl;
 }
 
-ParallelTreeChain* SVJFinder::MakeChain() {
-  
+ParallelTreeChain* SVJFinder::MakeChain()
+{
   cout << "Creating file chain with tree type 'Delphes'...";
   chain = new ParallelTreeChain();
   outputTrees = chain->GetTrees(inputspec, "Delphes");
@@ -71,48 +63,21 @@ vector<TLorentzVector>* SVJFinder::AddLorentz(string vectorName, vector<string> 
 
 vector<LorentzMock>* SVJFinder::AddLorentzMock(string vectorName, vector<string> components)
 {
-  
   assert(components.size() > 1 && components.size() < 5);
   AddCompsBase(vectorName, components);
-  size_t i = MockVectors.size();
-  subIndex.push_back(std::make_pair(i, vectorType::Mock));
-  vector<LorentzMock>* ret = new vector<LorentzMock>;
+  subIndex.push_back(std::make_pair(MockVectors.size(), vectorType::Mock));
+  vector<LorentzMock> *ret = new vector<LorentzMock>;
   MockVectors.push_back(ret);
-  return ret;
-}
-
-vector<vector<double>>* SVJFinder::AddComps(string vectorName, vector<string> components)
-{
   
-  AddCompsBase(vectorName, components);
-  size_t i = MapVectors.size();
-  subIndex.push_back(std::make_pair(i, vectorType::Map));
-  vector<vector<double>>* ret = new vector<vector<double>>;
-  MapVectors.push_back(ret);
-  return ret;
-}
-
-vector<double>* SVJFinder::AddVectorVar(string vectorVarName, string component)
-{
-  cout << "Adding 1 component to vector var " << vectorVarName << "...  ";
-  int i = int(vectorVarValues.size());
-  vectorVarIndex[vectorVarName] = i;
-  vectorVarLeaves.push_back(chain->FindLeaf(component));
-  vector<double>* ret = new vector<double>;
-  vectorVarValues.push_back(ret);
-  cout << "Success" << endl;
   return ret;
 }
 
 double* SVJFinder::AddVar(string varName, string component)
 {
-  cout << "Adding 1 component to var " << varName << "...  ";
-  size_t i = varLeaves.size();
-  varIndex[varName] = i;
+  varIndex[varName] = varLeaves.size();
   double* ret = new double;
   varLeaves.push_back(chain->FindLeaf(component));
   varValues.push_back(ret);
-  cout << "Success" << endl;
   return ret;
 }
 
@@ -153,23 +118,25 @@ void SVJFinder::GetEntry(int entry)
   cout << "Success" << endl;
 }
 
-bool SVJFinder::Cut(bool expression, CutType cutName)
+void SVJFinder::SetCutValue(bool passes, CutType type)
 {
-  cutValues[int(cutName)] = expression ? 1 : 0;
-  return expression;
+  cutValues[type] = passes;
 }
 
-bool SVJFinder::CutsRange(int start, int end)
+
+bool SVJFinder::PassesAllSelections()
 {
-  return std::all_of(cutValues.begin() + start, cutValues.begin() + end, [](int i){return i > 0;});
+  for(auto &[type, passes] : cutValues){
+    if(type != CutType::selection && !passes) return false;
+  }
+  return true;
 }
 
 void SVJFinder::UpdateCutFlow()
 {
   size_t i = 0;
   CutFlow[0]++;
-  while (i < cutValues.size() && cutValues[i] > 0)
-    CutFlow[++i]++;
+  while (i < cutTypes.size() && cutValues[cutTypes[i]] > 0) CutFlow[++i]++;
 }
 
 void SVJFinder::PrintCutFlow()
@@ -255,77 +222,6 @@ void SVJFinder::WriteSelectionIndex()
       f << endl;
     }
     f.close();
-  }
-}
-
-//void SVJFinder::Current()
-//{
-//
-//  if (varIndex.size() > 0) {
-//
-//    print("SINGLE VARIABLES:");
-//  }
-//  for (auto it = varIndex.begin(); it != varIndex.end(); it++) {
-//    print(it->first, 1);
-//    print(varValues[it->second], 2);
-//  }
-//  if (vectorVarIndex.size() > 0) {
-//
-//    print("VECTOR VARIABLES:");
-//  }
-//  for (auto it = vectorVarIndex.begin(); it != vectorVarIndex.end(); it++) {
-//    print(it->first, 1);
-//    print(varValues[it->second], 2);
-//  }
-//  if (MapVectors.size() > 0) {
-//
-//    print("MAP VECTORS:");
-//  }
-//  for (auto it = compIndex.begin(); it != compIndex.end(); it++) {
-//    if (subIndex[it->second].second == vectorType::Map) {
-//      print(it->first, 1);
-//      print(MapVectors[subIndex[it->second].first], 2);
-//    }
-//  }
-//  if (MockVectors.size() > 0) {
-//
-//    print("MOCK VECTORS:");
-//  }
-//  for (auto it = compIndex.begin(); it != compIndex.end(); it++) {
-//    if (subIndex[it->second].second == vectorType::Mock) {
-//      print(it->first, 1);
-//      print(MockVectors[subIndex[it->second].first], 2);
-//    }
-//  }
-//  if (LorentzVectors.size() > 0) {
-//
-//    print("TLORENTZ VECTORS:");
-//  }
-//  for (auto it = compIndex.begin(); it != compIndex.end(); it++) {
-//    if (subIndex[it->second].second == vectorType::Lorentz) {
-//      print(it->first, 1);
-//      print(LorentzVectors[subIndex[it->second].first], 2);
-//    }
-//  }
-//
-//
-//}
-
-
-template<typename t>
-void SVJFinder::DelVector(vector<vector<t*>> &v)
-{
-  for (size_t i = 0; i < v.size(); ++i) {
-    DelVector(v[i]);
-  }
-}
-
-template<typename t>
-void SVJFinder::DelVector(vector<t*> &v)
-{
-  for (size_t i = 0; i < v.size(); ++i) {
-    delete v[i];
-    v[i] = nullptr;
   }
 }
 
