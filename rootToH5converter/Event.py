@@ -78,6 +78,8 @@ class Event:
         for iJet, jet in enumerate(self.jets):
             jet.fill_constituents(self.tracks, self.neutral_hadrons, self.photons, delta_r, iJet, constituentBranches.track_jet_index[iEvent])
     
+        if self.nJets >= 2:
+            self.calculate_internals()
     
     def print(self):
         print("\nEvent features: ")
@@ -92,6 +94,15 @@ class Event:
         print("nPhotons:", self.nPhotons)
         print("nNeutral hadrons:", self.nNeutralHadrons)
     
+    def has_jets_with_no_constituents(self, max_n_jets):
+        has_jets_with_no_constituents = False
+    
+        for i in range(0, max_n_jets):
+            if len(self.jets[i].constituents) == 0:
+                has_jets_with_no_constituents = True
+                break
+                
+        return has_jets_with_no_constituents
     
     def calculate_internals(self):
         

@@ -29,7 +29,7 @@ class Converter:
         self.jet_delta_r = jet_delta_r
         self.max_n_constituents = max_n_constituents
         self.save_constituents = False if max_n_constituents < 0 else True
-        self.n_jets = store_n_jets
+        self.max_n_jets = store_n_jets
         self.save_EFPs = False if EFP_degree < 0 else True
         self.EFP_size = 0
 
@@ -44,9 +44,9 @@ class Converter:
             
         # prepare arrays for event & jet features, EFPs and jet constituents
         self.event_features = np.empty((self.n_events, len(Event.get_features_names())))
-        self.jet_features = np.empty((self.n_events, self.n_jets, len(Jet.get_feature_names())))
-        self.jet_constituents = np.empty((self.n_events, self.n_jets, self.max_n_constituents, len(Jet.get_constituent_feature_names())))
-        self.energy_flow_bases = np.empty((self.n_events, self.n_jets, self.EFP_size))
+        self.jet_features = np.empty((self.n_events, self.max_n_jets, len(Jet.get_feature_names())))
+        self.jet_constituents = np.empty((self.n_events, self.max_n_jets, self.max_n_constituents, len(Jet.get_constituent_feature_names())))
+        self.energy_flow_bases = np.empty((self.n_events, self.max_n_jets, self.EFP_size))
         
     def set_input_paths_and_selections(self, input_path):
         """
@@ -86,52 +86,45 @@ class Converter:
                     print("Unknown tree type: ", key, ". Skipping...")
 
     def convert(self):
+        """
+        Reads all selected events from input trees and stores requested features in arrays prepared in the constructor.
+        """
         
         total_count = 0
         
         for file_name, tree in self.trees.items():
     
+            input_type = self.input_types[file_name]
+    
             print("\n\n=======================================================")
             print("Loading events from file: ", file_name)
-            input_type = self.input_types[file_name]
             print("Input type was recognised to be: ", input_type)
 
             constituentBranches = ConstituentBranches(tree, input_type)
-
-           
-                
-
+            
             for iEvent in self.selections[file_name]:
                 print("\n\n------------------------------")
                 print("Event: ", iEvent)
                 
+                # load event
                 event = Event(tree, input_type, iEvent, constituentBranches, self.jet_delta_r)
+                event.print()
                 
-                
+                # check event properties
                 if event.nJets < 2:
                     print("WARNING -- event has less than 2 jets! Skipping...")
                     print("------------------------------\n\n")
                     continue
 
-                event.calculate_internals()
-                event.print()
-
-                hasJetWithNoConstituents = False
-                
-                for i in range(0, self.n_jets):
-                    if len(event.jets[i].constituents) == 0:
-                        hasJetWithNoConstituents = True
-                        break
-                
-                if hasJetWithNoConstituents:
+                if event.has_jets_with_no_constituents(self.max_n_jets):
                     print("WARNING -- one of the jets that should be stored has no constituents. Skipping...")
                     continue
                 
-                
+                # fill feature arrays
                 self.event_features[total_count, :] = np.asarray(event.get_features())
 
                 for iJet, jet in enumerate(event.jets):
-                    if iJet == self.n_jets:
+                    if iJet == self.max_n_jets:
                         break
 
                     self.jet_features[total_count, iJet, :] = event.jets[iJet].get_features()
@@ -142,7 +135,6 @@ class Converter:
                     if self.save_EFPs:
                         self.energy_flow_bases[total_count, iJet, :] = jet.get_EFPs(self.efpset)
                         
-                
                 total_count += 1
                 print("------------------------------\n\n")
 
@@ -160,16 +152,20 @@ class Converter:
         data = np.pad(data, ((0,n-data.shape[0]), (0,0)), 'constant')
         return data
 
-    def get_jet_constituents(self, constituentp4s):
+    def get_jet_constituents(self, constituents):
     
-        ret = -np.ones((len(constituentp4s), len(Jet.get_constituent_feature_names())))
-        for i, c in enumerate(constituentp4s):
+        ret = -np.ones((len(constituents), len(Jet.get_constituent_feature_names())))
+        for i, c in enumerate(constituents):
             ret[i, :] = [c.Eta(), c.Phi(), c.Pt(), c.Rapidity(), c.E()]
     
         return self.pad_to_n(ret, self.max_n_constituents, 2)
 
     def save(self, output_file_name):
-    
+        """
+        Creates output h5 file, populates it with data stored in features array and saves it to the disk.
+        """
+        
+        # make sure that the output directory exists and that the file name ends with h5
         path_directory = os.path.dirname(output_file_name)
     
         if not os.path.exists(path_directory) and path_directory is not None and path_directory != '':
@@ -180,27 +176,31 @@ class Converter:
 
         print("\n\n=======================================================")
         print("Saving h5 data to file: ", output_file_name)
-    
-        f = h5py.File(output_file_name, "w")
-        features = f.create_group("event_features")
+
+        # create output file
+        file = h5py.File(output_file_name, "w")
+        
+        # add feature arrays to the output file
+        features = file.create_group("event_features")
         features.create_dataset('data', data=self.event_features)
         features.create_dataset('labels', data=Event.get_features_names())
     
-        jet_features = f.create_group("jet_features")
+        jet_features = file.create_group("jet_features")
         jet_features.create_dataset('data', data=self.jet_features)
         jet_features.create_dataset('labels', data=Jet.get_feature_names())
     
         if self.save_constituents:
-            jet_constituents = f.create_group("jet_constituents")
+            jet_constituents = file.create_group("jet_constituents")
             jet_constituents.create_dataset('data', data=self.jet_constituents)
             jet_constituents.create_dataset('labels', data=Jet.get_constituent_feature_names())
     
         if self.save_EFPs:
-            eflow = f.create_group("jet_eflow_variables")
+            eflow = file.create_group("jet_eflow_variables")
             eflow.create_dataset('data', data=self.energy_flow_bases)
             eflow.create_dataset('labels', data=[str(i) for i in range(self.EFP_size)])
 
-        f.close()
+        # save the file
+        file.close()
         print("Successfully saved!")
         print("=======================================================\n\n")
         
