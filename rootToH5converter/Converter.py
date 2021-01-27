@@ -6,6 +6,7 @@ import h5py
 from Jet import Jet
 from Event import Event
 
+from ConstituentBranches import ConstituentBranches
 
 class Converter:
 
@@ -22,9 +23,9 @@ class Converter:
 
         print("Found {0} file(s)".format(len(self.files)))
         print("Found {0} tree(s)".format(len(self.trees)))
-        print("Found {0} total event(s)".format(self.n_all_events))
+        print("Found ", self.n_events - 1, " selected events, out of a total of ", self.n_all_events)
 
-        
+        # set internal parameters
         self.jet_delta_r = jet_delta_r
         self.max_n_constituents = max_n_constituents
         self.save_constituents = False if max_n_constituents < 0 else True
@@ -32,6 +33,7 @@ class Converter:
         self.save_EFPs = False if EFP_degree < 0 else True
         self.EFP_size = 0
 
+        # initialize EFP set
         if EFP_degree >= 0:
             print("\n\n=======================================================")
             print("Creating energyflow particle set with degree d <= {0}...".format(EFP_degree))
@@ -39,21 +41,17 @@ class Converter:
             self.EFP_size = self.efpset.count()
             print("EFP set is size: {}".format(self.EFP_size))
             print("=======================================================\n\n")
-
-        print("Found ", self.n_events-1, " selected events, out of a total of ", self.n_all_events)
-
-        
-        
+            
+        # prepare arrays for event & jet features, EFPs and jet constituents
         self.event_features = np.empty((self.n_events, len(Event.get_features_names())))
         self.jet_features = np.empty((self.n_events, self.n_jets, len(Jet.get_feature_names())))
         self.jet_constituents = np.empty((self.n_events, self.n_jets, self.max_n_constituents, len(Jet.get_constituent_feature_names())))
         self.energy_flow_bases = np.empty((self.n_events, self.n_jets, self.EFP_size))
         
-        
-
-        
-
     def set_input_paths_and_selections(self, input_path):
+        """
+        Reads input file with paths to ROOT files and corresponding event selections.
+        """
         self.selections = {}
         self.input_file_paths = []
         
@@ -65,6 +63,9 @@ class Converter:
             self.selections[file_name] = list(map(int, selections.split()))
 
     def read_trees(self):
+        """
+        Reads input ROOT files, extracts trees and recognizes type of the input file (Delphes/nanoAOD/PFnanoAOD).
+        """
         for path, file in self.files.items():
         
             for key in file.keys():
@@ -95,72 +96,16 @@ class Converter:
             input_type = self.input_types[file_name]
             print("Input type was recognised to be: ", input_type)
 
-            track_eta = []
-            track_phi = []
-            track_pt = []
-            track_mass = []
-            track_jet_index = []
+            constituentBranches = ConstituentBranches(tree, input_type)
 
-            neutral_hadron_eta = []
-            neutral_hadron_phi = []
-            neutral_hadron_pt = []
-            neutral_hadron_mass = []
-
-            photon_eta = []
-            photon_phi = []
-            photon_pt = []
-            photon_mass = []
-
-            if input_type == "Delphes":
-                track_eta = tree["EFlowTrack/EFlowTrack.Eta"].array()
-                track_phi = tree["EFlowTrack/EFlowTrack.Phi"].array()
-                track_pt = tree["EFlowTrack/EFlowTrack.PT"].array()
-                track_mass = 0
-                
-                neutral_hadron_eta = tree["EFlowNeutralHadron/EFlowNeutralHadron.Eta"].array()
-                neutral_hadron_phi = tree["EFlowNeutralHadron/EFlowNeutralHadron.Phi"].array()
-                neutral_hadron_pt = tree["EFlowNeutralHadron/EFlowNeutralHadron.ET"].array()
-                neutral_hadron_mass = 0
-            
-                photon_eta = tree["Photon/Photon.Eta"].array()
-                photon_phi = tree["Photon/Photon.Phi"].array()
-                photon_pt = tree["Photon/Photon.PT"].array()
-                photon_mass = 0
-                
-            elif input_type == "nanoAOD":
-                print("WARNING -- handling of tracks for nanoAOD not implemented!!!")
-                print("WARNING -- handling of neutral hadrons for nanoAOD not implemented!!!")
-
-                photon_eta = tree["Photon_eta"].array()
-                photon_phi = tree["Photon_phi"].array()
-                photon_pt = tree["Photon_pt"].array()
-                photon_mass = tree["Photon_mass"].array()
-                
-            elif input_type == "PFnanoAOD":
-                
-                print("WARNING -- handling of neutral hadrons for PFnanoAOD not implemented!!!")
-    
-                track_eta = tree["JetPFCands_eta"].array()
-                track_phi = tree["JetPFCands_phi"].array()
-                track_pt = tree["JetPFCands_pt"].array()
-                track_mass = tree["JetPFCands_mass"].array()
-                track_jet_index = tree["JetPFCands_jetIdx"].array()
-    
-                photon_eta = tree["Photon_eta"].array()
-                photon_phi = tree["Photon_phi"].array()
-                photon_pt = tree["Photon_pt"].array()
-                photon_mass = tree["Photon_mass"].array()
+           
                 
 
             for iEvent in self.selections[file_name]:
                 print("\n\n------------------------------")
                 print("Event: ", iEvent)
                 
-                event = Event(tree, input_type, iEvent,
-                              track_eta, track_phi, track_pt, track_mass, track_jet_index,
-                              neutral_hadron_eta, neutral_hadron_phi, neutral_hadron_pt, neutral_hadron_mass,
-                              photon_eta, photon_phi, photon_pt, photon_mass, self.jet_delta_r
-                              )
+                event = Event(tree, input_type, iEvent, constituentBranches, self.jet_delta_r)
                 
                 
                 if event.nJets < 2:

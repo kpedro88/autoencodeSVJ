@@ -3,12 +3,7 @@ from Jet import Jet
 from PhysObject import PhysObject
 
 class Event:
-    def __init__(self, tree, input_type, iEvent,
-                 track_eta, track_phi, track_pt, track_mass, track_jet_index,
-                 neutral_hadron_eta, neutral_hadron_phi, neutral_hadron_pt, neutral_hadron_mass,
-                 photon_eta, photon_phi, photon_pt, photon_mass,
-                 delta_r
-                 ):
+    def __init__(self, tree, input_type, iEvent, constituentBranches, delta_r):
     
         if input_type != "Delphes" and input_type != "nanoAOD" and input_type != "PFnanoAOD":
             print("\n\nERROR -- Event: unknown input type!\n\n")
@@ -51,28 +46,28 @@ class Event:
         
         self.tracks = []
         for iTrack in range(0, self.nTracks):
-            mass = track_mass[iEvent][iTrack] if hasattr(track_mass, "__getitem__") else 0
-            self.tracks.append(PhysObject(eta = track_eta[iEvent][iTrack],
-                                          phi = track_phi[iEvent][iTrack],
-                                          pt = track_pt[iEvent][iTrack],
+            mass = constituentBranches.track_mass[iEvent][iTrack] if hasattr(constituentBranches.track_mass, "__getitem__") else 0
+            self.tracks.append(PhysObject(eta = constituentBranches.track_eta[iEvent][iTrack],
+                                          phi = constituentBranches.track_phi[iEvent][iTrack],
+                                          pt = constituentBranches.track_pt[iEvent][iTrack],
                                           mass = mass))
 
         
         self.neutral_hadrons = []
         for iNeutralHadron in range(0, self.nNeutralHadrons):
-            mass = neutral_hadron_mass[iEvent][iNeutralHadron] if hasattr(neutral_hadron_mass, "__getitem__") else 0
-            self.neutral_hadrons.append(PhysObject(eta = neutral_hadron_eta[iEvent][iNeutralHadron],
-                                          phi = neutral_hadron_phi[iEvent][iNeutralHadron],
-                                          pt = neutral_hadron_pt[iEvent][iNeutralHadron],
+            mass = constituentBranches.neutral_hadron_mass[iEvent][iNeutralHadron] if hasattr(constituentBranches.neutral_hadron_mass, "__getitem__") else 0
+            self.neutral_hadrons.append(PhysObject(eta = constituentBranches.neutral_hadron_eta[iEvent][iNeutralHadron],
+                                          phi = constituentBranches.neutral_hadron_phi[iEvent][iNeutralHadron],
+                                          pt = constituentBranches.neutral_hadron_pt[iEvent][iNeutralHadron],
                                           mass = mass))
 
         
         self.photons = []
         for iPhoton in range(0, self.nPhotons):
-            mass = photon_mass[iEvent][iPhoton] if hasattr(photon_mass, "__getitem__") else 0
-            self.photons.append(PhysObject(eta = photon_eta[iEvent][iPhoton],
-                                          phi = photon_phi[iEvent][iPhoton],
-                                          pt = photon_pt[iEvent][iPhoton],
+            mass = constituentBranches.photon_mass[iEvent][iPhoton] if hasattr(constituentBranches.photon_mass, "__getitem__") else 0
+            self.photons.append(PhysObject(eta = constituentBranches.photon_eta[iEvent][iPhoton],
+                                          phi = constituentBranches.photon_phi[iEvent][iPhoton],
+                                          pt = constituentBranches.photon_pt[iEvent][iPhoton],
                                           mass = mass))
 
         
@@ -81,7 +76,7 @@ class Event:
             self.jets.append(Jet(tree, input_type, iEvent, iJet))
     
         for iJet, jet in enumerate(self.jets):
-            jet.fill_constituents(self.tracks, self.neutral_hadrons, self.photons, delta_r, iJet, track_jet_index[iEvent])
+            jet.fill_constituents(self.tracks, self.neutral_hadrons, self.photons, delta_r, iJet, constituentBranches.track_jet_index[iEvent])
     
     
     def print(self):
