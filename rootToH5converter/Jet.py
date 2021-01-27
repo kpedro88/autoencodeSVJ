@@ -19,7 +19,7 @@ class Jet:
             self.chargedHadronEnergyFraction = self.nCharged / n_total if n_total > 0 else -1
             self.neutralHadronEnergyFraction = self.nNeutral / n_total if n_total > 0 else -1
             
-        elif input_type == "nanoAOD":
+        elif input_type == "nanoAOD" or input_type == "PFnanoAOD":
             self.eta = tree["Jet_eta"].array()[iEvent][iJet]
             self.phi = tree["Jet_phi"].array()[iEvent][iJet]
             self.pt = tree["Jet_pt"].array()[iEvent][iJet]
@@ -28,6 +28,7 @@ class Jet:
         
             self.chargedHadronEnergyFraction = tree["Jet_chHEF"].array()[iEvent][iJet]
             self.neutralHadronEnergyFraction = tree["Jet_neHEF"].array()[iEvent][iJet]
+            
         
         self.constituents = []
         
@@ -126,27 +127,36 @@ class Jet:
     
         return axis2
 
-    def get_constituents(self, physObjects, pt_cut, delta_r):
+    def get_constituents(self, physObjects, pt_cut, delta_r, iJet=-1, track_jet_index=None):
         constituents = []
         
-        for i, object in enumerate(physObjects):
-            if object.pt > pt_cut:
-                vec = object.get_four_vector()
-                
-                delta_eta = object.eta - self.eta
-                delta_phi = self.get_four_vector().DeltaPhi(vec)
-                if delta_eta ** 2. + delta_phi ** 2. < delta_r ** 2.:
-                    constituents.append(vec)
+        if iJet < 0:
+            for i, object in enumerate(physObjects):
+                if object.pt > pt_cut:
+                    vec = object.get_four_vector()
+                    
+                    delta_eta = object.eta - self.eta
+                    delta_phi = self.get_four_vector().DeltaPhi(vec)
+                    if delta_eta ** 2. + delta_phi ** 2. < delta_r ** 2.:
+                        constituents.append(vec)
+        else:
+            for i, track in enumerate(physObjects):
+                jet_index = track_jet_index[i]
+                if jet_index == iJet:
+                    constituents.append(track.get_four_vector())
+
         return constituents
 
-    def fill_constituents(self, tracks, neutral_hadrons, photons, delta_r):
+    def fill_constituents(self, tracks, neutral_hadrons, photons, delta_r, iJet, track_jet_index):
         
-        self.constituents.extend(self.get_constituents(tracks, 0.1, delta_r))
+        self.constituents.extend(self.get_constituents(tracks, 0.1, delta_r, iJet, track_jet_index))
         self.constituents.extend(self.get_constituents(neutral_hadrons, 0.5, delta_r))
         self.constituents.extend(self.get_constituents(photons, 0.2, delta_r))
 
-
     def get_EFPs(self, EFP_set):
+        if len(self.constituents) == 0:
+            return
+        
         return EFP_set.compute(
             ef.utils.ptyphims_from_p4s(
                 [(c.E(), c.Px(), c.Py(), c.Pz()) for c in self.constituents]

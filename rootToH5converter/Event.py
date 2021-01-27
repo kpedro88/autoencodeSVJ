@@ -4,14 +4,14 @@ from PhysObject import PhysObject
 
 class Event:
     def __init__(self, tree, input_type, iEvent,
-                 track_eta, track_phi, track_pt, track_mass,
+                 track_eta, track_phi, track_pt, track_mass, track_jet_index,
                  neutral_hadron_eta, neutral_hadron_phi, neutral_hadron_pt, neutral_hadron_mass,
                  photon_eta, photon_phi, photon_pt, photon_mass,
                  delta_r
                  ):
     
-        if input_type != "Delphes" and input_type != "nanoAOD":
-            print("\n\nERROR -- unknown input type!\n\n")
+        if input_type != "Delphes" and input_type != "nanoAOD" and input_type != "PFnanoAOD":
+            print("\n\nERROR -- Event: unknown input type!\n\n")
             exit(0)
     
         if input_type == "Delphes":
@@ -37,6 +37,18 @@ class Event:
             print("WARNING -- handling of neutral hadrons for nanoAOD not implemented!!!")
             self.nNeutralHadrons = 0
             
+            self.nPhotons = tree["nPhoton"].array()[iEvent]
+        elif input_type == "PFnanoAOD":
+            self.met = tree["MET_pt"].array()[iEvent]
+            self.metPhi = tree["MET_phi"].array()[iEvent]
+            self.metEta = 0
+    
+            self.nJets = tree["nJet"].array()[iEvent]
+            self.nTracks = tree["nJetPFCands"].array()[iEvent]
+    
+            print("WARNING -- handling of neutral hadrons for PFnanoAOD not implemented!!!")
+            self.nNeutralHadrons = 0
+    
             self.nPhotons = tree["nPhoton"].array()[iEvent]
             
         self.Mjj = 99999
@@ -75,8 +87,8 @@ class Event:
         for iJet in range(0, self.nJets):
             self.jets.append(Jet(tree, input_type, iEvent, iJet))
     
-        for jet in self.jets:
-            jet.fill_constituents(self.tracks, self.neutral_hadrons, self.photons, delta_r)
+        for iJet, jet in enumerate(self.jets):
+            jet.fill_constituents(self.tracks, self.neutral_hadrons, self.photons, delta_r, iJet, track_jet_index[iEvent])
     
     
     def print(self):
@@ -84,9 +96,13 @@ class Event:
         print(Event.get_features_names())
         print(self.get_features())
         
-        print("\nJets:")
-        for jet in self.jets:
-            jet.print()
+        print("\nnJets:", self.nJets)
+        for i, jet in enumerate(self.jets):
+            print("\tjet ", i, " n constituents: ", len(jet.constituents))
+        
+        print("nTracks:", self.nTracks)
+        print("nPhotons:", self.nPhotons)
+        print("nNeutral hadrons:", self.nNeutralHadrons)
     
     
     def calculate_internals(self):

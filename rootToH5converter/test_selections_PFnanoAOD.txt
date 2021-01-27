@@ -1,0 +1,1 @@
+/Users/Jeremi/Documents/Physics/ETH/data/s_channel_cms/PFnano_SVJ_PSweights_102X_upgrade2018_realistic_v15-v4/svj_PFnanoAOD.root: 0 1 2 3 4 5

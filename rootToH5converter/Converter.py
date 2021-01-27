@@ -40,7 +40,12 @@ class Converter:
                     print("Adding Delphes tree")
                 elif key.startswith("Events"):
                     self.trees[path] = file[key]
-                    self.input_types[path] = "nanoAOD"
+
+                    if file[key]["JetPFCands_eta"] is not None:
+                        self.input_types[path] = "PFnanoAOD"
+                    else:
+                        self.input_types[path] = "nanoAOD"
+
                     print("Adding nanoAOD tree: ", key)
                 else:
                     print("Unknown tree type: ", key, ". Skipping...")
@@ -53,7 +58,7 @@ class Converter:
         self.nEvents = sum(self.sizes)
 
         print("Found {0} files".format(len(self.files)))
-        print("Found {0} delphes trees".format(len(self.trees)))
+        print("Found {0} trees".format(len(self.trees)))
         print("Found {0} total events".format(self.nEvents))
 
         
@@ -125,6 +130,7 @@ class Converter:
             track_phi = []
             track_pt = []
             track_mass = []
+            track_jet_index = []
 
             neutral_hadron_eta = []
             neutral_hadron_phi = []
@@ -160,14 +166,29 @@ class Converter:
                 photon_phi = tree["Photon_phi"].array()
                 photon_pt = tree["Photon_pt"].array()
                 photon_mass = tree["Photon_mass"].array()
-
-            print("\n\nTrack array type: ", type(track_pt), "\n\n")
+                
+            elif input_type == "PFnanoAOD":
+                
+                print("WARNING -- handling of neutral hadrons for PFnanoAOD not implemented!!!")
+    
+                track_eta = tree["JetPFCands_eta"].array()
+                track_phi = tree["JetPFCands_phi"].array()
+                track_pt = tree["JetPFCands_pt"].array()
+                track_mass = tree["JetPFCands_mass"].array()
+                track_jet_index = tree["JetPFCands_jetIdx"].array()
+    
+                photon_eta = tree["Photon_eta"].array()
+                photon_phi = tree["Photon_phi"].array()
+                photon_pt = tree["Photon_pt"].array()
+                photon_mass = tree["Photon_mass"].array()
+                
 
             for iEvent in self.selections[file_name]:
-    
+                print("\n\n=======================================================")
+                print("Event: ", iEvent)
                 
                 event = Event(tree, input_type, iEvent,
-                              track_eta, track_phi, track_pt, track_mass,
+                              track_eta, track_phi, track_pt, track_mass, track_jet_index,
                               neutral_hadron_eta, neutral_hadron_phi, neutral_hadron_pt, neutral_hadron_mass,
                               photon_eta, photon_phi, photon_pt, photon_mass, self.jet_delta_r
                               )
@@ -175,17 +196,28 @@ class Converter:
                 
                 if event.nJets < 2:
                     print("WARNING -- event has less than 2 jets! Skipping...")
+                    print("=======================================================\n\n")
                     continue
 
                 event.calculate_internals()
+                event.print()
+
+                hasJetWithNoConstituents = False
                 
-                print("Event: ", iEvent)
-                # event.print()
+                for i in range(0, self.n_jets):
+                    if len(event.jets[i].constituents) == 0:
+                        hasJetWithNoConstituents = True
+                        break
+                
+                if hasJetWithNoConstituents:
+                    print("WARNING -- one of the jets that should be stored has no constituents. Skipping...")
+                    continue
+                
                 
                 self.event_features[total_count, :] = np.asarray(event.get_features())
 
                 for iJet, jet in enumerate(event.jets):
-                    if iJet == 2:
+                    if iJet == self.n_jets:
                         break
 
                     self.jet_features[total_count, iJet, :] = event.jets[iJet].get_features()
@@ -195,13 +227,16 @@ class Converter:
 
                     if self.save_eflow:
                         self.energy_flow_bases[total_count, iJet, :] = jet.get_EFPs(self.efpset)
+                        
                 
                 total_count += 1
+                print("=======================================================\n\n")
 
         # remove redundant rows for events that didn't meet some criteria
         for i in range(0, total_size-total_count):
             self.event_features = np.delete(self.event_features, -1, axis=0)
             self.jet_features = np.delete(self.jet_features, -1, axis=0)
+            self.energy_flow_bases = np.delete(self.energy_flow_bases, -1, axis=0)
 
     def pad_to_n(self, data, n, sort_index):
         data = data[np.argsort(data[:,sort_index]),:][::-1][:n,:]

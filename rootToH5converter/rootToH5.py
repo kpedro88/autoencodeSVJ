@@ -9,8 +9,11 @@ file = uproot.open("/Users/Jeremi/Documents/Physics/ETH/data/s_channel_delphes/q
 # input_path = "test_selections_nanoAOD.txt"
 # output_path = "test_nanoAOD.h5"
 
-input_path = "data_0_selection.txt"
-output_path = "test_data_0.h5"
+input_path = "test_selections_PFnanoAOD.txt"
+output_path = "test_PFnanoAOD.h5"
+
+# input_path = "data_0_selection.txt"
+# output_path = "test_data_0.h5"
 
 converter = Converter(input_paths = [input_path],
                       output_path= "./",
