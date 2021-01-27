@@ -237,6 +237,7 @@ class Converter:
             self.event_features = np.delete(self.event_features, -1, axis=0)
             self.jet_features = np.delete(self.jet_features, -1, axis=0)
             self.energy_flow_bases = np.delete(self.energy_flow_bases, -1, axis=0)
+            self.jet_constituents = np.delete(self.jet_constituents, -1, axis=0)
 
     def pad_to_n(self, data, n, sort_index):
         data = data[np.argsort(data[:,sort_index]),:][::-1][:n,:]

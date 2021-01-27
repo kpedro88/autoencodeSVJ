@@ -18,7 +18,7 @@ output_path = "test_PFnanoAOD.h5"
 converter = Converter(input_paths = [input_path],
                       output_path= "./",
                       output_file_prefix= "qcd",
-                      save_constituents=False,
+                      save_constituents=True,
                       energyflow_basis_degree=3,
                       max_n_constituents=100
                       )
