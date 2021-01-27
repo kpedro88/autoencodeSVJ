@@ -1,44 +1,45 @@
-import uproot
 from Converter import Converter
+import argparse
 
-file = uproot.open("/Users/Jeremi/Documents/Physics/ETH/data/s_channel_delphes/qcd/qcd_sqrtshatTeV_13TeV_PU20_9.root")
+parser = argparse.ArgumentParser(description='Process some integers.')
 
-# input_path = "test_selections_delphes.txt"
-# output_path = "test_delphes.h5"
+parser.add_argument("-i", "--input", dest="input_path", default=None,
+                    help="path to text file with ROOT files' paths and selected events")
 
-# input_path = "test_selections_nanoAOD.txt"
-# output_path = "test_nanoAOD.h5"
+parser.add_argument("-o", "--output", dest="output_path", default="output.h5",
+                    help="output file name (default: output.h5)")
 
-input_path = "test_selections_PFnanoAOD.txt"
-output_path = "test_PFnanoAOD.h5"
+parser.add_argument("-c", "--constituents", dest='save_constituents', action='store_true',
+                    help="If specified, jte constituents will be stored in the output file.")
 
-# input_path = "data_0_selection.txt"
-# output_path = "test_data_0.h5"
+parser.add_argument("-m", "--max_constituents", dest="max_constituents", type=int, default=100,
+                    help="Maximum number of constituents per jet to be stored (default: 100).")
 
-converter = Converter(input_paths = [input_path],
-                      output_path= "./",
-                      output_file_prefix= "qcd",
-                      save_constituents=True,
-                      energyflow_basis_degree=3,
-                      max_n_constituents=100
+parser.add_argument("-e", "--efp_basis_degree", dest="efp_basis_degree", type=int, default=-1,
+                    help="EFPs degree to be calculated and stored in the output file (default: not stored)")
+
+args = parser.parse_args()
+
+if args.input_path is None:
+    parser.print_help()
+    exit(0)
+
+print("\n\n=======================================================")
+print("Running ROOT to h5 converter with the following options: ")
+print("input: ", args.input_path)
+print("output: ", args.output_path)
+print("save constituents: ", args.save_constituents)
+print("max constituents: ", args.max_constituents)
+print("EFP basis degree: ", args.efp_basis_degree)
+print("=======================================================\n\n")
+
+converter = Converter(input_path = args.input_path,
+                      save_constituents=args.save_constituents,
+                      energyflow_basis_degree=args.efp_basis_degree,
+                      max_n_constituents=args.max_constituents
                       )
 
 converter.convert()
-converter.save(output_path)
-
-# print("File keys:", file.keys())
-# print("File values:", file.values())
-# print("Class names: ", file.classnames())
-#
-# delphesTree = file["Delphes"]
-#
-# print("Tree: ", delphesTree)
-# print("Tree keys: ", delphesTree.keys())
-#
-# print("Tree members: ", delphesTree.all_members)
-#
-# eta = delphesTree["Jet/Jet.Eta"].array()
-#
-# print("Eta: ", eta)
+converter.save(args.output_path)
 
 

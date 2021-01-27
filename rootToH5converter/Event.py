@@ -30,14 +30,10 @@ class Event:
             self.metEta = 0
 
             self.nJets = tree["nJet"].array()[iEvent]
-
-            print("WARNING -- handling of tracks for nanoAOD not implemented!!!")
             self.nTracks = 0
-
-            print("WARNING -- handling of neutral hadrons for nanoAOD not implemented!!!")
             self.nNeutralHadrons = 0
-            
             self.nPhotons = tree["nPhoton"].array()[iEvent]
+            
         elif input_type == "PFnanoAOD":
             self.met = tree["MET_pt"].array()[iEvent]
             self.metPhi = tree["MET_phi"].array()[iEvent]
@@ -45,10 +41,7 @@ class Event:
     
             self.nJets = tree["nJet"].array()[iEvent]
             self.nTracks = tree["nJetPFCands"].array()[iEvent]
-    
-            print("WARNING -- handling of neutral hadrons for PFnanoAOD not implemented!!!")
             self.nNeutralHadrons = 0
-    
             self.nPhotons = tree["nPhoton"].array()[iEvent]
             
         self.Mjj = 99999
