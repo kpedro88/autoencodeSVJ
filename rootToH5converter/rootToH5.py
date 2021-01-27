@@ -3,7 +3,7 @@ import argparse
 
 parser = argparse.ArgumentParser(description='Process some integers.')
 
-parser.add_argument("-i", "--input", dest="input_path", default=None,
+parser.add_argument("-i", "--input", dest="input_path", default=None, required=True,
                     help="path to text file with ROOT files' paths and selected events")
 
 parser.add_argument("-o", "--output", dest="output_path", default="output.h5",
@@ -20,9 +20,6 @@ parser.add_argument("-e", "--efp_basis_degree", dest="efp_basis_degree", type=in
 
 args = parser.parse_args()
 
-if args.input_path is None:
-    parser.print_help()
-    exit(0)
 
 print("\n\n=======================================================")
 print("Running ROOT to h5 converter with the following options: ")
