@@ -11,6 +11,7 @@ analysis/h5analysis/test_data.txt
 rootToH5converter/data_0_selection.txt
 rootToH5converter/test_selections_delphes.txt
 rootToH5converter/test_selections_nanoAOD.txt
+rootToH5converter/output*.txt
 
 *CMakeFiles*
 *cmake_install.cmake
