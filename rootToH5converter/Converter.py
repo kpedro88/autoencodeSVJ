@@ -7,6 +7,7 @@ from Jet import Jet
 from Event import Event
 
 from ConstituentBranches import ConstituentBranches
+from InputTypes import *
 
 class Converter:
 
@@ -71,15 +72,15 @@ class Converter:
             for key in file.keys():
                 if key.startswith("Delphes"):
                     self.trees[path] = file["Delphes"]
-                    self.input_types[path] = "Delphes"
+                    self.input_types[path] = InputTypes.Delphes
                     print("Adding Delphes tree")
                 elif key.startswith("Events"):
                     self.trees[path] = file[key]
                 
                     if file[key]["JetPFCands_eta"] is not None:
-                        self.input_types[path] = "PFnanoAOD"
+                        self.input_types[path] = InputTypes.PFnanoAOD
                     else:
-                        self.input_types[path] = "nanoAOD"
+                        self.input_types[path] = InputTypes.nanoAOD
                 
                     print("Adding nanoAOD tree: ", key)
                 else:

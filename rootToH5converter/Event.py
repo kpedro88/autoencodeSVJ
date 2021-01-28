@@ -1,15 +1,12 @@
 import numpy as np
 from Jet import Jet
 from PhysObject import PhysObject
+from InputTypes import *
 
 class Event:
     def __init__(self, tree, input_type, iEvent, constituentBranches, delta_r):
     
-        if input_type != "Delphes" and input_type != "nanoAOD" and input_type != "PFnanoAOD":
-            print("\n\nERROR -- Event: unknown input type!\n\n")
-            exit(0)
-    
-        if input_type == "Delphes":
+        if input_type == InputTypes.Delphes:
             self.met = tree["MissingET.MET"].array()[iEvent][0]
             self.metPhi = tree["MissingET.Phi"].array()[iEvent][0]
             self.metEta = tree["MissingET.Eta"].array()[iEvent][0]
@@ -19,7 +16,7 @@ class Event:
             self.nNeutralHadrons = tree["EFlowNeutralHadron_size"].array()[iEvent]
             self.nPhotons = tree["Photon_size"].array()[iEvent]
             
-        elif input_type == "nanoAOD":
+        elif input_type == InputTypes.nanoAOD:
             self.met = tree["MET_pt"].array()[iEvent]
             self.metPhi = tree["MET_phi"].array()[iEvent]
             self.metEta = 0
@@ -29,7 +26,7 @@ class Event:
             self.nNeutralHadrons = 0
             self.nPhotons = tree["nPhoton"].array()[iEvent]
             
-        elif input_type == "PFnanoAOD":
+        elif input_type == InputTypes.PFnanoAOD:
             self.met = tree["MET_pt"].array()[iEvent]
             self.metPhi = tree["MET_phi"].array()[iEvent]
             self.metEta = 0

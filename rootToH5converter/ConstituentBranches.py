@@ -1,3 +1,5 @@
+from InputTypes import *
+
 class ConstituentBranches:
     
     def __init__(self, tree, input_type):
@@ -17,7 +19,7 @@ class ConstituentBranches:
         self.photon_pt = []
         self.photon_mass = []
     
-        if input_type == "Delphes":
+        if input_type == InputTypes.Delphes:
             self.track_eta = tree["EFlowTrack/EFlowTrack.Eta"].array()
             self.track_phi = tree["EFlowTrack/EFlowTrack.Phi"].array()
             self.track_pt = tree["EFlowTrack/EFlowTrack.PT"].array()
@@ -33,7 +35,7 @@ class ConstituentBranches:
             self.photon_pt = tree["Photon/Photon.PT"].array()
             self.photon_mass = 0
     
-        elif input_type == "nanoAOD":
+        elif input_type == InputTypes.nanoAOD:
             print("WARNING -- handling of tracks for nanoAOD not implemented!!!")
             print("WARNING -- handling of neutral hadrons for nanoAOD not implemented!!!")
         
@@ -42,7 +44,7 @@ class ConstituentBranches:
             self.photon_pt = tree["Photon_pt"].array()
             self.photon_mass = tree["Photon_mass"].array()
     
-        elif input_type == "PFnanoAOD":
+        elif input_type == InputTypes.PFnanoAOD:
         
             print("WARNING -- handling of neutral hadrons for PFnanoAOD not implemented!!!")
         

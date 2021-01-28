@@ -1,7 +1,7 @@
 import ROOT
 import numpy as np
 import energyflow as ef
-
+from InputTypes import *
 
 class Jet:
     
@@ -11,31 +11,27 @@ class Jet:
         to find the corresponding entry. Branches' names will be determined based on the provided input_typ
         (can be "Delphes", "nanoAOD" or "PFnanoAOD").
         """
-    
-        if input_type == "Delphes":
-            self.eta = tree["Jet/Jet.Eta"].array()[iEvent][iJet]
-            self.phi = tree["Jet/Jet.Phi"].array()[iEvent][iJet]
-            self.pt = tree["Jet/Jet.PT"].array()[iEvent][iJet]
-            self.mass = tree["Jet/Jet.Mass"].array()[iEvent][iJet]
-            self.nCharged = tree["Jet/Jet.NCharged"].array()[iEvent][iJet]
-            self.nNeutral = tree["Jet/Jet.NNeutrals"].array()[iEvent][iJet]
-            self.flavor = tree["Jet/Jet.Flavor"].array()[iEvent][iJet]
+        
+        data_processor = DataProcessor(tree, input_type)
 
+        self.eta    = data_processor.get_value_from_tree("Jet_eta", iEvent, iJet)
+        self.phi    = data_processor.get_value_from_tree("Jet_phi", iEvent, iJet)
+        self.pt     = data_processor.get_value_from_tree("Jet_pt", iEvent, iJet)
+        self.mass   = data_processor.get_value_from_tree("Jet_mass", iEvent, iJet)
+        self.flavor = data_processor.get_value_from_tree("Jet_flavor", iEvent, iJet)
+
+        self.nCharged = data_processor.get_value_from_tree("Jet_nCharged", iEvent, iJet)
+        self.nNeutral = data_processor.get_value_from_tree("Jet_nNeutral", iEvent, iJet)
+
+        self.chargedHadronEnergyFraction = data_processor.get_value_from_tree("Jet_chHEF", iEvent, iJet)
+        self.neutralHadronEnergyFraction = data_processor.get_value_from_tree("Jet_neHEF", iEvent, iJet)
+    
+        if self.chargedHadronEnergyFraction is None:
+            # try to re-calculate charged and neutral energy fractions (for Delphes)
             n_total = self.nCharged + self.nNeutral
             self.chargedHadronEnergyFraction = self.nCharged / n_total if n_total > 0 else -1
             self.neutralHadronEnergyFraction = self.nNeutral / n_total if n_total > 0 else -1
-            
-        elif input_type == "nanoAOD" or input_type == "PFnanoAOD":
-            self.eta = tree["Jet_eta"].array()[iEvent][iJet]
-            self.phi = tree["Jet_phi"].array()[iEvent][iJet]
-            self.pt = tree["Jet_pt"].array()[iEvent][iJet]
-            self.mass = tree["Jet_mass"].array()[iEvent][iJet]
-            self.flavor = -1
-        
-            self.chargedHadronEnergyFraction = tree["Jet_chHEF"].array()[iEvent][iJet]
-            self.neutralHadronEnergyFraction = tree["Jet_neHEF"].array()[iEvent][iJet]
-            
-        
+    
         self.constituents = []
         
     def print(self):
