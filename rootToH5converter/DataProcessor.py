@@ -49,7 +49,6 @@ class DataProcessor:
                 "Photon_eta": "Photon/Photon.Eta",
                 "Photon_phi": "Photon/Photon.Phi",
                 "Photon_pt": "Photon/Photon.PT",
-                
             },
             InputTypes.nanoAOD: {
                 # number of objects
@@ -70,7 +69,6 @@ class DataProcessor:
                 "Photon_phi": "Photon_phi",
                 "Photon_pt": "Photon_pt",
                 "Photon_mass": "Photon_mass",
-                
             },
             InputTypes.PFnanoAOD: {
                 # number of objects

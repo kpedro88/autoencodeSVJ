@@ -5,30 +5,29 @@ import energyflow as ef
 
 class Jet:
     
-    def __init__(self, data_processor, iEvent, iJet):
+    def __init__(self, eta, phi, pt, mass, flavor, n_charged=None, n_neutral=None, ch_hef=None, ne_hef=None):
         """
         Initializes jet variables from the provided tree, using event index iEvent and jet index iJet
         to find the corresponding entry. Branches' names will be determined based on the provided input_typ
         (can be "Delphes", "nanoAOD" or "PFnanoAOD").
         """
-        
-        self.eta    = data_processor.get_value_from_tree("Jet_eta", iEvent, iJet)
-        self.phi    = data_processor.get_value_from_tree("Jet_phi", iEvent, iJet)
-        self.pt     = data_processor.get_value_from_tree("Jet_pt", iEvent, iJet)
-        self.mass   = data_processor.get_value_from_tree("Jet_mass", iEvent, iJet)
-        self.flavor = data_processor.get_value_from_tree("Jet_flavor", iEvent, iJet)
+        self.eta = eta
+        self.phi = phi
+        self.pt = pt
+        self.mass = mass
+        self.flavor = flavor
 
-        self.nCharged = data_processor.get_value_from_tree("Jet_nCharged", iEvent, iJet)
-        self.nNeutral = data_processor.get_value_from_tree("Jet_nNeutral", iEvent, iJet)
+        self.n_charged = n_charged
+        self.n_neutral = n_neutral
 
-        self.chargedHadronEnergyFraction = data_processor.get_value_from_tree("Jet_chHEF", iEvent, iJet)
-        self.neutralHadronEnergyFraction = data_processor.get_value_from_tree("Jet_neHEF", iEvent, iJet)
+        self.chargedHadronEnergyFraction = ch_hef
+        self.neutralHadronEnergyFraction = ne_hef
     
         if self.chargedHadronEnergyFraction is None:
             # try to re-calculate charged and neutral energy fractions (for Delphes)
-            n_total = self.nCharged + self.nNeutral
-            self.chargedHadronEnergyFraction = self.nCharged / n_total if n_total > 0 else -1
-            self.neutralHadronEnergyFraction = self.nNeutral / n_total if n_total > 0 else -1
+            n_total = self.n_charged + self.n_neutral
+            self.chargedHadronEnergyFraction = self.n_charged / n_total if n_total > 0 else -1
+            self.neutralHadronEnergyFraction = self.n_neutral / n_total if n_total > 0 else -1
     
         self.constituents = []
         
@@ -42,7 +41,6 @@ class Jet:
         """
         Returns ROOT TLorentzVector of the jet.
         """
-        
         vector = ROOT.TLorentzVector()
         vector.SetPtEtaPhiM (self.pt, self.eta, self.phi, self.mass)
         return vector
@@ -68,7 +66,6 @@ class Jet:
         """
         Returns jet features.
         """
-        
         return [
             self.eta,
             self.phi,

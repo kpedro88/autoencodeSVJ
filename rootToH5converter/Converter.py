@@ -6,7 +6,15 @@ import h5py
 from Jet import Jet
 from Event import Event
 from DataProcessor import *
+from enum import Enum
 
+
+class OutputTypes(Enum):
+    EventFeatures = 0,
+    JetFeatures = 1,
+    EPFs = 2,
+    JetConstituents = 3
+    
 
 class Converter:
 
@@ -33,9 +41,7 @@ class Converter:
         # set internal parameters
         self.jet_delta_r = jet_delta_r
         self.max_n_constituents = max_n_constituents
-        self.save_constituents = False if max_n_constituents < 0 else True
         self.max_n_jets = store_n_jets
-        self.save_EFPs = False if efp_degree < 0 else True
         self.EFP_size = 0
 
         # initialize EFP set
@@ -48,10 +54,35 @@ class Converter:
             print("=======================================================\n\n")
             
         # prepare arrays for event & jet features, EFPs and jet constituents
-        self.event_features = np.empty((self.n_events, len(Event.get_features_names())))
-        self.jet_features = np.empty((self.n_events, self.max_n_jets, len(Jet.get_feature_names())))
-        self.jet_constituents = np.empty((self.n_events, self.max_n_jets, self.max_n_constituents, len(Jet.get_constituent_feature_names())))
-        self.energy_flow_bases = np.empty((self.n_events, self.max_n_jets, self.EFP_size))
+        
+        self.output_arrays = {
+            OutputTypes.EventFeatures: np.empty((self.n_events, len(Event.get_features_names()))),
+            OutputTypes.JetFeatures: np.empty((self.n_events, self.max_n_jets, len(Jet.get_feature_names()))),
+            OutputTypes.JetConstituents: np.empty((self.n_events, self.max_n_jets, self.max_n_constituents, len(Jet.get_constituent_feature_names()))),
+            OutputTypes.EPFs: np.empty((self.n_events, self.max_n_jets, self.EFP_size))
+        }
+        
+        self.output_names = {
+            OutputTypes.EventFeatures: "event_features",
+            OutputTypes.JetFeatures: "jet_features",
+            OutputTypes.JetConstituents: "jet_constituents",
+            OutputTypes.EPFs: "jet_eflow_variables"
+        }
+
+        self.output_labels = {
+            OutputTypes.EventFeatures: Event.get_features_names(),
+            OutputTypes.JetFeatures: Jet.get_feature_names(),
+            OutputTypes.JetConstituents: Jet.get_constituent_feature_names(),
+            OutputTypes.EPFs: [str(i) for i in range(self.EFP_size)]
+        }
+
+        self.save_outputs = {
+            OutputTypes.EventFeatures: True,
+            OutputTypes.JetFeatures: True,
+            OutputTypes.JetConstituents: False if max_n_constituents < 0 else True,
+            OutputTypes.EPFs: False if efp_degree < 0 else True
+        }
+        
         
     def set_input_paths_and_selections(self, input_path):
         """
@@ -129,19 +160,19 @@ class Converter:
                     continue
                 
                 # fill feature arrays
-                self.event_features[total_count, :] = np.asarray(event.get_features())
+                self.output_arrays[OutputTypes.EventFeatures][total_count, :] = np.asarray(event.get_features())
 
                 for iJet, jet in enumerate(event.jets):
                     if iJet == self.max_n_jets:
                         break
 
-                    self.jet_features[total_count, iJet, :] = event.jets[iJet].get_features()
+                    self.output_arrays[OutputTypes.JetFeatures][total_count, iJet, :] = event.jets[iJet].get_features()
 
-                    if self.save_constituents:
-                        self.jet_constituents[total_count, iJet, :] = jet.get_constituents(self.max_n_constituents)
+                    if self.save_outputs[OutputTypes.JetConstituents]:
+                        self.output_arrays[OutputTypes.JetConstituents][total_count, iJet, :] = jet.get_constituents(self.max_n_constituents)
 
-                    if self.save_EFPs:
-                        self.energy_flow_bases[total_count, iJet, :] = jet.get_EFPs(self.efpset)
+                    if self.save_outputs[OutputTypes.EPFs]:
+                        self.output_arrays[OutputTypes.EPFs][total_count, iJet, :] = jet.get_EFPs(self.efpset)
                         
                 total_count += 1
                 print("------------------------------\n\n")
@@ -149,11 +180,21 @@ class Converter:
             print("\n\n=======================================================")
 
         # remove redundant rows for events that didn't meet some criteria
-        for i in range(0, self.n_events - total_count):
-            self.event_features = np.delete(self.event_features, -1, axis=0)
-            self.jet_features = np.delete(self.jet_features, -1, axis=0)
-            self.energy_flow_bases = np.delete(self.energy_flow_bases, -1, axis=0)
-            self.jet_constituents = np.delete(self.jet_constituents, -1, axis=0)
+        for output_type in OutputTypes:
+            for i in range(0, self.n_events - total_count):
+                self.output_arrays[output_type] = np.delete(self.output_arrays[output_type], -1, axis=0)
+            
+    def add_section_to_h5_file(self, file, output_type):
+        """
+        Adds section with proper name, labels and data to the h5 file, given the output type requested (could be
+        event features, jet features, jet constituents etc.)
+        """
+        if not self.save_outputs[output_type]:
+            return
+        
+        features = file.create_group(self.output_names[output_type])
+        features.create_dataset('data', data=self.output_arrays[output_type])
+        features.create_dataset('labels', data=self.output_labels[output_type])
 
     def save(self, output_file_name):
         """
@@ -174,26 +215,11 @@ class Converter:
 
         # create output file
         file = h5py.File(output_file_name, "w")
-        
-        # add feature arrays to the output file
-        features = file.create_group("event_features")
-        features.create_dataset('data', data=self.event_features)
-        features.create_dataset('labels', data=Event.get_features_names())
-    
-        jet_features = file.create_group("jet_features")
-        jet_features.create_dataset('data', data=self.jet_features)
-        jet_features.create_dataset('labels', data=Jet.get_feature_names())
-    
-        if self.save_constituents:
-            jet_constituents = file.create_group("jet_constituents")
-            jet_constituents.create_dataset('data', data=self.jet_constituents)
-            jet_constituents.create_dataset('labels', data=Jet.get_constituent_feature_names())
-    
-        if self.save_EFPs:
-            eflow = file.create_group("jet_eflow_variables")
-            eflow.create_dataset('data', data=self.energy_flow_bases)
-            eflow.create_dataset('labels', data=[str(i) for i in range(self.EFP_size)])
 
+        # add feature arrays to the output file
+        for output_type in OutputTypes:
+            self.add_section_to_h5_file(file, output_type)
+        
         # save the file
         file.close()
         print("Successfully saved!")
