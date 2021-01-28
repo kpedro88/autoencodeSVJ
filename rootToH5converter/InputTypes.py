@@ -97,31 +97,29 @@ class DataProcessor:
                 "Photon_mass": "Photon_mass",
             }
         }
+        
+        # pre-load all branches for this tree to avoid calling this for every event/track/jet
+        self.branches = {}
+        for key, value in self.variables[input_type].items():
+            if value in self.tree.keys():
+                self.branches[key] = self.tree[value].array()
+        
 
-    def get_value_from_tree(self, value, iEvent=None, iEntry=None):
-        if value not in self.variables[self.input_type]:
+    def get_value_from_tree(self, key, iEvent=None, iEntry=None):
+        if key not in self.branches.keys():
             return None
         
-        value = self.variables[self.input_type][value]
-        
-        if value in self.tree.keys():
-            if iEntry is None:
-                if iEvent is None:
-                    return self.tree[value].array()
-                else:
-                    return self.tree[value].array()[iEvent]
+        if iEntry is None:
+            if iEvent is None:
+                return self.branches[key]
             else:
-                return self.tree[value].array()[iEvent][iEntry]
+                return self.branches[key][iEvent]
+        else:
+            return self.branches[key][iEvent][iEntry]
         
-        return None
 
-    def get_array_n_dimensions(self, value):
-        if value not in self.variables[self.input_type]:
+    def get_array_n_dimensions(self, key):
+        if key not in self.branches.keys():
             return None
     
-        value = self.variables[self.input_type][value]
-    
-        if value in self.tree.keys():
-            return self.tree[value].array().ndim
-    
-        return None
+        return self.branches[key].ndim

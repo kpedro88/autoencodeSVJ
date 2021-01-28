@@ -1,10 +1,9 @@
 import numpy as np
 from Jet import Jet
 from PhysObject import PhysObject
-from InputTypes import *
 
 class Event:
-    def __init__(self, data_processor, tree, input_type, iEvent, constituentBranches, delta_r):
+    def __init__(self, data_processor, iEvent, delta_r):
     
         iObject = None
         if data_processor.get_array_n_dimensions("MET_pt")==2:
@@ -25,13 +24,19 @@ class Event:
         
         
         self.tracks = []
+
+        
         
         if self.nTracks is not None:
             for iTrack in range(0, self.nTracks):
-                mass = constituentBranches.track_mass[iEvent][iTrack] if hasattr(constituentBranches.track_mass, "__getitem__") else 0
-                self.tracks.append(PhysObject(eta = constituentBranches.track_eta[iEvent][iTrack],
-                                              phi = constituentBranches.track_phi[iEvent][iTrack],
-                                              pt = constituentBranches.track_pt[iEvent][iTrack],
+                
+                mass = 0
+                if data_processor.get_value_from_tree("Track_mass") is not None:
+                    mass = data_processor.get_value_from_tree("Track_mass")[iEvent][iTrack]
+                
+                self.tracks.append(PhysObject(eta = data_processor.get_value_from_tree("Track_eta")[iEvent][iTrack],
+                                              phi = data_processor.get_value_from_tree("Track_phi")[iEvent][iTrack],
+                                              pt = data_processor.get_value_from_tree("Track_pt")[iEvent][iTrack],
                                               mass = mass))
 
         
@@ -39,21 +44,28 @@ class Event:
         
         if self.nNeutralHadrons is not None:
             for iNeutralHadron in range(0, self.nNeutralHadrons):
-                mass = constituentBranches.neutral_hadron_mass[iEvent][iNeutralHadron] if hasattr(constituentBranches.neutral_hadron_mass, "__getitem__") else 0
-                self.neutral_hadrons.append(PhysObject(eta = constituentBranches.neutral_hadron_eta[iEvent][iNeutralHadron],
-                                              phi = constituentBranches.neutral_hadron_phi[iEvent][iNeutralHadron],
-                                              pt = constituentBranches.neutral_hadron_pt[iEvent][iNeutralHadron],
-                                              mass = mass))
+                mass = 0
+                if data_processor.get_value_from_tree("Neutral_mass") is not None:
+                    mass = data_processor.get_value_from_tree("Neutral_mass")[iEvent][iNeutralHadron]
+                    
+                self.neutral_hadrons.append(PhysObject(eta = data_processor.get_value_from_tree("Neutral_eta")[iEvent][iNeutralHadron],
+                                                       phi = data_processor.get_value_from_tree("Neutral_phi")[iEvent][iNeutralHadron],
+                                                       pt = data_processor.get_value_from_tree("Neutral_pt")[iEvent][iNeutralHadron],
+                                                       mass = mass))
 
         
         self.photons = []
         
         if self.nPhotons is not None:
             for iPhoton in range(0, self.nPhotons):
-                mass = constituentBranches.photon_mass[iEvent][iPhoton] if hasattr(constituentBranches.photon_mass, "__getitem__") else 0
-                self.photons.append(PhysObject(eta = constituentBranches.photon_eta[iEvent][iPhoton],
-                                              phi = constituentBranches.photon_phi[iEvent][iPhoton],
-                                              pt = constituentBranches.photon_pt[iEvent][iPhoton],
+    
+                mass = 0
+                if data_processor.get_value_from_tree("Photon_mass") is not None:
+                    mass = data_processor.get_value_from_tree("Photon_mass")[iEvent][iPhoton]
+                
+                self.photons.append(PhysObject(eta = data_processor.get_value_from_tree("Photon_eta")[iEvent][iPhoton],
+                                              phi = data_processor.get_value_from_tree("Photon_phi")[iEvent][iPhoton],
+                                              pt = data_processor.get_value_from_tree("Photon_pt")[iEvent][iPhoton],
                                               mass = mass))
 
         
@@ -67,8 +79,8 @@ class Event:
             
             jet_index = -1
             track_jet_index = None
-            if constituentBranches.track_jet_index is not None:
-                track_jet_index = constituentBranches.track_jet_index[iEvent]
+            if data_processor.get_value_from_tree("Track_jet_index") is not None:
+                track_jet_index = data_processor.get_value_from_tree("Track_jet_index")[iEvent]
                 jet_index = iJet
             
             jet.fill_constituents(self.tracks, self.neutral_hadrons, self.photons, delta_r, jet_index, track_jet_index)

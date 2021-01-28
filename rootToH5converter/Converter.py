@@ -6,7 +6,6 @@ import h5py
 from Jet import Jet
 from Event import Event
 
-from ConstituentBranches import ConstituentBranches
 from InputTypes import *
 
 class Converter:
@@ -102,14 +101,12 @@ class Converter:
             print("Loading events from file: ", file_name)
             print("Input type was recognised to be: ", input_type)
 
-            constituentBranches = ConstituentBranches(data_processor)
-            
             for iEvent in self.selections[file_name]:
                 print("\n\n------------------------------")
                 print("Event: ", iEvent)
                 
                 # load event
-                event = Event(data_processor, tree, input_type, iEvent, constituentBranches, self.jet_delta_r)
+                event = Event(data_processor, iEvent, self.jet_delta_r)
                 event.print()
                 
                 # check event properties

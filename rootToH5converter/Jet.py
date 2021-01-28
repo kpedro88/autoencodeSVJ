@@ -1,7 +1,6 @@
 import ROOT
 import numpy as np
 import energyflow as ef
-from InputTypes import *
 
 class Jet:
     
