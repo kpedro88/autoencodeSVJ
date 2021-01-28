@@ -130,7 +130,7 @@ class Converter:
                     self.jet_features[total_count, iJet, :] = event.jets[iJet].get_features()
 
                     if self.save_constituents:
-                        self.jet_constituents[total_count, iJet, :] = self.get_jet_constituents(jet.constituents)
+                        self.jet_constituents[total_count, iJet, :] = jet.get_constituents(self.max_n_constituents)
 
                     if self.save_EFPs:
                         self.energy_flow_bases[total_count, iJet, :] = jet.get_EFPs(self.efpset)
@@ -146,19 +146,6 @@ class Converter:
             self.jet_features = np.delete(self.jet_features, -1, axis=0)
             self.energy_flow_bases = np.delete(self.energy_flow_bases, -1, axis=0)
             self.jet_constituents = np.delete(self.jet_constituents, -1, axis=0)
-
-    def pad_to_n(self, data, n, sort_index):
-        data = data[np.argsort(data[:,sort_index]),:][::-1][:n,:]
-        data = np.pad(data, ((0,n-data.shape[0]), (0,0)), 'constant')
-        return data
-
-    def get_jet_constituents(self, constituents):
-    
-        ret = -np.ones((len(constituents), len(Jet.get_constituent_feature_names())))
-        for i, c in enumerate(constituents):
-            ret[i, :] = [c.Eta(), c.Phi(), c.Pt(), c.Rapidity(), c.E()]
-    
-        return self.pad_to_n(ret, self.max_n_constituents, 2)
 
     def save(self, output_file_name):
         """

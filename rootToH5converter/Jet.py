@@ -2,9 +2,15 @@ import ROOT
 import numpy as np
 import energyflow as ef
 
+
 class Jet:
     
     def __init__(self, tree, input_type, iEvent, iJet):
+        """
+        Initializes jet variables from the provided tree, using event index iEvent and jet index iJet
+        to find the corresponding entry. Branches' names will be determined based on the provided input_typ
+        (can be "Delphes", "nanoAOD" or "PFnanoAOD").
+        """
     
         if input_type == "Delphes":
             self.eta = tree["Jet/Jet.Eta"].array()[iEvent][iJet]
@@ -33,15 +39,25 @@ class Jet:
         self.constituents = []
         
     def print(self):
+        """
+        Prints basic information about the jet.
+        """
         print("Eta: ", self.eta, "\tphi: ", self.phi, "\tpt: ", self.pt, "\tm: ", self.mass)
         
     def get_four_vector(self):
+        """
+        Returns ROOT TLorentzVector of the jet.
+        """
+        
         vector = ROOT.TLorentzVector()
         vector.SetPtEtaPhiM (self.pt, self.eta, self.phi, self.mass)
         return vector
 
     @staticmethod
     def get_feature_names():
+        """
+        Returns names of the jet features.
+        """
         return [
             'Eta',
             'Phi',
@@ -55,6 +71,10 @@ class Jet:
         ]
 
     def get_features(self):
+        """
+        Returns jet features.
+        """
+        
         return [
             self.eta,
             self.phi,
@@ -69,6 +89,10 @@ class Jet:
 
     @staticmethod
     def get_constituent_feature_names():
+        """
+        Returns names of the jet constituent features
+        """
+        
         return [
             'Eta',
             'Phi',
@@ -78,6 +102,9 @@ class Jet:
         ]
 
     def get_ptD(self):
+        """
+        Calculates and returns the ptD variable based on the jet constutuents.
+        """
 
         sum_weight = 0
         sum_pt = 0
@@ -91,6 +118,9 @@ class Jet:
         return ptD
 
     def get_axis2(self):
+        """
+        Calculates and returns the axis2 variable based on the jet constituents.
+        """
     
         sum_weight = 0
         sum_deta = 0
@@ -127,7 +157,13 @@ class Jet:
     
         return axis2
 
-    def get_constituents(self, physObjects, pt_cut, delta_r, iJet=-1, track_jet_index=None):
+    def add_constituents(self, physObjects, pt_cut, delta_r, iJet=-1, track_jet_index=None):
+        """
+        Adds constituents from physObjects collection, which pass the pt cut. If iJet and track_jet_index
+        are not specified, it will add constituents within delta_r. Otherwise, it will check jet index for each
+        constituent and add it only if it's the same as provided jet index iJet.
+        """
+        
         constituents = []
         
         if iJet < 0:
@@ -145,15 +181,24 @@ class Jet:
                 if jet_index == iJet:
                     constituents.append(track.get_four_vector())
 
-        return constituents
+        self.constituents.extend(constituents)
 
     def fill_constituents(self, tracks, neutral_hadrons, photons, delta_r, iJet, track_jet_index):
+        """
+        Fills collection of jet constituents with tracks, neutral hadrons and photons. If iJet and track_jet_index
+        are not specified, it will add constituents within delta_r. Otherwise, it will check jet index for each
+        constituent and add it only if it's the same as provided jet index iJet.
+        """
         
-        self.constituents.extend(self.get_constituents(tracks, 0.1, delta_r, iJet, track_jet_index))
-        self.constituents.extend(self.get_constituents(neutral_hadrons, 0.5, delta_r))
-        self.constituents.extend(self.get_constituents(photons, 0.2, delta_r))
+        self.add_constituents(tracks, 0.1, delta_r, iJet, track_jet_index)
+        self.add_constituents(neutral_hadrons, 0.5, delta_r)
+        self.add_constituents(photons, 0.2, delta_r)
 
     def get_EFPs(self, EFP_set):
+        """
+        Calculates and returns EFPs from jet constituents with the provided EFP set.
+        """
+        
         if len(self.constituents) == 0:
             return
         
@@ -162,3 +207,18 @@ class Jet:
                 [(c.E(), c.Px(), c.Py(), c.Pz()) for c in self.constituents]
             )
         )
+
+    def get_constituents(self, max):
+        """
+        Returns np array with all jet constituents, up to specified maximum. If there are less constituents than
+        specified max, remaining entries will be padded with zeros.
+        """
+    
+        constituents = -np.ones((len(self.constituents), len(Jet.get_constituent_feature_names())))
+        for i, c in enumerate(self.constituents):
+            constituents[i, :] = [c.Eta(), c.Phi(), c.Pt(), c.Rapidity(), c.E()]
+
+        constituents = constituents[np.argsort(constituents[:, 2]), :][::-1][:max, :]
+        constituents = np.pad(constituents, ((0, max - constituents.shape[0]), (0, 0)), 'constant')
+    
+        return constituents
