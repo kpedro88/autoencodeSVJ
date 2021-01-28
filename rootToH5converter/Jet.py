@@ -5,15 +5,13 @@ from InputTypes import *
 
 class Jet:
     
-    def __init__(self, tree, input_type, iEvent, iJet):
+    def __init__(self, data_processor, iEvent, iJet):
         """
         Initializes jet variables from the provided tree, using event index iEvent and jet index iJet
         to find the corresponding entry. Branches' names will be determined based on the provided input_typ
         (can be "Delphes", "nanoAOD" or "PFnanoAOD").
         """
         
-        data_processor = DataProcessor(tree, input_type)
-
         self.eta    = data_processor.get_value_from_tree("Jet_eta", iEvent, iJet)
         self.phi    = data_processor.get_value_from_tree("Jet_phi", iEvent, iJet)
         self.pt     = data_processor.get_value_from_tree("Jet_pt", iEvent, iJet)

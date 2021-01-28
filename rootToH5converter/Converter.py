@@ -96,19 +96,20 @@ class Converter:
         for file_name, tree in self.trees.items():
     
             input_type = self.input_types[file_name]
+            data_processor = DataProcessor(tree, input_type)
     
             print("\n\n=======================================================")
             print("Loading events from file: ", file_name)
             print("Input type was recognised to be: ", input_type)
 
-            constituentBranches = ConstituentBranches(tree, input_type)
+            constituentBranches = ConstituentBranches(data_processor)
             
             for iEvent in self.selections[file_name]:
                 print("\n\n------------------------------")
                 print("Event: ", iEvent)
                 
                 # load event
-                event = Event(tree, input_type, iEvent, constituentBranches, self.jet_delta_r)
+                event = Event(data_processor, tree, input_type, iEvent, constituentBranches, self.jet_delta_r)
                 event.print()
                 
                 # check event properties

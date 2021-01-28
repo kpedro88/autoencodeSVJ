@@ -4,76 +4,74 @@ from PhysObject import PhysObject
 from InputTypes import *
 
 class Event:
-    def __init__(self, tree, input_type, iEvent, constituentBranches, delta_r):
+    def __init__(self, data_processor, tree, input_type, iEvent, constituentBranches, delta_r):
     
-        if input_type == InputTypes.Delphes:
-            self.met = tree["MissingET.MET"].array()[iEvent][0]
-            self.metPhi = tree["MissingET.Phi"].array()[iEvent][0]
-            self.metEta = tree["MissingET.Eta"].array()[iEvent][0]
-
-            self.nJets = tree["Jet_size"].array()[iEvent]
-            self.nTracks = tree["EFlowTrack_size"].array()[iEvent]
-            self.nNeutralHadrons = tree["EFlowNeutralHadron_size"].array()[iEvent]
-            self.nPhotons = tree["Photon_size"].array()[iEvent]
-            
-        elif input_type == InputTypes.nanoAOD:
-            self.met = tree["MET_pt"].array()[iEvent]
-            self.metPhi = tree["MET_phi"].array()[iEvent]
-            self.metEta = 0
-
-            self.nJets = tree["nJet"].array()[iEvent]
-            self.nTracks = 0
-            self.nNeutralHadrons = 0
-            self.nPhotons = tree["nPhoton"].array()[iEvent]
-            
-        elif input_type == InputTypes.PFnanoAOD:
-            self.met = tree["MET_pt"].array()[iEvent]
-            self.metPhi = tree["MET_phi"].array()[iEvent]
-            self.metEta = 0
-    
-            self.nJets = tree["nJet"].array()[iEvent]
-            self.nTracks = tree["nJetPFCands"].array()[iEvent]
-            self.nNeutralHadrons = 0
-            self.nPhotons = tree["nPhoton"].array()[iEvent]
-            
+        iObject = None
+        if data_processor.get_array_n_dimensions("MET_pt")==2:
+            iObject = 0
+        
+        self.met    = data_processor.get_value_from_tree("MET_pt", iEvent, iObject)
+        self.metPhi = data_processor.get_value_from_tree("MET_phi", iEvent, iObject)
+        self.metEta = data_processor.get_value_from_tree("MET_eta", iEvent, iObject)
+        
+        self.nJets           = data_processor.get_value_from_tree("N_jets", iEvent)
+        self.nTracks         = data_processor.get_value_from_tree("N_tracks", iEvent)
+        self.nNeutralHadrons = data_processor.get_value_from_tree("N_neutral_hadrons", iEvent)
+        self.nPhotons        = data_processor.get_value_from_tree("N_photons", iEvent)
+        
         self.Mjj = 99999
         self.MT = 99999
     
         
         
         self.tracks = []
-        for iTrack in range(0, self.nTracks):
-            mass = constituentBranches.track_mass[iEvent][iTrack] if hasattr(constituentBranches.track_mass, "__getitem__") else 0
-            self.tracks.append(PhysObject(eta = constituentBranches.track_eta[iEvent][iTrack],
-                                          phi = constituentBranches.track_phi[iEvent][iTrack],
-                                          pt = constituentBranches.track_pt[iEvent][iTrack],
-                                          mass = mass))
+        
+        if self.nTracks is not None:
+            for iTrack in range(0, self.nTracks):
+                mass = constituentBranches.track_mass[iEvent][iTrack] if hasattr(constituentBranches.track_mass, "__getitem__") else 0
+                self.tracks.append(PhysObject(eta = constituentBranches.track_eta[iEvent][iTrack],
+                                              phi = constituentBranches.track_phi[iEvent][iTrack],
+                                              pt = constituentBranches.track_pt[iEvent][iTrack],
+                                              mass = mass))
 
         
         self.neutral_hadrons = []
-        for iNeutralHadron in range(0, self.nNeutralHadrons):
-            mass = constituentBranches.neutral_hadron_mass[iEvent][iNeutralHadron] if hasattr(constituentBranches.neutral_hadron_mass, "__getitem__") else 0
-            self.neutral_hadrons.append(PhysObject(eta = constituentBranches.neutral_hadron_eta[iEvent][iNeutralHadron],
-                                          phi = constituentBranches.neutral_hadron_phi[iEvent][iNeutralHadron],
-                                          pt = constituentBranches.neutral_hadron_pt[iEvent][iNeutralHadron],
-                                          mass = mass))
+        
+        if self.nNeutralHadrons is not None:
+            for iNeutralHadron in range(0, self.nNeutralHadrons):
+                mass = constituentBranches.neutral_hadron_mass[iEvent][iNeutralHadron] if hasattr(constituentBranches.neutral_hadron_mass, "__getitem__") else 0
+                self.neutral_hadrons.append(PhysObject(eta = constituentBranches.neutral_hadron_eta[iEvent][iNeutralHadron],
+                                              phi = constituentBranches.neutral_hadron_phi[iEvent][iNeutralHadron],
+                                              pt = constituentBranches.neutral_hadron_pt[iEvent][iNeutralHadron],
+                                              mass = mass))
 
         
         self.photons = []
-        for iPhoton in range(0, self.nPhotons):
-            mass = constituentBranches.photon_mass[iEvent][iPhoton] if hasattr(constituentBranches.photon_mass, "__getitem__") else 0
-            self.photons.append(PhysObject(eta = constituentBranches.photon_eta[iEvent][iPhoton],
-                                          phi = constituentBranches.photon_phi[iEvent][iPhoton],
-                                          pt = constituentBranches.photon_pt[iEvent][iPhoton],
-                                          mass = mass))
+        
+        if self.nPhotons is not None:
+            for iPhoton in range(0, self.nPhotons):
+                mass = constituentBranches.photon_mass[iEvent][iPhoton] if hasattr(constituentBranches.photon_mass, "__getitem__") else 0
+                self.photons.append(PhysObject(eta = constituentBranches.photon_eta[iEvent][iPhoton],
+                                              phi = constituentBranches.photon_phi[iEvent][iPhoton],
+                                              pt = constituentBranches.photon_pt[iEvent][iPhoton],
+                                              mass = mass))
 
         
         self.jets = []
-        for iJet in range(0, self.nJets):
-            self.jets.append(Jet(tree, input_type, iEvent, iJet))
+        
+        if self.nJets is not None:
+            for iJet in range(0, self.nJets):
+                self.jets.append(Jet(data_processor, iEvent, iJet))
     
         for iJet, jet in enumerate(self.jets):
-            jet.fill_constituents(self.tracks, self.neutral_hadrons, self.photons, delta_r, iJet, constituentBranches.track_jet_index[iEvent])
+            
+            jet_index = -1
+            track_jet_index = None
+            if constituentBranches.track_jet_index is not None:
+                track_jet_index = constituentBranches.track_jet_index[iEvent]
+                jet_index = iJet
+            
+            jet.fill_constituents(self.tracks, self.neutral_hadrons, self.photons, delta_r, jet_index, track_jet_index)
     
         if self.nJets >= 2:
             self.calculate_internals()
@@ -110,6 +108,9 @@ class Event:
             print("ERROR -- expected two jets in the event, but there are ", len(self.jets))
         
         Vjj = self.jets[0].get_four_vector() + self.jets[1].get_four_vector()
+        
+        print("\n\n MET phi: ", self.metPhi)
+        
         met_py = self.met * np.sin(self.metPhi)
         met_px = self.met * np.cos(self.metPhi)
     
