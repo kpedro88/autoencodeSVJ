@@ -36,7 +36,7 @@ print("=======================================================\n\n")
 converter = Converter(input_path = args.input_path,
                       store_n_jets= args.store_n_jets,
                       jet_delta_r = args.delta_r,
-                      EFP_degree=args.EFP_degree,
+                      efp_degree=args.EFP_degree,
                       max_n_constituents=args.max_constituents
                       )
 

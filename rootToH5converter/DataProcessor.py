@@ -1,19 +1,22 @@
 from enum import Enum
 
+
 class InputTypes(Enum):
     Delphes = 0,
     nanoAOD = 1,
     PFnanoAOD = 2
 
+
 class DataProcessor:
     def __init__(self, tree, input_type):
+        """
+        Creates DataProcessor objects which knows names of branches for different input types.
+        Pre-loads all branches for later use.
+        """
         
-        if not input_type in InputTypes:
-            print("\n\nERROR -- DataProcessor: unknown input type: ", input_type,"\n\n")
+        if input_type not in InputTypes:
+            print("\n\nERROR -- DataProcessor: unknown input type: ", input_type, "\n\n")
             exit(0)
-        
-        self.input_type = input_type
-        self.tree = tree
         
         self.variables = {
             InputTypes.Delphes: {
@@ -101,25 +104,28 @@ class DataProcessor:
         # pre-load all branches for this tree to avoid calling this for every event/track/jet
         self.branches = {}
         for key, value in self.variables[input_type].items():
-            if value in self.tree.keys():
-                self.branches[key] = self.tree[value].array()
+            if value in tree.keys():
+                self.branches[key] = tree[value].array()
         
-
-    def get_value_from_tree(self, key, iEvent=None, iEntry=None):
-        if key not in self.branches.keys():
+    def get_value_from_tree(self, variable, i_event=None, i_entry=None):
+        """
+        Returns value of given variable for given event. If event contains an array of such variable (e.g. jets pt),
+        i_entry must be also specified.
+        """
+        if variable not in self.branches.keys():
             return None
         
-        if iEntry is None:
-            if iEvent is None:
-                return self.branches[key]
-            else:
-                return self.branches[key][iEvent]
+        if i_entry is None:
+            return self.branches[variable][i_event]
         else:
-            return self.branches[key][iEvent][iEntry]
+            return self.branches[variable][i_event][i_entry]
         
-
-    def get_array_n_dimensions(self, key):
-        if key not in self.branches.keys():
+    def get_array_n_dimensions(self, variable):
+        """
+        Returns number of dimensions of the tree leaf for given variable (1 is a number, 2 is a vector etc.)
+        """
+        
+        if variable not in self.branches.keys():
             return None
     
-        return self.branches[key].ndim
+        return self.branches[variable].ndim

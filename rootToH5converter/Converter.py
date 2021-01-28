@@ -5,12 +5,17 @@ import os
 import h5py
 from Jet import Jet
 from Event import Event
+from DataProcessor import *
 
-from InputTypes import *
 
 class Converter:
 
-    def __init__(self, input_path, store_n_jets, jet_delta_r, max_n_constituents, EFP_degree):
+    def __init__(self, input_path, store_n_jets, jet_delta_r, max_n_constituents, efp_degree):
+        """
+        Reads input trees, recognizes input types, initializes EFP processor and prepares all arrays needed to
+        store output variables.
+        """
+        
         self.set_input_paths_and_selections(input_path=input_path)
 
         # read files, trees and recognize input type
@@ -30,14 +35,14 @@ class Converter:
         self.max_n_constituents = max_n_constituents
         self.save_constituents = False if max_n_constituents < 0 else True
         self.max_n_jets = store_n_jets
-        self.save_EFPs = False if EFP_degree < 0 else True
+        self.save_EFPs = False if efp_degree < 0 else True
         self.EFP_size = 0
 
         # initialize EFP set
-        if EFP_degree >= 0:
+        if efp_degree >= 0:
             print("\n\n=======================================================")
-            print("Creating energyflow particle set with degree d <= {0}...".format(EFP_degree))
-            self.efpset = ef.EFPSet("d<={0}".format(EFP_degree), measure='hadr', beta=1.0, normed=True, verbose=True)
+            print("Creating energyflow particle set with degree d <= {0}...".format(efp_degree))
+            self.efpset = ef.EFPSet("d<={0}".format(efp_degree), measure='hadr', beta=1.0, normed=True, verbose=True)
             self.EFP_size = self.efpset.count()
             print("EFP set is size: {}".format(self.EFP_size))
             print("=======================================================\n\n")
@@ -117,6 +122,10 @@ class Converter:
 
                 if event.has_jets_with_no_constituents(self.max_n_jets):
                     print("WARNING -- one of the jets that should be stored has no constituents. Skipping...")
+                    continue
+                    
+                if not event.are_jets_ordered_by_pt():
+                    print("WARNING -- jets in the event are not ordered by pt! Skipping...")
                     continue
                 
                 # fill feature arrays
