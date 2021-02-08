@@ -166,7 +166,7 @@ class Converter:
                     if iJet == self.max_n_jets:
                         break
 
-                    self.output_arrays[OutputTypes.JetFeatures][total_count, iJet, :] = event.jets[iJet].get_features()
+                    self.output_arrays[OutputTypes.JetFeatures][total_count, iJet, :] = jet.get_features()
 
                     if self.save_outputs[OutputTypes.JetConstituents]:
                         self.output_arrays[OutputTypes.JetConstituents][total_count, iJet, :] = jet.get_constituents(self.max_n_constituents)
