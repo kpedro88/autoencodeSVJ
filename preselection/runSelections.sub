@@ -1,0 +1,10 @@
+Universe              = vanilla
+executable            = runSelections.sh
+arguments             = 50000 $(ProcId)
+GetEnv                = True
+output                = output/$(ClusterId).$(ProcId).out
+error                 = error/$(ClusterId).$(ProcId).err
+log                   = log/$(ClusterId).log
+requirements 	      = (OpSysAndVer =?= "CentOS7")
++JobFlavour           = "espresso"
+queue 31
