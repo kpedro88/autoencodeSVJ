@@ -1,0 +1,10 @@
+/eos/project/d/dshep/TOPCLASS/ZprimeDark_1500GeV_0.15_13TeV_PU40_allOn/ZprimeDark_1500GeV_0.15_13TeV_PU40_allOn_1.root
+/eos/project/d/dshep/TOPCLASS/ZprimeDark_1500GeV_0.15_13TeV_PU40_allOn/ZprimeDark_1500GeV_0.15_13TeV_PU40_allOn_11.root
+/eos/project/d/dshep/TOPCLASS/ZprimeDark_1500GeV_0.15_13TeV_PU40_allOn/ZprimeDark_1500GeV_0.15_13TeV_PU40_allOn_21.root
+/eos/project/d/dshep/TOPCLASS/ZprimeDark_1500GeV_0.15_13TeV_PU40_allOn/ZprimeDark_1500GeV_0.15_13TeV_PU40_allOn_31.root
+/eos/project/d/dshep/TOPCLASS/ZprimeDark_1500GeV_0.15_13TeV_PU40_allOn/ZprimeDark_1500GeV_0.15_13TeV_PU40_allOn_41.root
+/eos/project/d/dshep/TOPCLASS/ZprimeDark_1500GeV_0.15_13TeV_PU40_allOn/ZprimeDark_1500GeV_0.15_13TeV_PU40_allOn_51.root
+/eos/project/d/dshep/TOPCLASS/ZprimeDark_1500GeV_0.15_13TeV_PU40_allOn/ZprimeDark_1500GeV_0.15_13TeV_PU40_allOn_61.root
+/eos/project/d/dshep/TOPCLASS/ZprimeDark_1500GeV_0.15_13TeV_PU40_allOn/ZprimeDark_1500GeV_0.15_13TeV_PU40_allOn_71.root
+/eos/project/d/dshep/TOPCLASS/ZprimeDark_1500GeV_0.15_13TeV_PU40_allOn/ZprimeDark_1500GeV_0.15_13TeV_PU40_allOn_81.root
+/eos/project/d/dshep/TOPCLASS/ZprimeDark_1500GeV_0.15_13TeV_PU40_allOn/ZprimeDark_1500GeV_0.15_13TeV_PU40_allOn_91.root

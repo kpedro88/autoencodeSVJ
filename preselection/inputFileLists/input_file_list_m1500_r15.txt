@@ -1,0 +1,5 @@
+/eos/project/d/dshep/genHepMC/mMediator-1500_mDark-20_rinv-0p15_alpha-0p1/HepMC-part1.root
+/eos/project/d/dshep/genHepMC/mMediator-1500_mDark-20_rinv-0p15_alpha-0p1/HepMC-part2.root
+/eos/project/d/dshep/genHepMC/mMediator-1500_mDark-20_rinv-0p15_alpha-0p1/HepMC-part3.root
+/eos/project/d/dshep/genHepMC/mMediator-1500_mDark-20_rinv-0p15_alpha-0p1/HepMC-part4.root
+/eos/project/d/dshep/genHepMC/mMediator-1500_mDark-20_rinv-0p15_alpha-0p1/HepMC-part5.root
