@@ -10,8 +10,8 @@ const int minNjets = 2;
 const double maxJetEta = 2.4;
 const double minJetPt = 200; //GeV
 const double maxJetDeltaEta = 1.5;
-const double minJetMt = 1500; //GeV
-const double minMetRatio = 0.25;
+const double minJetMt = 0; //GeV
+const double minMetRatio = 0;
 
 
 int leptonCount(vector<LorentzMock>* leptons)
