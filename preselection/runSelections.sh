@@ -1,3 +1,5 @@
+#!/bin/bash
+
 nEvents=$1
 i=$(($2-1))
 

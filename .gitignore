@@ -1,3 +1,6 @@
+preselection/._SVJselection.cpp
+preselection/jniedzie.cc
+
 training/trainingResults/*
 training/trainingResults/aucs/*
 training/trainingResults/summary/*
