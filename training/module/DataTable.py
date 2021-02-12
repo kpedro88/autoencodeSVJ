@@ -19,7 +19,7 @@ class DataTable(Logger):
         RobustScaler = 2
         MaxAbsScaler = 3
     
-    norm_types_dict = dict([(x.value, x.output_file_prefix) for x in NormTypes])
+    norm_types_dict = dict([(x.value, x.name) for x in NormTypes])
     table_count = 0
     
     def __init__(self, data, headers=None, name=None, verbose=True):
@@ -62,7 +62,7 @@ class DataTable(Logger):
     
     def setup_scaler(self, norm_type, scaler_args):
         norm_type = getattr(self.NormTypes, norm_type)
-        self.scaler = getattr(prep, norm_type.output_file_prefix)(**scaler_args)
+        self.scaler = getattr(prep, norm_type.name)(**scaler_args)
         self.scaler.fit(self.df)
     
     def normalize(self, inverse=False, scaler=None):

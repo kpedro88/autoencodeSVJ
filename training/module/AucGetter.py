@@ -136,7 +136,7 @@ class AucGetter(object):
         err, recon = utils.get_recon_errors(normed, auto_encoder, **kwargs)
         
         for key, value in err.items():
-            err[key].output_file_prefix = value.output_file_prefix.rstrip('error').strip()
+            err[key].output_file_prefix = value.name.rstrip('error').strip()
         
         for key, value in recon.items():
             recon[key] = data_processor.normalize(data_table=value,
@@ -150,7 +150,7 @@ class AucGetter(object):
         del auto_encoder
         self.time('recon gen')
         
-        return [{z.output_file_prefix: z for y, z in x.items()} for x in [normed, err, recon]]
+        return [{z.name: z for y, z in x.items()} for x in [normed, err, recon]]
     
     def get_aucs(self, errors, qcd_key='qcd', metrics=None):
         self.start()

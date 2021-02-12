@@ -191,7 +191,7 @@ def get_recon_errors(data_list, autoencoder, **kwargs):
         recon[key] = DataTable(pd.DataFrame(autoencoder.predict(data.data), columns=data.columns, index=data.index),
                                name="{0} pred".format(data.output_file_prefix))
         
-        errors[key] = get_errors(recon[key].data, data.data, out_name="{0} error".format(data.output_file_prefix), index=data.df.index, **kwargs)
+        errors[key] = get_errors(recon[key].data, data.data, out_name="{0}".format(data.output_file_prefix), index=data.df.index, **kwargs)
         
     return errors, recon
 
