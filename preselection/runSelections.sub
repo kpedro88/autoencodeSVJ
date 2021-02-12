@@ -1,7 +1,7 @@
 Universe              = vanilla
 executable            = runSelections.sh
-#arguments             = 50000 $(ProcId)
-arguments             = 50000 21
+arguments             = 50000 $(ProcId)
+#arguments             = 50000 21
 GetEnv                = True
 output                = output/$(ClusterId).$(ProcId).out
 error                 = error/$(ClusterId).$(ProcId).err
@@ -9,5 +9,5 @@ log                   = log/$(ClusterId).log
 requirements 	      = (OpSysAndVer =?= "CentOS7")
 +JobFlavour           = "espresso"
 
-#queue 31
-queue 1
+queue 31
+#queue 1
