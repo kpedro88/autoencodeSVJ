@@ -91,12 +91,17 @@ class DataLoader(Logger):
             newNames = dict()
         
             for column in table.df.columns:
-                encoding = chardet.detect(column)["encoding"]
-                if column.isdigit():
-                
-                    newNames[column] = "eflow %s" % (column.decode(encoding))
-                elif type(column) is bytes:
-                    newNames[column] = column.decode(encoding)
+                if type(column) is str:
+                    if column.isdigit():
+                        newNames[column] = "eflow %s" % (column)
+                    else:
+                        newNames[column] = column
+                else:
+                    encoding = chardet.detect(column)["encoding"]
+                    if column.isdigit():
+                        newNames[column] = "eflow %s" % (column.decode(encoding))
+                    elif type(column) is bytes:
+                        newNames[column] = column.decode(encoding)
         
             tables[i].df.rename(columns=newNames, inplace=True)
             tables[i].headers = list(tables[i].df.columns)

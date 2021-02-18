@@ -7,10 +7,10 @@ from module.AutoEncoderTrainer import AutoEncoderTrainer
 # ------------------------------------------------------------------------------------------------
 
 output_path = "trainingResults/"
-summary_path = output_path+"summary/customStandardScaler/"
-results_path = output_path+"trainingRuns/customStandardScaler/"
+summary_path = output_path+"summary/"
+results_path = output_path+"trainingRuns/"
 
-qcd_path = "../../data/training_data/qcd/base_3/*.h5"
+qcd_path = "../../data/backgrounds/qcd/h5_qcd/*.h5"
 
 
 # ---------------------------------------------
@@ -54,19 +54,19 @@ n_models = 100
 #              }
 
 # https://scikit-learn.org/stable/modules/generated/sklearn.preprocessing.StandardScaler.html#sklearn.preprocessing.StandardScaler
-# norm_type="StandardScaler"
-# norm_args = {"with_mean"    : True,
-#              "copy"         : True,
-#              "with_std"     : True,
-#              }
+norm_type="StandardScaler"
+norm_args = {"with_mean"    : True,
+             "copy"         : True,
+             "with_std"     : True,
+             }
 
 # https://scikit-learn.org/stable/modules/generated/sklearn.preprocessing.MaxAbsScaler.html#sklearn.preprocessing.MaxAbsScaler
 # norm_type="MaxAbsScaler"
 # norm_args = {"copy"         : True,}
 
 # Custom implementation of the StandardScaler
-norm_type="CustomStandard"
-norm_args = {}
+# norm_type="CustomStandard"
+# norm_args = {}
 
 # Or don't apply any scaling at all
 # norm_type="None"
