@@ -64,7 +64,7 @@ int main(int argc, char **argv)
   
   // add componenets for jets (tlorentz)
   
-  vector<TLorentzVector>* Jets = core.AddLorentz("Jet", {"Jet.PT","Jet.Eta","Jet.Phi","Jet.Mass"});
+  vector<TLorentzVector>* Jets = core.AddLorentz("Jet", {"FatJet.PT","FatJet.Eta","FatJet.Phi","FatJet.Mass"});
   vector<LorentzMock>* Electrons = core.AddLorentzMock("Electron", {"Electron.PT","Electron.Eta", "Electron.IsolationVarRhoCorr"});
   vector<LorentzMock>* Muons = core.AddLorentzMock("Muon", {"MuonLoose.PT", "MuonLoose.Eta", "MuonLoose.IsolationVarRhoCorr"});
   double* metFull_Pt = core.AddVar("metMET", "MissingET.MET");
@@ -132,7 +132,7 @@ int main(int argc, char **argv)
     core.Fill(HistType::pre_mjj, Mjj);
     
     // leading jet etas both meet eta veto
-    bool passesJetEta = fabs(Jets->at(0).Eta()) <= maxJetEta && fabs(Jets->at(0).Eta()) <= maxJetEta;
+    bool passesJetEta = fabs(Jets->at(0).Eta()) <= maxJetEta && fabs(Jets->at(1).Eta()) <= maxJetEta;
     core.SetCutValue(passesJetEta, CutType::jetEtas);
     
     // leading jets meet delta eta veto
