@@ -10,9 +10,15 @@ const int minNjets = 2;
 const double maxJetEta = 2.4;
 const double minJetPt = 200; //GeV
 const double maxJetDeltaEta = 1.5;
-const double minJetMt = 0; //GeV
-const double minMetRatio = 0;
+const double minJetMt = 1500; //GeV
+const double minMetRatio = 0.25;
 
+double TransverseMass(double px1, double py1, double m1, double px2, double py2, double m2){
+	double E1 = sqrt(pow(px1,2)+pow(py1,2)+pow(m1,2));
+	double E2 = sqrt(pow(px2,2)+pow(py2,2)+pow(m2,2));
+	double MTsq = pow(E1+E2,2)-pow(px1+px2,2)-pow(py1+py2,2);
+	return sqrt(max(MTsq,0.0));
+}
 
 int leptonCount(vector<LorentzMock>* leptons)
 {
@@ -44,8 +50,8 @@ int main(int argc, char **argv)
   core.AddHist(HistType::dEta, "h_dEta", "#Delta#eta(j0,j1)", 100, 0, 10);
   core.AddHist(HistType::dPhi, "h_dPhi", "#Delta#Phi(j0,j1)", 100, 0, 5);
   core.AddHist(HistType::tRatio,  "h_transverseratio", "MET/M_{T}", 100, 0, 1);
-  core.AddHist(HistType::met2, "h_Mt", "m_{T}", 750, 0, 7500);
-  core.AddHist(HistType::mjj, "h_Mjj", "m_{JJ}", 750, 0, 7500);
+  core.AddHist(HistType::met2, "h_Mt", "m_{T}", 80, 0, 8000);
+  core.AddHist(HistType::mjj, "h_Mjj", "m_{JJ}", 80, 0, 8000);
   core.AddHist(HistType::metPt, "h_METPt", "MET_{p_{T}}", 100, 0, 2000);
   
   // histograms for pre/post PT wrt PT cut (i.e. after MET, before PT && afer PT)
@@ -122,10 +128,7 @@ int main(int argc, char **argv)
     double metFull_Px = (*metFull_Pt)*cos(*metFull_Phi);
     double Mjj = Vjj.M(); // SAVE
     double Mjj2 = Mjj*Mjj;
-    double ptjj = Vjj.Pt();
-    double ptjj2 = ptjj*ptjj;
-    double ptMet = Vjj.Px()*metFull_Px + Vjj.Py()*metFull_Py;
-    double MT2 = sqrt(Mjj2 + 2*(sqrt(Mjj2 + ptjj2)*(*metFull_Pt) - ptMet)); // SAVE
+    double MT2 = TransverseMass(Vjj.Px(),Vjj.Py(),Vjj.M(),metFull_Px,metFull_Py,0);
     
     // fill pre-cut MT2 histogram
     core.Fill(HistType::pre_MT, MT2);
