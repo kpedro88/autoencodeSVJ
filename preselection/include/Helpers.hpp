@@ -109,6 +109,8 @@ enum class HistType {
   
   pre_MT,
   pre_mjj,
+  pre_metPt,
+  pre_tRatio,
   
   COUNT
 };

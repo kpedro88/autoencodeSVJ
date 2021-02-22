@@ -53,7 +53,7 @@ int main(int argc, char **argv)
   core.AddHist(HistType::met2, "h_Mt", "m_{T}", 80, 0, 8000);
   core.AddHist(HistType::mjj, "h_Mjj", "m_{JJ}", 80, 0, 8000);
   core.AddHist(HistType::metPt, "h_METPt", "MET_{p_{T}}", 100, 0, 2000);
-  
+
   // histograms for pre/post PT wrt PT cut (i.e. after MET, before PT && afer PT)
   core.AddHist(HistType::pre_1pt, "h_pre_1pt", "pre PT cut leading jet pt", 100, 0, 2500);
   core.AddHist(HistType::pre_2pt, "h_pre_2pt", "pre PT cut subleading jet pt", 100, 0, 2500);
@@ -65,9 +65,11 @@ int main(int argc, char **argv)
   core.AddHist(HistType::post_lep, "h_post_lep", "lepton count post-cut", 10, 0, 10);
   
   // mt2 pre cut
-  core.AddHist(HistType::pre_MT, "h_pre_MT", "pre-cut m_{T}", 750, 0, 7500);
-  core.AddHist(HistType::pre_mjj, "h_pre_Mjj", "pre-cut m_{JJ}", 750, 0, 7500);
-  
+  core.AddHist(HistType::pre_MT, "h_pre_MT", "pre-cut m_{T}", 80, 0, 8000);
+  core.AddHist(HistType::pre_mjj, "h_pre_Mjj", "pre-cut m_{JJ}", 80, 0, 8000);
+  core.AddHist(HistType::pre_tRatio,  "h_pre_transverseratio", "MET/M_{T}", 100, 0, 1);
+  core.AddHist(HistType::pre_metPt, "h_pre_METPt", "MET_{p_{T}}", 100, 0, 2000);
+
   // add componenets for jets (tlorentz)
   
   vector<TLorentzVector>* Jets = core.AddLorentz("Jet", {"FatJet.PT","FatJet.Eta","FatJet.Phi","FatJet.Mass"});
@@ -133,6 +135,8 @@ int main(int argc, char **argv)
     // fill pre-cut MT2 histogram
     core.Fill(HistType::pre_MT, MT2);
     core.Fill(HistType::pre_mjj, Mjj);
+    core.Fill(HistType::pre_tRatio, (*metFull_Pt) / MT2);
+    core.Fill(HistType::pre_metPt, *metFull_Pt);
     
     // leading jet etas both meet eta veto
     bool passesJetEta = fabs(Jets->at(0).Eta()) <= maxJetEta && fabs(Jets->at(1).Eta()) <= maxJetEta;
